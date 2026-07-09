@@ -1598,6 +1598,7 @@ function switchAud(e, panel) {
     <div style="font-size:.6rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:12px 10px 5px;display:block">Connect</div>
     <div class="p-nav-item" onclick="showPortalPanel('p-chat',this)">💬 &nbsp;Messages<span class="p-nav-unread" style="display:none">0</span></div>
     <div class="p-nav-item" onclick="showPortalPanel('p-payments',this)">💳 &nbsp;Payments</div>
+    <div class="p-nav-item" onclick="showPortalPanel('p-profile',this)" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding-top:12px">👤 &nbsp;My Profile</div>
   </div>
   <div style="padding:14px 18px;border-top:1px solid rgba(255,255,255,.06)">
     <div style="background:rgba(200,161,90,0.12);border:1px solid rgba(200,161,90,0.22);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:9px">
@@ -1784,6 +1785,23 @@ function switchAud(e, panel) {
       <div id="sp-payment-history">
         <div style="color:#A7A7A7;font-size:.82rem;padding:20px;text-align:center">Loading…</div>
       </div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="p-profile" class="p-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A">My Profile</h2>
+      <button onclick="spOpenEditProfile()" style="padding:8px 16px;background:#0D1B2A;color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Edit profile</button>
+    </div>
+    <div class="p-card" style="margin-bottom:14px">
+      <div id="sp-profile-view">
+        <div style="text-align:center;color:#A7A7A7;padding:24px;font-size:.85rem">Loading your profile…</div>
+      </div>
+    </div>
+    <div class="p-card">
+      <div class="p-card-hdr" style="margin-bottom:10px"><span class="p-card-title">Visible to your tutor</span></div>
+      <p style="font-size:.8rem;color:#718096;line-height:1.6">Your tutor can see your year group, subjects, current and target grades, and any notes you've shared. This helps them personalise every lesson.</p>
     </div>
   </div>
 
@@ -3759,17 +3777,37 @@ window.addEventListener('DOMContentLoaded', function() {
 
     <!-- SCHEDULE -->
     <div id="tp-schedule" class="tp-panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A">My Schedule</h2>
-        <button onclick="tpOpenAddLesson()" style="padding:9px 16px;background:#0D1B2A;color:#fff;border:none;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">+ Add lesson</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A">My Calendar</h2>
+        <div style="display:flex;gap:8px">
+          <button onclick="tpCalNav(-1)" style="padding:7px 14px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:600;color:#0D1B2A;cursor:pointer;background:#fff;font-family:Inter,sans-serif">◂ Prev</button>
+          <button onclick="tpCalNav(1)" style="padding:7px 14px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:600;color:#0D1B2A;cursor:pointer;background:#fff;font-family:Inter,sans-serif">Next ▸</button>
+          <button onclick="tpOpenAddLesson()" style="padding:7px 14px;background:#0D1B2A;color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">+ Add lesson</button>
+        </div>
       </div>
-      <div class="tp-card">
-        <div class="tp-card-hdr"><span class="tp-card-title">This week</span></div>
+
+      <!-- Calendar grid -->
+      <div class="tp-card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div id="tp-cal-month-label" style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#0D1B2A">Loading…</div>
+          <span id="tp-cal-week-count" style="font-size:.77rem;color:#718096"></span>
+        </div>
+        <div class="cal-grid-p">
+          <div class="cal-lbl">Mon</div><div class="cal-lbl">Tue</div><div class="cal-lbl">Wed</div>
+          <div class="cal-lbl">Thu</div><div class="cal-lbl">Fri</div><div class="cal-lbl">Sat</div><div class="cal-lbl">Sun</div>
+        </div>
+        <div id="tp-cal-grid-body" class="cal-grid-p" style="margin-top:0"></div>
+      </div>
+
+      <!-- Lesson list -->
+      <div style="margin-bottom:11px;font-size:.79rem;font-weight:700;color:#0D1B2A" id="tp-cal-list-hdr">Upcoming lessons</div>
+      <div class="cal-ev-list" id="tp-cal-ev-list">
         <div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">Loading…</div>
       </div>
 
-      <div class="tp-card">
-        <div class="tp-card-hdr"><span class="tp-card-title">Weekly availability</span><span class="tp-card-link">Edit availability</span></div>
+      <!-- Weekly availability (below calendar) -->
+      <div class="tp-card" style="margin-top:16px">
+        <div class="tp-card-hdr"><span class="tp-card-title">Weekly availability</span><span class="tp-card-link" onclick="tpSaveAvailability()">Save</span></div>
         <div class="tp-avail-grid">
           <div class="tp-avail-day"><div class="tp-avail-dow">Mon</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot" onclick="toggleAvail(this)">6–8pm</div></div>
           <div class="tp-avail-day"><div class="tp-avail-dow">Tue</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">6–8pm</div></div>
@@ -5973,6 +6011,7 @@ window.showPortalPanel = function(id, navEl) {
   }
   if (id === 'p-chat') { spLoadMessages(); spCheckUnreadMessages(); }
   if (id === 'p-payments') spLoadPaymentHistory();
+  if (id === 'p-profile') spRenderProfileView();
 };
 </script>
 
@@ -5995,6 +6034,7 @@ async function tpLoadSchedule() {
     if (weekEl) weekEl.textContent = weekCount;
     tpRenderHomeToday();
     tpRenderSchedulePanel();
+    if (typeof tpCalRender === 'function') tpCalRender();
     tpRenderAssignedLeads();
     tpRenderRecentHomework();
   } catch(e) { console.error('tpLoadSchedule:', e.message); seedsToast('Could not load your schedule — check your connection and refresh.'); }
@@ -6168,6 +6208,7 @@ const _origTPPanel = window.showTpPanel;
 window.showTpPanel = function(id, navEl) {
   _origTPPanel(id, navEl);
   if (id==='tp-home'||id==='tp-schedule') tpLoadSchedule();
+  if (id==='tp-schedule') { tpCalViewDate = new Date(); setTimeout(tpCalRender, 300); }
   if (id==='tp-earnings') { earnLoadData(); setTimeout(earnLoadFullHistory, 1000); }
   if (id==='tp-students') tpRenderStudentsList();
   if (id==='tp-chat') { tpLoadChatSidebar(); tpCheckUnreadMessages(); }
@@ -7109,20 +7150,35 @@ if (typeof adRenderDashboard === 'function') {
 
 <!-- STUDENT PROFILE SETUP MODAL (first login) -->
 <div class="ad-modal-overlay" id="sp-profile-modal" style="z-index:18000">
-  <div class="ad-modal" style="max-width:440px">
+  <div class="ad-modal" style="max-width:460px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Complete your profile</h3>
-      <span onclick="document.getElementById('sp-profile-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <span onclick="document.getElementById('sp-profile-modal').classList.remove('open');localStorage.setItem('sp_profile_done_skip','1')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
     </div>
-    <p>Help your tutor get to know you before your first lesson.</p>
-    <span class="lg-label">School year</span>
-    <select class="lg-input" id="sp-profile-year" style="cursor:pointer;margin-bottom:8px">
+    <p style="color:#718096;font-size:.85rem;margin-bottom:16px">This helps your tutor personalise every lesson for you.</p>
+    <div id="sp-profile-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
+    <span class="lg-label">School year <span style="color:#c0392b">*</span></span>
+    <select class="lg-input" id="sp-profile-year" style="cursor:pointer;margin-bottom:10px">
       <option value="">Select year…</option>
-      <option>Year 10</option><option>Year 11</option><option>Year 12</option><option>Year 13</option>
-      <option>Post-A-Level</option><option>Primary</option>
+      <option>Year 7</option><option>Year 8</option><option>Year 9</option>
+      <option>Year 10</option><option>Year 11</option>
+      <option>Year 12 (AS)</option><option>Year 13 (A2)</option>
+      <option>Post-A-Level / Resit</option>
     </select>
-    <span class="lg-label">Target grades (e.g. Maths: A*, Chemistry: A)</span>
-    <input class="lg-input" type="text" id="sp-profile-targets" placeholder="e.g. Maths: A*, Biology: A" style="margin-bottom:14px">
+    <span class="lg-label">Subject(s) studying</span>
+    <input class="lg-input" type="text" id="sp-profile-subjects-input" placeholder="e.g. Mathematics, Chemistry" style="margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <span class="lg-label">Current grade</span>
+        <input class="lg-input" type="text" id="sp-profile-current" placeholder="e.g. Grade 5 / C" style="margin:0">
+      </div>
+      <div>
+        <span class="lg-label">Target grade</span>
+        <input class="lg-input" type="text" id="sp-profile-aim" placeholder="e.g. A* / Grade 9" style="margin:0">
+      </div>
+    </div>
+    <span class="lg-label">Target grades by subject (optional)</span>
+    <input class="lg-input" type="text" id="sp-profile-targets" placeholder="e.g. Maths: A*, Chemistry: A" style="margin-bottom:16px">
     <button class="lg-enter" id="sp-profile-btn" onclick="spSaveProfile()">Save &amp; continue &rarr;</button>
   </div>
 </div>
@@ -7249,27 +7305,48 @@ async function adSendMessage() {
 // ══ STUDENT PROFILE SETUP ═════════════════════════════════════════════════
 async function spSaveProfile() {
   const btn = document.getElementById('sp-profile-btn');
+  const errEl = document.getElementById('sp-profile-error') || document.createElement('div');
   const year = document.getElementById('sp-profile-year').value;
   const targets = document.getElementById('sp-profile-targets').value.trim();
+  const subjects = document.getElementById('sp-profile-subjects-input')?.value?.trim() || '';
+  const currentGrade = document.getElementById('sp-profile-current')?.value?.trim() || '';
+  const aimGrade = document.getElementById('sp-profile-aim')?.value?.trim() || '';
+  if (!year) {
+    errEl.textContent = 'Please select your school year.';
+    errEl.style.display = 'block';
+    return;
+  }
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) throw new Error('Not logged in');
-    // Parse targets string into object e.g. "Maths: A*, Bio: A"
+    const { data: { session }, error: sErr } = await sbClient.auth.getSession();
+    if (sErr || !session) throw new Error('Not logged in — please refresh and try again.');
+    const uid = session.user.id;
+    // Parse "Maths: A*, Bio: A" → {Maths:'A*', Bio:'A'}
     const targetObj = {};
     targets.split(',').forEach(t => {
       const [sub, grade] = t.split(':');
       if (sub && grade) targetObj[sub.trim()] = grade.trim();
     });
-    await sbClient.from('profiles').update({
-      school_year: year || null,
+    // Upsert so it works even if no profile row exists yet
+    const { error } = await sbClient.from('profiles').upsert({
+      id: uid,
+      school_year: year,
       target_grades: targetObj,
-    }).eq('id', session.user.id);
+      subjects: subjects || null,
+      onboarding_complete: true,
+    }, { onConflict: 'id' });
+    if (error) throw new Error(error.message);
+    // Mark done so modal never appears again this browser
+    localStorage.setItem('sp_profile_done_' + uid, '1');
     document.getElementById('sp-profile-modal').classList.remove('open');
     seedsToast('✓ Profile saved', false);
+    // Refresh student home to show updated profile
+    if (typeof spLoadData === 'function') spLoadData();
   } catch(e) {
-    btn.disabled = false; btn.textContent = 'Save & continue →';
-    seedsToast('Failed: ' + e.message);
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Save & continue →';
   }
 }
 
@@ -7278,13 +7355,23 @@ async function spCheckProfileSetup() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const { data: profile } = await sbClient.from('profiles').select('school_year').eq('id', session.user.id).single();
-    if (!profile?.school_year && !localStorage.getItem('sp_profile_skip')) {
+    const uid = session.user.id;
+    // Skip if already completed this browser session
+    if (localStorage.getItem('sp_profile_done_' + uid)) return;
+    const { data: profile } = await sbClient.from('profiles')
+      .select('school_year, onboarding_complete')
+      .eq('id', uid)
+      .maybeSingle();
+    // Show if no school year set and not marked complete
+    if (!profile?.school_year && !profile?.onboarding_complete) {
       setTimeout(() => {
         document.getElementById('sp-profile-modal').classList.add('open');
-      }, 1500);
+      }, 1200);
+    } else {
+      // Already complete — mark in localStorage so we never check again
+      localStorage.setItem('sp_profile_done_' + uid, '1');
     }
-  } catch(e) {}
+  } catch(e) { console.warn('spCheckProfileSetup:', e.message); }
 }
 
 // ══ TUTOR SELF-MANAGE LESSONS ════════════════════════════════════════════
@@ -8292,4 +8379,204 @@ function openLegal(id){document.getElementById(id).classList.add('open');documen
 function closeLegal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
 </script>
 
+
+<script>
+// ══ STUDENT PROFILE VIEW & EDIT ══════════════════════════════════════════
+async function spRenderProfileView() {
+  const el = document.getElementById('sp-profile-view');
+  if (!el) return;
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const { data: profile } = await sbClient.from('profiles')
+      .select('school_year, subjects, target_grades, onboarding_complete')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    const { data: userData } = await sbClient.auth.getUser();
+    const email = userData?.user?.email || session.user.email;
+    const name = profile?.full_name || email.split('@')[0];
+
+    const targetGrades = profile?.target_grades || {};
+    const targetsHtml = Object.keys(targetGrades).length
+      ? Object.entries(targetGrades).map(([sub,g]) =>
+          `<span style="display:inline-block;background:#FAF8F4;border:1px solid #E8E8E8;border-radius:6px;padding:3px 10px;font-size:.78rem;margin:3px">${sub}: <strong>${g}</strong></span>`
+        ).join('')
+      : '<span style="color:#A7A7A7;font-size:.83rem">Not set yet</span>';
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #F0EDE8">
+        <div style="width:56px;height:56px;border-radius:50%;background:#0D1B2A;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#C8A15A;flex-shrink:0">
+          ${name[0].toUpperCase()}
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:1.05rem;color:#0D1B2A">${name}</div>
+          <div style="font-size:.8rem;color:#718096">${email}</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F8F6F2">
+          <span style="font-size:.82rem;color:#718096">School year</span>
+          <span style="font-weight:600;font-size:.85rem;color:#0D1B2A">${profile?.school_year || '<em style="color:#A7A7A7">Not set</em>'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F8F6F2">
+          <span style="font-size:.82rem;color:#718096">Subjects</span>
+          <span style="font-weight:600;font-size:.85rem;color:#0D1B2A">${profile?.subjects || '<em style="color:#A7A7A7">Not set</em>'}</span>
+        </div>
+        <div style="padding:10px 0">
+          <div style="font-size:.82rem;color:#718096;margin-bottom:8px">Target grades</div>
+          <div>${targetsHtml}</div>
+        </div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<div style="color:#c0392b;font-size:.82rem">Failed to load profile: ' + e.message + '</div>';
+  }
+}
+
+function spOpenEditProfile() {
+  // Pre-fill the profile modal with existing data then open it
+  sbClient.from('profiles')
+    .select('school_year, subjects, target_grades')
+    .eq('id', sbClient.auth.getUser().then ? '' : '')
+    .maybeSingle()
+    .then(() => {});
+
+  sbClient.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return;
+    sbClient.from('profiles').select('school_year,subjects,target_grades').eq('id',session.user.id).maybeSingle().then(({ data: p }) => {
+      if (p) {
+        const yr = document.getElementById('sp-profile-year');
+        if (yr) yr.value = p.school_year || '';
+        const si = document.getElementById('sp-profile-subjects-input');
+        if (si) si.value = p.subjects || '';
+        const tg = document.getElementById('sp-profile-targets');
+        if (tg) tg.value = Object.entries(p.target_grades || {}).map(([k,v])=>k+': '+v).join(', ');
+      }
+      document.getElementById('sp-profile-error').style.display = 'none';
+      const btn = document.getElementById('sp-profile-btn');
+      btn.disabled = false; btn.textContent = 'Save & continue →';
+      document.getElementById('sp-profile-modal').classList.add('open');
+    });
+  });
+}
+</script>
+
+<script>
+// ══ TUTOR CALENDAR ══════════════════════════════════════════════════════
+let tpCalViewDate = new Date();
+
+function tpCalNav(dir) {
+  tpCalViewDate = new Date(tpCalViewDate.getFullYear(), tpCalViewDate.getMonth() + dir, 1);
+  tpCalRender();
+}
+
+function tpCalRender() {
+  const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
+  const now = new Date();
+  const year = tpCalViewDate.getFullYear();
+  const month = tpCalViewDate.getMonth();
+
+  const lbl = document.getElementById('tp-cal-month-label');
+  if (lbl) lbl.textContent = tpCalViewDate.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+
+  const grid = document.getElementById('tp-cal-grid-body');
+  if (!grid) return;
+
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+
+  // Build booking lookup by day
+  const byDate = {};
+  tpLiveBookings.forEach(b => {
+    const d = new Date(b.startTime);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const key = d.getDate();
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(b);
+    }
+  });
+
+  let cells = '';
+  for (let i = 0; i < startOffset; i++) {
+    cells += `<div class="cal-d cal-empty"><div class="cal-d-num" style="color:#E8E8E8">${daysInPrev - startOffset + 1 + i}</div></div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === now.getDate() && month === now.getMonth() && year === now.getFullYear();
+    const bookings = byDate[d] || [];
+    const colour = bookings.length ? (COLOURS[bookings[0].lessonType] || '#C8A15A') : '';
+    const label = bookings.length
+      ? `<div class="cal-d-lbl" style="color:${colour}">${bookings[0].studentName?.split(' ')[0] || 'Lesson'}</div>`
+      : '';
+    const hasClass = bookings.length ? 'cal-has' : '';
+    const click = bookings.length ? `onclick="tpCalShowDay(${d},${month},${year})" style="cursor:pointer"` : '';
+    cells += `<div class="cal-d ${hasClass}${isToday?' cal-today':''}" ${click}><div class="cal-d-num">${d}</div>${label}</div>`;
+  }
+  const remaining = (startOffset + daysInMonth) % 7;
+  for (let i = 1; i <= (remaining ? 7 - remaining : 0); i++) {
+    cells += `<div class="cal-d cal-empty"><div class="cal-d-num" style="color:#E8E8E8">${i}</div></div>`;
+  }
+  grid.innerHTML = cells;
+
+  // Week count
+  const ws = new Date(now); ws.setHours(0,0,0,0); ws.setDate(now.getDate() - (now.getDay()+6)%7);
+  const we = new Date(ws); we.setDate(ws.getDate()+7);
+  const wc = tpLiveBookings.filter(b => { const d = new Date(b.startTime); return d >= ws && d < we; }).length;
+  const wcEl = document.getElementById('tp-cal-week-count');
+  if (wcEl) wcEl.textContent = wc ? `${wc} lesson${wc>1?'s':''} this week` : '';
+
+  // Render upcoming list
+  tpCalRenderList();
+}
+
+function tpCalShowDay(day, month, year) {
+  const dayStart = new Date(year, month, day);
+  const dayEnd = new Date(year, month, day + 1);
+  const dayBookings = tpLiveBookings.filter(b => {
+    const d = new Date(b.startTime);
+    return d >= dayStart && d < dayEnd;
+  });
+  tpCalRenderListItems(dayBookings,
+    dayStart.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}));
+}
+
+function tpCalRenderList() {
+  const upcoming = [...tpLiveBookings]
+    .filter(b => new Date(b.startTime) > Date.now() - 86400000)
+    .sort((a,b) => new Date(a.startTime)-new Date(b.startTime))
+    .slice(0, 8);
+  tpCalRenderListItems(upcoming, 'Upcoming lessons');
+}
+
+function tpCalRenderListItems(bookings, headerText) {
+  const el = document.getElementById('tp-cal-ev-list');
+  const hdr = document.getElementById('tp-cal-list-hdr');
+  if (!el) return;
+  if (hdr) hdr.textContent = headerText;
+  const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
+  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial'};
+  if (!bookings.length) {
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">No lessons.</div>';
+    return;
+  }
+  el.innerHTML = bookings.map(b => {
+    const diff = new Date(b.startTime) - Date.now();
+    const isLive = diff > -5400000 && diff < 0;
+    const isSoon = diff >= 0 && diff < 1440*60000;
+    const colour = COLOURS[b.lessonType] || '#C8A15A';
+    const joinBtn = b.meetLink
+      ? `<button onclick="window.open('${b.meetLink}','_blank')" style="padding:6px 13px;background:${isLive?'#2D7A4F':'#0D1B2A'};color:#fff;border:none;border-radius:7px;font-size:.71rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">${isLive?'🔴 Join now':'Join'}</button>`
+      : '';
+    const prepBtn = `<button onclick="tpOpenPrepMode(Object.assign(document.createElement('button'),{dataset:{bid:'${b.id||''}',sid:'${b.studentId||''}',sname:'${(b.studentName||'').replace(/'/g,'')}',subj:'${(b.subject||'').replace(/'/g,'')}',meet:'${b.meetLink||''}',start:'${b.startTime||''}'}}))" style="padding:6px 10px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.71rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">📋 Prep</button>`;
+    return `<div class="cal-ev">
+      <div class="cal-ev-stripe" style="background:${colour}"></div>
+      <div class="cal-ev-info">
+        <div class="cal-ev-subj">${b.studentName} — ${b.subject} (${TYPE_LBL[b.lessonType]||b.lessonType})</div>
+        <div class="cal-ev-meta">${tpFmt(b.startTime)}${b.meetLink?' · <a href="'+b.meetLink+'" target="_blank" style="color:#4A90D9;text-decoration:none">Meeting link ↗</a>':''}</div>
+      </div>
+      <div style="display:flex;gap:6px">${joinBtn}${prepBtn}</div>
+    </div>`;
+  }).join('');
+}
+</script>
 </body></html>
