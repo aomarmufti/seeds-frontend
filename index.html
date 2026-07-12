@@ -4652,15 +4652,8 @@ window.showTpPanel = function(id, navEl){
 .bk-summary-value{color:#0D1B2A;font-weight:600;text-align:right}
 
 /* Payment method selector */
-.bk-pay-methods{display:flex;gap:9px;margin-bottom:16px}
-.bk-pay-method{flex:1;padding:13px 0;border:1.5px solid #E8E8E8;border-radius:12px;text-align:center;cursor:pointer;transition:all .2s;font-size:.8rem;font-weight:700;color:#4A5568;display:flex;flex-direction:column;align-items:center;gap:5px}
-.bk-pay-method:hover{border-color:#C8A15A}
-.bk-pay-method.bk-pay-sel{border-color:#0D1B2A;background:rgba(13,27,42,0.04);color:#0D1B2A}
-.bk-pay-icon{font-size:1.3rem}
 .bk-card-fields{display:none}
 .bk-card-fields.bk-card-active{display:block}
-.bk-applepay-btn{width:100%;padding:14px 0;background:#000;color:#fff;border:none;border-radius:11px;font-size:.92rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-family:-apple-system,'Inter',sans-serif;transition:opacity .2s}
-.bk-applepay-btn:hover{opacity:.85}
 .bk-secure-note{display:flex;align-items:center;gap:6px;justify-content:center;font-size:.72rem;color:#A7A7A7;margin-top:12px}
 
 /* Footer actions */
@@ -4873,14 +4866,8 @@ window.showTpPanel = function(id, navEl){
 
       <div id="bk-payment-section">
         <span class="bk-label">Payment method</span>
-        <div class="bk-pay-methods">
-          <div class="bk-pay-method bk-pay-sel" onclick="selectPayMethod(this,'apple')"><span class="bk-pay-icon"> </span>Apple Pay</div>
-          <div class="bk-pay-method" onclick="selectPayMethod(this,'card')"><span class="bk-pay-icon">💳</span>Card</div>
-        </div>
 
-        <button class="bk-applepay-btn" id="bk-applepay-btn" onclick="completeBooking()"> Pay</button>
-
-        <div class="bk-card-fields" id="bk-card-fields">
+        <div class="bk-card-fields bk-card-active" id="bk-card-fields">
           <div id="bk-stripe-element" style="padding:13px 14px;border:1.5px solid #E8E8E8;border-radius:10px;margin-bottom:10px;background:#fff"></div>
           <div id="bk-card-error" style="color:#c0392b;font-size:.8rem;margin-bottom:8px;display:none"></div>
           <button class="bk-next-btn" style="width:100%;margin-top:6px" id="bk-pay-btn" onclick="completeBooking()">Confirm &amp; Pay</button>
@@ -5009,13 +4996,6 @@ function selectSlot(el) {
   el.classList.add('bk-slot-sel');
   bkState.time = el.textContent;
 }
-function selectPayMethod(el, method) {
-  document.querySelectorAll('.bk-pay-method').forEach(m => m.classList.remove('bk-pay-sel'));
-  el.classList.add('bk-pay-sel');
-  document.getElementById('bk-applepay-btn').style.display = method === 'apple' ? 'flex' : 'none';
-  document.getElementById('bk-card-fields').classList.toggle('bk-card-active', method === 'card');
-}
-
 // ── Step 4 summary ──────────────────────────────────────────────────────────
 function updateBookingSummary() {
   document.getElementById('bk-sum-tutor').textContent = bkState.tutor;
