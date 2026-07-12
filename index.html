@@ -1861,6 +1861,9 @@ function seedsToast(msg, isError = true) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'seeds-toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.setAttribute('aria-atomic', 'true');
     t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;padding:12px 18px;border-radius:12px;font-family:Inter,sans-serif;font-size:.82rem;font-weight:600;box-shadow:0 8px 30px rgba(13,27,42,.25);display:none';
     document.body.appendChild(t);
   }
