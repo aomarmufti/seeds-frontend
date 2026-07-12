@@ -2439,7 +2439,7 @@ async function sendPortalMsg(){
       <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">Finance</div>
       <div class="ad-nav-item" onclick="showAdPanel('ad-payments',this)">💳 &nbsp;Payments</div>
       <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">System</div>
-      <div class="ad-nav-item" onclick="window.open(AD_BACKEND+'/api/health','_blank')">🩺 &nbsp;System status</div>
+      <div class="ad-nav-item" onclick="adOpenHealthCheck()">🩺 &nbsp;System status</div>
       <div class="ad-nav-item" onclick="document.getElementById('ad-bulk-email-modal').classList.add('open')">📢 &nbsp;Announcements</div>
     </div>
   </div>
@@ -2680,6 +2680,17 @@ let adData = null; // cached after first load
 async function adAuthHeaders() {
   const { data: { session } } = await sbClient.auth.getSession();
   return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+async function adOpenHealthCheck() {
+  try {
+    const r = await fetch(AD_BACKEND + '/api/health', { headers: await adAuthHeaders() });
+    const text = await r.text();
+    const blob = new Blob([text], { type: 'application/json' });
+    window.open(URL.createObjectURL(blob), '_blank');
+  } catch (e) {
+    seedsToast('Failed to load system status: ' + e.message);
+  }
 }
 
 async function adLoadAnalytics() {
