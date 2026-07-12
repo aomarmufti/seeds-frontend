@@ -1779,9 +1779,19 @@ function switchAud(e, panel) {
 
   <!-- PAYMENTS -->
   <div id="p-payments" class="p-panel">
-    <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A;margin-bottom:20px">Payment History</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A">Payments</h2>
+      <button onclick="spOpenBillingPortal()" style="padding:8px 16px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Manage billing →</button>
+    </div>
+    <div id="sp-outstanding-payments"></div>
+    <div class="p-card" style="margin-bottom:14px">
+      <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Saved cards</span></div>
+      <div id="sp-saved-cards">
+        <div style="color:#A7A7A7;font-size:.82rem;padding:20px;text-align:center">Loading…</div>
+      </div>
+    </div>
     <div class="p-card">
-      <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">All payments</span></div>
+      <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Payment history</span></div>
       <div id="sp-payment-history">
         <div style="color:#A7A7A7;font-size:.82rem;padding:20px;text-align:center">Loading…</div>
       </div>
@@ -3097,6 +3107,43 @@ function adRenderPayments() {
       <div style="text-align:right;font-size:.82rem;font-weight:700;margin-top:10px">Total: <span style="color:#7B5EA7">${adFmt(totalWagesOwed)}</span></div>
     </div>` : '<div class="ad-card" style="margin-bottom:14px;padding:18px;text-align:center;color:#2D7A4F;font-size:.85rem">✓ All tutor wages are up to date</div>'}
 
+    <!-- Failed payments -->
+    ${(adData.failedPayments||[]).length ? `<div class="ad-card" style="margin-bottom:14px;border-left:3px solid #c0392b">
+      <div class="ad-card-hdr" style="margin-bottom:14px">
+        <span class="ad-card-title">Failed payments — needs action</span>
+        <span style="font-size:.72rem;color:#c0392b">${adData.failedPayments.length} booking${adData.failedPayments.length===1?'':'s'}</span>
+      </div>
+      <table class="ad-table">
+        <thead><tr><th>Student</th><th>Tutor</th><th>Subject</th><th>Date</th><th>Amount</th><th></th></tr></thead>
+        <tbody>${adData.failedPayments.map(b => `
+          <tr>
+            <td>${b.studentName}${b.parentEmail?`<div style="font-size:.72rem;color:#A7A7A7">${b.parentEmail}</div>`:''}</td>
+            <td>${b.tutorName}</td>
+            <td>${b.subject||'—'}</td>
+            <td>${adDateFmt(b.startTime)}</td>
+            <td style="font-weight:700">${adFmt(b.feePence)}</td>
+            <td><span class="ad-pay-status ad-pay-pending">Payment failed</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
+
+    <!-- Payment reconciliation -->
+    ${adData.reconciliation ? `<div class="ad-card" style="margin-bottom:14px">
+      <div class="ad-card-hdr" style="margin-bottom:14px"><span class="ad-card-title">Payment reconciliation</span></div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;font-size:.8rem">
+        <div><div style="color:#718096">Confirmed</div><div style="font-weight:700;color:#0D1B2A">${adData.reconciliation.confirmed}</div></div>
+        <div><div style="color:#718096">Awaiting payment</div><div style="font-weight:700;color:#C8A15A">${adData.reconciliation.scheduled}</div></div>
+        <div><div style="color:#718096">Failed</div><div style="font-weight:700;color:#c0392b">${adData.reconciliation.paymentFailed}</div></div>
+        <div><div style="color:#718096">Cancelled</div><div style="font-weight:700;color:#718096">${adData.reconciliation.cancelled}</div></div>
+        <div><div style="color:#718096">Completed</div><div style="font-weight:700;color:#2D7A4F">${adData.reconciliation.completed}</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #E8E8E8;font-size:.82rem">
+        <span>Collected: <strong style="color:#2D7A4F">${adFmt(adData.reconciliation.totalCollected)}</strong></span>
+        <span>Outstanding: <strong style="color:#C8A15A">${adFmt(adData.reconciliation.totalOutstanding)}</strong></span>
+      </div>
+    </div>` : ''}
+
     <!-- Full ledger -->
     <div class="ad-card">
       <div class="ad-card-hdr" style="margin-bottom:14px">
@@ -3104,7 +3151,7 @@ function adRenderPayments() {
         <span style="font-size:.72rem;color:#718096">${paidLessons.length} transactions</span>
       </div>
       <table class="ad-table">
-        <thead><tr><th>Student</th><th>Tutor</th><th>Type</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+        <thead><tr><th>Student</th><th>Tutor</th><th>Type</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
         <tbody>
           ${paidLessons.map(b => {
             const initials = (b.studentName||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -3115,6 +3162,7 @@ function adRenderPayments() {
               <td>${adDateFmt(b.startTime)}</td>
               <td style="font-weight:700">${adFmt(b.feePence)}</td>
               <td><span class="ad-pay-status ad-pay-paid">Paid</span></td>
+              <td><button class="ad-btn-xs" style="color:#c0392b;border:1px solid #f5c2c2;background:#fff" onclick="adRefundBooking('${b.id}',${b.feePence},this)">Refund</button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -3123,6 +3171,25 @@ function adRenderPayments() {
         Total received: <span style="color:#2D7A4F">${adFmt(paidLessons.reduce((s,b)=>s+b.feePence,0))}</span>
       </div>
     </div>`;
+}
+
+async function adRefundBooking(bookingId, feePence, btnEl) {
+  const amountStr = `£${(feePence/100).toFixed(2)}`;
+  if (!confirm(`Refund ${amountStr} for this booking? This cannot be undone.`)) return;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Refunding…'; }
+  try {
+    const r = await fetch(AD_BACKEND + '/api/analytics', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'refund-booking', bookingId }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Refund failed');
+    seedsToast(`✓ Refunded ${amountStr}`, false);
+    adLoadAnalytics();
+  } catch(e) {
+    seedsToast('Refund failed: ' + e.message);
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Refund'; }
+  }
 }
 
 // ── TUTOR PAYOUTS PANEL (inside Tutors section) ──────────────────────────
@@ -4475,7 +4542,11 @@ function earnRenderLedger(){
         ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#2D7A4F18;color:#2D7A4F;font-weight:600">✓ Paid out</span>`
         : studentPaid
           ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#C8A15A18;color:#C8A15A;font-weight:600">Awaiting payout</span>`
-          : `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Unpaid by student</span>`;
+          : l.status === 'payment_failed'
+            ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#c0392b18;color:#c0392b;font-weight:600">Payment failed</span>`
+            : l.status === 'scheduled'
+              ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Awaiting student payment</span>`
+              : `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Unpaid by student</span>`;
     return `<tr>
       <td>${l.student}</td>
       <td>${LABEL[l.type]||l.type}</td>
@@ -6009,7 +6080,7 @@ window.showPortalPanel = function(id, navEl) {
     });
   }
   if (id === 'p-chat') { spLoadMessages(); spCheckUnreadMessages(); }
-  if (id === 'p-payments') spLoadPaymentHistory();
+  if (id === 'p-payments') { spLoadPaymentHistory().then(spLoadSavedCards); }
   if (id === 'p-profile') spRenderProfileView();
 };
 </script>
@@ -6674,6 +6745,7 @@ async function earnLoadFullHistory() {
         type: b.lesson_type,
         fee: b.fee_pence,
         paid: b.status === 'completed',
+        status: b.status,
         paymentIntentId: b.stripe_payment_intent_id || null,
       }));
       earnRenderLedger();
@@ -7893,23 +7965,50 @@ if (typeof earnRenderAll !== 'undefined') {
   };
 }
 
-// ══ INVOICE BUTTONS IN STUDENT PAYMENT HISTORY ═══════════════════════════
-// Add invoice download to payment history rows
-const _origSpLoadPaymentHistory = window.spLoadPaymentHistory;
+// ══ STUDENT PAYMENTS PANEL: history, outstanding, saved cards ═══════════
+// Matches by exact parentEmail rather than a name substring — a
+// substring match here would leak other students' payment data to
+// whoever's email happens to contain a shared first name.
+let _spCustomerId = null;
+
 window.spLoadPaymentHistory = async function() {
   const el = document.getElementById('sp-payment-history');
+  const outstandingEl = document.getElementById('sp-outstanding-payments');
   if (!el) return;
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const email = session.user.email;
+    const email = session.user.email.toLowerCase();
     const r = await fetch(SP_BACKEND + '/api/analytics');
     const data = await r.json();
-    const firstName = email.split('@')[0].toLowerCase();
-    const myPaid = (data.recentBookings || []).filter(b =>
-      b.studentName && b.studentName.toLowerCase().includes(firstName) &&
-      b.paymentIntentId && b.feePence > 0
-    ).sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
+    const mine = (data.recentBookings || []).filter(b =>
+      b.parentEmail && b.parentEmail.toLowerCase() === email
+    );
+    if (mine[0]?.stripeCustomerId) _spCustomerId = mine[0].stripeCustomerId;
+
+    // Outstanding payments — scheduled (Calendly booked, awaiting Stripe
+    // Checkout) or payment_failed, with a link back to complete payment.
+    const outstanding = mine.filter(b => (b.status === 'scheduled' || b.status === 'payment_failed') && b.feePence > 0)
+      .sort((a,b) => new Date(a.startTime)-new Date(b.startTime));
+    if (outstandingEl) {
+      outstandingEl.innerHTML = outstanding.length ? `<div class="p-card" style="margin-bottom:14px;border-left:3px solid #C8A15A">
+        <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#C8A15A;letter-spacing:.08em;text-transform:uppercase">Payment needed</span></div>
+        ${outstanding.map(b => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F0EDE8">
+            <div>
+              <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${b.subject} &mdash; ${b.tutorName}</div>
+              <div style="font-size:.75rem;color:#718096">${new Date(b.startTime).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}${b.status==='payment_failed'?' · Payment failed — please retry':''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-weight:700;color:#C8A15A">&pound;${(b.feePence/100).toFixed(2)}</span>
+              ${b.paymentLink ? `<a href="${b.paymentLink}" style="padding:6px 14px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:7px;font-size:.75rem;font-weight:700">Pay now</a>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>` : '';
+    }
+
+    const myPaid = mine.filter(b => b.paymentIntentId && b.feePence > 0)
+      .sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
     if (!myPaid.length) {
       el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">No payments yet.</div>';
       return;
@@ -7931,6 +8030,74 @@ window.spLoadPaymentHistory = async function() {
       </div>`;
   } catch(e) { console.error('spLoadPaymentHistory:', e.message); }
 };
+
+async function spLoadSavedCards() {
+  const el = document.getElementById('sp-saved-cards');
+  if (!el) return;
+  // Needs the Stripe customer id, which spLoadPaymentHistory resolves
+  // from the student's own bookings — make sure it's run first.
+  if (!_spCustomerId) await window.spLoadPaymentHistory();
+  if (!_spCustomerId) {
+    el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">No saved cards yet.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(SP_BACKEND + '/api/billing?resource=payment-methods&customerId=' + encodeURIComponent(_spCustomerId));
+    const cards = await r.json();
+    if (!r.ok) throw new Error(cards.error || 'Failed to load cards');
+    if (!cards.length) {
+      el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">No saved cards yet.</div>';
+      return;
+    }
+    el.innerHTML = cards.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F0EDE8">
+        <div style="font-weight:600;font-size:.85rem;color:#0D1B2A;text-transform:capitalize">${c.brand||'Card'} &bull;&bull;&bull;&bull; ${c.last4}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.75rem;color:#718096">Exp ${String(c.expMonth).padStart(2,'0')}/${c.expYear}</span>
+          <button onclick="spRemoveCard('${c.id}',this)" style="padding:5px 10px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.7rem;font-weight:600;color:#c0392b;cursor:pointer;background:#fff;font-family:Inter,sans-serif">Remove</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">Couldn\'t load saved cards.</div>';
+    console.error('spLoadSavedCards:', e.message);
+  }
+}
+
+async function spRemoveCard(paymentMethodId, btnEl) {
+  if (!confirm('Remove this saved card?')) return;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Removing…'; }
+  try {
+    const r = await fetch(SP_BACKEND + '/api/billing', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ resource: 'payment-methods', action: 'detach', paymentMethodId }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to remove card');
+    spLoadSavedCards();
+  } catch(e) {
+    seedsToast('Failed to remove card: ' + e.message);
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Remove'; }
+  }
+}
+
+async function spOpenBillingPortal() {
+  if (!_spCustomerId) await window.spLoadPaymentHistory();
+  if (!_spCustomerId) {
+    seedsToast('No billing account found yet — make a booking first.');
+    return;
+  }
+  try {
+    const r = await fetch(SP_BACKEND + '/api/billing', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ resource: 'customer-portal', customerId: _spCustomerId, returnUrl: window.location.href }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to open billing portal');
+    window.location.href = data.url;
+  } catch(e) {
+    seedsToast('Failed to open billing portal: ' + e.message);
+  }
+}
 
 // ══ CANCELLATION POLICY IN BOOKING MODAL ═════════════════════════════════
 // Add to payment step on booking modal
