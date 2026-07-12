@@ -1717,7 +1717,7 @@ function switchAud(e, panel) {
     <div class="ad-modal" style="max-width:480px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
         <h3>Book a lesson</h3>
-        <span onclick="document.getElementById('sp-book-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+        <button type="button" onclick="document.getElementById('sp-book-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
       </div>
       <p style="margin-bottom:16px">Request a lesson with one of your tutors. We'll confirm and charge your saved card.</p>
       <div id="sp-book-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -3371,7 +3371,7 @@ function adViewLead(id) {
   div.innerHTML = `<div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
       <h3>${lead.name}</h3>
-      <span onclick="this.closest('.ad-modal-overlay').remove()" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">✕</span>
+      <button type="button" onclick="this.closest('.ad-modal-overlay').remove()" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">✕</button>
     </div>
     <div style="font-size:.82rem;color:#4A5568;line-height:1.8;margin-bottom:12px">
       <div><span style="color:#A7A7A7">Email:</span> ${lead.email}</div>
@@ -5172,7 +5172,7 @@ async function completeBooking() {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
       <div><h3>Invite tutor</h3><p>Tutor receives an email with a sign-up link. Admin approves after they register.</p></div>
-      <span onclick="document.getElementById('ad-invite-tutor-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">✕</span>
+      <button type="button" onclick="document.getElementById('ad-invite-tutor-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">✕</button>
     </div>
     <div id="ad-it-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
     <span class="lg-label">Tutor full name</span>
@@ -5190,7 +5190,7 @@ async function completeBooking() {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
       <div><h3>Create tutor account</h3><p>Creates account immediately. Tutor gets a magic link to set their password.</p></div>
-      <span onclick="document.getElementById('ad-create-tutor-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">✕</span>
+      <button type="button" onclick="document.getElementById('ad-create-tutor-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">✕</button>
     </div>
     <div id="ad-ct-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
     <span class="lg-label">Tutor full name</span>
@@ -5289,7 +5289,7 @@ async function adCreateTutor() {
         <h3>Create student account</h3>
         <p>Student will receive a magic link to set their password.</p>
       </div>
-      <span onclick="adHideCreateStudent()" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">✕</span>
+      <button type="button" onclick="adHideCreateStudent()" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">✕</button>
     </div>
     <div id="ad-cs-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
     <span class="lg-label">Full name</span>
@@ -6209,7 +6209,7 @@ window.showTpPanel = function(id, navEl) {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Propose available times</h3>
-      <span onclick="document.getElementById('tp-propose-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('tp-propose-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p id="tp-propose-desc">Pick up to 3 times that work for you. The student will choose one and a booking will be created automatically.</p>
     <div id="tp-propose-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -6283,7 +6283,7 @@ async function tpSubmitSlots() {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Add a lesson</h3>
-      <span onclick="document.getElementById('tp-add-lesson-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('tp-add-lesson-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p>Creates a booking that appears in the student's calendar automatically.</p>
     <div id="tp-al-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -6460,7 +6460,7 @@ async function adChargeStudent(bookingId, btn) {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Reschedule lesson</h3>
-      <span onclick="document.getElementById('ad-reschedule-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('ad-reschedule-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p>Pick the new date and time. Both the student and tutor will have the updated time in their portals immediately.</p>
     <input type="hidden" id="ad-reschedule-booking-id">
@@ -6476,7 +6476,7 @@ async function adChargeStudent(bookingId, btn) {
   <div class="ad-modal" style="max-width:480px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Log this lesson</h3>
-      <span onclick="document.getElementById('tp-log-lesson-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('tp-log-lesson-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p id="tp-log-desc">Quickly record what you covered, any homework, and update progress.</p>
     <div id="tp-log-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -6712,7 +6712,7 @@ async function tpCheckUnreadMessages() {
   <div class="ad-modal" style="max-width:520px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3 id="tp-prep-title">Lesson prep</h3>
-      <span onclick="document.getElementById('tp-prep-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('tp-prep-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p id="tp-prep-desc" style="margin-bottom:14px"></p>
     <div id="tp-prep-body">
@@ -7118,7 +7118,7 @@ if (typeof adRenderDashboard === 'function') {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Send message</h3>
-      <span onclick="document.getElementById('ad-msg-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('ad-msg-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p>Message is sent in-platform (recipient sees it in Messages) and also emailed.</p>
     <div id="ad-msg-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7142,7 +7142,7 @@ if (typeof adRenderDashboard === 'function') {
   <div class="ad-modal" style="max-width:460px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Complete your profile</h3>
-      <span onclick="document.getElementById('sp-profile-modal').classList.remove('open');localStorage.setItem('sp_profile_done_skip','1')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('sp-profile-modal').classList.remove('open');localStorage.setItem('sp_profile_done_skip','1')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p style="color:#718096;font-size:.85rem;margin-bottom:16px">This helps your tutor personalise every lesson for you.</p>
     <div id="sp-profile-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7177,7 +7177,7 @@ if (typeof adRenderDashboard === 'function') {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3 id="tp-sr-title">Manage lesson</h3>
-      <span onclick="document.getElementById('tp-self-reschedule-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('tp-self-reschedule-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p id="tp-sr-desc"></p>
     <div id="tp-sr-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7527,7 +7527,7 @@ window._openStudentPortal = function() {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Edit tutor</h3>
-      <span onclick="document.getElementById('ad-edit-tutor-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('ad-edit-tutor-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <input type="hidden" id="ad-et-userid">
     <div id="ad-et-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7549,7 +7549,7 @@ window._openStudentPortal = function() {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Edit student</h3>
-      <span onclick="document.getElementById('ad-edit-student-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('ad-edit-student-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <input type="hidden" id="ad-es-userid">
     <div id="ad-es-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7577,7 +7577,7 @@ window._openStudentPortal = function() {
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Bulk cancel lessons</h3>
-      <span onclick="document.getElementById('ad-bulk-cancel-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('ad-bulk-cancel-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p>Cancel all confirmed lessons on a given date. Paid lessons will be automatically refunded.</p>
     <div id="ad-bc-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7600,7 +7600,7 @@ window._openStudentPortal = function() {
   <div class="ad-modal" style="max-width:520px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Send announcement</h3>
-      <span onclick="document.getElementById('ad-bulk-email-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('ad-bulk-email-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p>Send an email to all students, all tutors, or everyone on the platform.</p>
     <div id="ad-be-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7983,7 +7983,7 @@ window.adRenderStudents = async function() {
   <div class="ad-modal" style="max-width:460px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Edit your profile</h3>
-      <span onclick="document.getElementById('tp-profile-modal').classList.remove('open')" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1">&#x2715;</span>
+      <button type="button" onclick="document.getElementById('tp-profile-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p>Your bio and subjects are shown to prospective students on the homepage.</p>
     <div id="tp-profile-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
