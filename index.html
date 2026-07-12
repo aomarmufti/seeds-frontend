@@ -1842,6 +1842,18 @@ const SUPABASE_URL  = 'https://fgnosgawafdotmyjslmy.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnbm9zZ2F3YWZkb3RteWpzbG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTU1MzksImV4cCI6MjA5ODQ5MTUzOX0.USt2u3RaSBQJaHRizy7GV6qgtsLgNEuMcuymkJImGAI';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// Escapes user-supplied text before it's interpolated into innerHTML —
+// use for any chat message, note, or profile field coming from the database.
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Global error toast — makes failures visible instead of silent
 function seedsToast(msg, isError = true) {
   let t = document.getElementById('seeds-toast');
@@ -2232,8 +2244,8 @@ function spRenderMessages(messages) {
     const t = new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     const isMe = m.sender_role === 'student';
     return isMe
-      ? `<div class="msg-w sent"><div class="msg-b sent">${m.body}<div class="msg-time">${t}</div></div></div>`
-      : `<div class="msg-w"><div class="msg-b recv">${m.body}<div class="msg-time">${m.sender_name||'Tutor'} · ${t}</div></div></div>`;
+      ? `<div class="msg-w sent"><div class="msg-b sent">${escapeHtml(m.body)}<div class="msg-time">${t}</div></div></div>`
+      : `<div class="msg-w"><div class="msg-b recv">${escapeHtml(m.body)}<div class="msg-time">${escapeHtml(m.sender_name)||'Tutor'} · ${t}</div></div></div>`;
   }).join('');
   msgs.scrollTop = msgs.scrollHeight;
 }
@@ -4124,11 +4136,11 @@ function tpRenderProgress(progress) {
   el.innerHTML = progress.map(p => `
     <div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-weight:600;color:#0D1B2A;font-size:.85rem">${p.subject}</span>
-        <span style="font-size:.8rem;color:#718096">${p.current_grade||'—'} → ${p.target_grade||'—'} · ${p.percent}%</span>
+        <span style="font-weight:600;color:#0D1B2A;font-size:.85rem">${escapeHtml(p.subject)}</span>
+        <span style="font-size:.8rem;color:#718096">${escapeHtml(p.current_grade)||'—'} → ${escapeHtml(p.target_grade)||'—'} · ${p.percent}%</span>
       </div>
       <div style="height:7px;background:#F0EDE8;border-radius:4px;overflow:hidden"><div style="height:100%;width:${p.percent}%;background:var(--gold)"></div></div>
-      ${p.note ? `<div style="font-size:.76rem;color:#A7A7A7;margin-top:4px">${p.note}</div>` : ''}
+      ${p.note ? `<div style="font-size:.76rem;color:#A7A7A7;margin-top:4px">${escapeHtml(p.note)}</div>` : ''}
     </div>`).join('');
 }
 
@@ -4271,8 +4283,8 @@ async function tpLoadChatMessages() {
       const t = new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
       const isMe = m.sender_role === 'tutor' || m.sender_role === 'admin';
       return isMe
-        ? `<div class="tp-msg-w tp-sent"><div class="tp-msg-b tp-sent-msg">${m.body}<div class="tp-msg-time">${t}</div></div></div>`
-        : `<div class="tp-msg-w"><div class="tp-msg-b tp-recv">${m.body}<div class="tp-msg-time">${t}</div></div></div>`;
+        ? `<div class="tp-msg-w tp-sent"><div class="tp-msg-b tp-sent-msg">${escapeHtml(m.body)}<div class="tp-msg-time">${t}</div></div></div>`
+        : `<div class="tp-msg-w"><div class="tp-msg-b tp-recv">${escapeHtml(m.body)}<div class="tp-msg-time">${t}</div></div></div>`;
     }).join('');
     msgs.scrollTop = msgs.scrollHeight;
   } catch(e) { console.error('tpLoadChatMessages:', e.message); }
@@ -8064,8 +8076,8 @@ function spRenderMessagesWithReceipts(messages) {
     const isMe = m.sender_role === 'student';
     const readTick = isMe && m.read ? ' <span title="Read" style="color:rgba(255,255,255,.7);font-size:.65rem">✓✓</span>' : '';
     return isMe
-      ? `<div class="msg-w sent"><div class="msg-b sent">${m.body}<div class="msg-time">${t}${readTick}</div></div></div>`
-      : `<div class="msg-w"><div class="msg-b recv">${m.body}<div class="msg-time">${m.sender_name||'Tutor'} · ${t}</div></div></div>`;
+      ? `<div class="msg-w sent"><div class="msg-b sent">${escapeHtml(m.body)}<div class="msg-time">${t}${readTick}</div></div></div>`
+      : `<div class="msg-w"><div class="msg-b recv">${escapeHtml(m.body)}<div class="msg-time">${escapeHtml(m.sender_name)||'Tutor'} · ${t}</div></div></div>`;
   }).join('');
   msgs.scrollTop = msgs.scrollHeight;
 }
@@ -8391,28 +8403,28 @@ async function spRenderProfileView() {
     const targetGrades = profile?.target_grades || {};
     const targetsHtml = Object.keys(targetGrades).length
       ? Object.entries(targetGrades).map(([sub,g]) =>
-          `<span style="display:inline-block;background:#FAF8F4;border:1px solid #E8E8E8;border-radius:6px;padding:3px 10px;font-size:.78rem;margin:3px">${sub}: <strong>${g}</strong></span>`
+          `<span style="display:inline-block;background:#FAF8F4;border:1px solid #E8E8E8;border-radius:6px;padding:3px 10px;font-size:.78rem;margin:3px">${escapeHtml(sub)}: <strong>${escapeHtml(g)}</strong></span>`
         ).join('')
       : '<span style="color:#A7A7A7;font-size:.83rem">Not set yet</span>';
 
     el.innerHTML = `
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #F0EDE8">
         <div style="width:56px;height:56px;border-radius:50%;background:#0D1B2A;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:#C8A15A;flex-shrink:0">
-          ${name[0].toUpperCase()}
+          ${escapeHtml(name[0].toUpperCase())}
         </div>
         <div>
-          <div style="font-weight:700;font-size:1.05rem;color:#0D1B2A">${name}</div>
-          <div style="font-size:.8rem;color:#718096">${email}</div>
+          <div style="font-weight:700;font-size:1.05rem;color:#0D1B2A">${escapeHtml(name)}</div>
+          <div style="font-size:.8rem;color:#718096">${escapeHtml(email)}</div>
         </div>
       </div>
       <div style="display:grid;gap:14px">
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F8F6F2">
           <span style="font-size:.82rem;color:#718096">School year</span>
-          <span style="font-weight:600;font-size:.85rem;color:#0D1B2A">${profile?.school_year || '<em style="color:#A7A7A7">Not set</em>'}</span>
+          <span style="font-weight:600;font-size:.85rem;color:#0D1B2A">${profile?.school_year ? escapeHtml(profile.school_year) : '<em style="color:#A7A7A7">Not set</em>'}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F8F6F2">
           <span style="font-size:.82rem;color:#718096">Subjects</span>
-          <span style="font-weight:600;font-size:.85rem;color:#0D1B2A">${profile?.subjects || '<em style="color:#A7A7A7">Not set</em>'}</span>
+          <span style="font-weight:600;font-size:.85rem;color:#0D1B2A">${profile?.subjects ? escapeHtml(profile.subjects) : '<em style="color:#A7A7A7">Not set</em>'}</span>
         </div>
         <div style="padding:10px 0">
           <div style="font-size:.82rem;color:#718096;margin-bottom:8px">Target grades</div>
