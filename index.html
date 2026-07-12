@@ -7008,7 +7008,7 @@ async function adSaveLeadNote(leadId) {
   if (!note) return;
   try {
     await fetch(AD_BACKEND + '/api/lifecycle?resource=lead-notes', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ leadId, adminNotes: note }),
     });
     seedsToast('✓ Note saved', false);
