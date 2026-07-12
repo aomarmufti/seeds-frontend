@@ -3504,7 +3504,7 @@ async function adApprovePayout(tutorName, amountPence) {
   try {
     const r = await fetch(`${AD_BACKEND}/api/payouts`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'approve-and-transfer', tutorName, amountPence }),
     });
     const data = await r.json();
@@ -7753,7 +7753,7 @@ async function adConfirmBulkCancel() {
   btn.disabled = true; btn.textContent = 'Cancelling…'; errEl.style.display = 'none';
   try {
     const r = await fetch(AD_BACKEND + '/api/lifecycle?resource=bulk-cancel', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ date, tutorName: tutorName || null }),
     });
     const d = await r.json();
