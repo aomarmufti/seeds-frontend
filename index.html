@@ -5415,9 +5415,8 @@ async function spLoadData() {
 
     const r = await fetch(`${SP_BACKEND}/api/analytics`);
     const analytics = await r.json();
-    const firstName = studentName.split(' ')[0].toLowerCase();
     spBookings = (analytics.recentBookings || []).filter(b =>
-      b.studentName && b.studentName.toLowerCase().includes(firstName) && b.status !== 'cancelled'
+      b.parentEmail && b.parentEmail.toLowerCase() === studentEmail.toLowerCase() && b.status !== 'cancelled'
     );
     spRenderHome(studentName);
     spRenderCalendar();
@@ -5570,10 +5569,9 @@ async function spCheckPendingPayments(email) {
     const r = await fetch(`${SP_BACKEND}/api/analytics`);
     const data = await r.json();
     // Find confirmed bookings for this student that have no payment intent yet
-    const firstName = email.split('@')[0].toLowerCase();
     const unpaid = (data.recentBookings||[]).filter(b =>
       b.status === 'confirmed' && b.feePence > 0 &&
-      b.studentName && b.studentName.toLowerCase().includes(firstName) &&
+      b.parentEmail && b.parentEmail.toLowerCase() === email.toLowerCase() &&
       !b.paymentIntentId
     );
     if (!unpaid.length) return;
@@ -6637,9 +6635,8 @@ async function spLoadPaymentHistory() {
     const email = session.user.email;
     const r = await fetch(SP_BACKEND + '/api/analytics');
     const data = await r.json();
-    const firstName = email.split('@')[0].toLowerCase();
     const myPaid = (data.recentBookings || []).filter(b =>
-      b.studentName && b.studentName.toLowerCase().includes(firstName) &&
+      b.parentEmail && b.parentEmail.toLowerCase() === email.toLowerCase() &&
       b.paymentIntentId && b.feePence > 0
     ).sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
 
@@ -7910,9 +7907,8 @@ window.spLoadPaymentHistory = async function() {
     const email = session.user.email;
     const r = await fetch(SP_BACKEND + '/api/analytics');
     const data = await r.json();
-    const firstName = email.split('@')[0].toLowerCase();
     const myPaid = (data.recentBookings || []).filter(b =>
-      b.studentName && b.studentName.toLowerCase().includes(firstName) &&
+      b.parentEmail && b.parentEmail.toLowerCase() === email.toLowerCase() &&
       b.paymentIntentId && b.feePence > 0
     ).sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
     if (!myPaid.length) {
