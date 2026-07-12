@@ -1596,7 +1596,7 @@ function switchAud(e, panel) {
     <div class="p-nav-item" onclick="showPortalPanel('p-progress',this)">📈 &nbsp;Progress</div>
     <div class="p-nav-item" onclick="showPortalPanel('p-hw',this)">📝 &nbsp;Homework</div>
     <div style="font-size:.6rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:12px 10px 5px;display:block">Connect</div>
-    <div class="p-nav-item" onclick="showPortalPanel('p-chat',this)">💬 &nbsp;Messages<span class="p-nav-unread" style="display:none">0</span></div>
+    <!-- Messages nav item removed — feature disabled for now, see backend lifecycle.js validResources -->
     <div class="p-nav-item" onclick="showPortalPanel('p-payments',this)">💳 &nbsp;Payments</div>
     <div class="p-nav-item" onclick="showPortalPanel('p-profile',this)" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding-top:12px">👤 &nbsp;My Profile</div>
   </div>
@@ -3736,8 +3736,7 @@ window.addEventListener('DOMContentLoaded', function() {
       <div class="tp-nav-item" onclick="showTpPanel('tp-schedule',this)">📅 &nbsp;Schedule</div>
       <div class="tp-nav-item" onclick="showTpPanel('tp-students',this)">👥 &nbsp;My Students</div>
       <div class="tp-nav-item" onclick="showTpPanel('tp-resources',this)">📁 &nbsp;Resources</div>
-      <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">Connect</div>
-      <div class="tp-nav-item" onclick="showTpPanel('tp-chat',this)">💬 &nbsp;Messages<span class="tp-nav-unread" style="display:none">0</span></div>
+      <!-- Messages nav item removed — feature disabled for now, see backend lifecycle.js validResources -->
       <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">Finance</div>
       <div class="tp-nav-item" onclick="showTpPanel('tp-earnings',this)">💰 &nbsp;Earnings</div>
       <div class="tp-nav-item" onclick="tpOpenProfile()" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.08);padding-top:12px">👤 &nbsp;Edit profile</div>
