@@ -2624,9 +2624,10 @@ async function adUpdateLeadsBadge() {
   if (!badge) return;
   try {
     // Count new leads + pending student signups
+    const authHeaders = await adAuthHeaders();
     const [leadsR, pendingR] = await Promise.all([
       fetch(`${AD_BACKEND}/api/leads?status=new`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: authHeaders }),
     ]);
     const newLeads = await leadsR.json();
     const pendingData = await pendingR.json();
@@ -2670,9 +2671,16 @@ function assignTutor(btn, tutorName){
 const AD_BACKEND = 'https://seeds-backend-six.vercel.app';
 let adData = null; // cached after first load
 
+// Admin-only backend calls need the caller's Supabase session token so the
+// backend can verify they're actually an admin.
+async function adAuthHeaders() {
+  const { data: { session } } = await sbClient.auth.getSession();
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
 async function adLoadAnalytics() {
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics`);
+    const r = await fetch(`${AD_BACKEND}/api/analytics`, { headers: await adAuthHeaders() });
     adData = await r.json();
     adRenderDashboard();
     adRenderBookings();
@@ -2858,7 +2866,7 @@ async function adRenderAttention() {
     // New leads + pending signups + unconfirmed assigned leads
     const [newR, pendR] = await Promise.all([
       fetch(`${AD_BACKEND}/api/leads?status=new`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: await adAuthHeaders() }),
     ]);
     const newLeads = await newR.json();
     const pending = await pendR.json();
@@ -2953,7 +2961,7 @@ async function adCancelBooking(bookingId, btn) {
   btn.disabled = true; btn.textContent = 'Cancelling…';
   try {
     const r = await fetch(`${AD_BACKEND}/api/analytics`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'cancel-booking', bookingId }),
     });
     const data = await r.json();
@@ -2986,7 +2994,7 @@ async function adConfirmReschedule() {
   btn.disabled=true; btn.textContent='Saving…'; errEl.style.display='none';
   try {
     const r = await fetch(`${AD_BACKEND}/api/analytics`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'reschedule-booking', bookingId, newStartTime: new Date(newTime).toISOString() }),
     });
     if (!r.ok) throw new Error('Failed');
@@ -3214,7 +3222,7 @@ async function adRenderLeads() {
     // Fetch journey form leads AND pending student signups in parallel
     const [leadsRes, pendingRes] = await Promise.all([
       fetch(`${AD_BACKEND}/api/leads`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: await adAuthHeaders() }),
     ]);
     adLeadsData = await leadsRes.json();
 
@@ -5243,7 +5251,7 @@ async function adSendTutorInvite() {
   try {
     const r = await fetch(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'invite-tutor', fullName: name, email, subjects }),
     });
     const data = await r.json();
@@ -5281,7 +5289,7 @@ async function adCreateTutor() {
   try {
     const r = await fetch(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'create-tutor', fullName, email, tutorName, subjects }),
     });
     const data = await r.json();
@@ -5356,7 +5364,7 @@ async function adCreateStudent() {
   try {
     const r = await fetch(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({
         action: 'create-student',
         fullName:       document.getElementById('ad-cs-name').value.trim(),
@@ -5383,7 +5391,7 @@ async function adApproveStudent(userId, tutorName, btn) {
   try {
     const r = await fetch(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'approve-student', userId, assignedTutor: tutorName }),
     });
     const data = await r.json();
@@ -6424,7 +6432,7 @@ async function adChargeStudent(bookingId, btn) {
   btn.disabled = true; btn.textContent = 'Looking up…';
   try {
     // Fetch booking details to get student email
-    const r = await fetch(`${AD_BACKEND}/api/analytics`);
+    const r = await fetch(`${AD_BACKEND}/api/analytics`, { headers: await adAuthHeaders() });
     const data = await r.json();
     const booking = (data.recentBookings||[]).find(b => b.id === bookingId);
     if (!booking) { btn.textContent = 'Not found'; return; }
@@ -7239,7 +7247,7 @@ async function adMsgLoadRecipients(opts) {
       // Tutors — from analytics tutors map
       const tutors = adData?.tutors ? Object.keys(adData.tutors) : [];
       if (!tutors.length) {
-        const r = await fetch(AD_BACKEND + '/api/analytics');
+        const r = await fetch(AD_BACKEND + '/api/analytics', { headers: await adAuthHeaders() });
         const d = await r.json();
         _adMsgTutors = Object.keys(d.tutors || {});
       } else { _adMsgTutors = tutors; }
@@ -7282,7 +7290,7 @@ async function adSendMessage() {
       // Message to tutor — post via leads system as notification
       const tutorName = decodeURIComponent(parts[1]);
       // Get tutor email via profile lookup
-      const r = await fetch(AD_BACKEND + '/api/analytics');
+      const r = await fetch(AD_BACKEND + '/api/analytics', { headers: await adAuthHeaders() });
       const d = await r.json();
       // Send email notification directly
       const nodemailer_fallback = `Please log in to Seeds to view your message from admin.`;
@@ -7653,7 +7661,7 @@ async function adSaveEditTutor() {
   btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
   try {
     const r = await fetch(AD_BACKEND + '/api/auth', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({
         action: 'edit-tutor',
         userId: document.getElementById('ad-et-userid').value,
@@ -7679,7 +7687,7 @@ async function adDeactivateTutor() {
   if (!confirm(`Deactivate ${name}? They will no longer be able to log in. This can be reversed by contacting Supabase support.`)) return;
   try {
     const r = await fetch(AD_BACKEND + '/api/auth', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ action: 'deactivate-tutor', userId }),
     });
     const d = await r.json();
@@ -7712,7 +7720,7 @@ async function adSaveEditStudent() {
   btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
   try {
     const r = await fetch(AD_BACKEND + '/api/auth', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({
         action: 'edit-student',
         userId: document.getElementById('ad-es-userid').value,
@@ -7773,7 +7781,7 @@ async function adSendAnnouncement() {
   btn.disabled = true; btn.textContent = 'Sending…'; errEl.style.display = 'none';
   try {
     const r = await fetch(AD_BACKEND + '/api/auth', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ action: 'bulk-email', subject, body, to }),
     });
     const d = await r.json();
