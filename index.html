@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://js.stripe.com">
+<link rel="preconnect" href="https://assets.calendly.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -3809,6 +3810,12 @@ window.addEventListener('DOMContentLoaded', function() {
           </div>
         </div>
 
+        <!-- Contact (SCRUM-55: parent's email always, WhatsApp only if opted in) -->
+        <div class="tp-card">
+          <div class="tp-card-hdr"><span class="tp-card-title">Parent contact</span></div>
+          <div id="tp-detail-contact"><div style="color:#A7A7A7;font-size:.82rem">Loading…</div></div>
+        </div>
+
         <!-- Progress -->
         <div class="tp-card">
           <div class="tp-card-hdr"><span class="tp-card-title">Progress</span></div>
@@ -4034,6 +4041,32 @@ function tpOpenStudent(studentId, name, initials) {
   document.getElementById('tp-detail-av').textContent = initials;
   document.getElementById('tp-detail-sub').textContent = 'Loading…';
   tpLoadStudentLifecycle(studentId);
+  tpLoadStudentContact(studentId);
+}
+
+// SCRUM-55: contact card for this student's parent — email always,
+// WhatsApp only if the parent has opted in.
+async function tpLoadStudentContact(studentId) {
+  const el = document.getElementById('tp-detail-contact');
+  if (!el) return;
+  el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem">Loading…</div>';
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=contact-info&for=parent&studentId=${studentId}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to load contact info');
+    const waLink = data.whatsappNumber
+      ? `<a href="https://wa.me/${data.whatsappNumber.replace(/[^\d]/g,'')}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#25D366;color:#fff;text-decoration:none;border-radius:8px;font-size:.78rem;font-weight:600;margin-left:8px">💬 WhatsApp</a>`
+      : '';
+    el.innerHTML = data.email
+      ? `<a href="mailto:${escapeHtml(data.email)}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:600;color:#0D1B2A;text-decoration:none">✉ Email</a>${waLink}`
+      : '<div style="color:#A7A7A7;font-size:.82rem">Parent contact info not available.</div>';
+  } catch(e) {
+    el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem">Couldn\'t load parent contact info.</div>';
+  }
 }
 
 function closeStudentDetail() {
@@ -4475,24 +4508,6 @@ window.showTpPanel = function(id, navEl){
 .bk-type-price span{font-size:.68rem;color:#718096;font-weight:400;font-family:'Inter',sans-serif;display:block}
 .bk-type-price.bk-free{color:#2D7A4F}
 
-/* Calendar slot picker */
-.bk-cal-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.bk-cal-month{font-size:.86rem;font-weight:700;color:#0D1B2A}
-.bk-cal-arrow{width:28px;height:28px;border-radius:8px;background:#F5F0E8;border:none;cursor:pointer;font-size:.8rem;color:#0D1B2A;transition:all .2s}
-.bk-cal-arrow:hover{background:#E6D9BF}
-.bk-cal-strip{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px}
-.bk-cal-day{flex-shrink:0;width:54px;padding:10px 0;border-radius:12px;border:1.5px solid #E8E8E8;text-align:center;cursor:pointer;transition:all .2s}
-.bk-cal-day:hover{border-color:#C8A15A}
-.bk-cal-day.bk-day-sel{background:#0D1B2A;border-color:#0D1B2A}
-.bk-cal-day.bk-day-sel .bk-cal-dow,.bk-cal-day.bk-day-sel .bk-cal-num{color:#fff}
-.bk-cal-dow{font-size:.62rem;color:#718096;font-weight:600;text-transform:uppercase;margin-bottom:3px}
-.bk-cal-num{font-size:.95rem;color:#0D1B2A;font-weight:700}
-.bk-slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
-.bk-slot{padding:10px 0;text-align:center;border:1.5px solid #E8E8E8;border-radius:10px;font-size:.8rem;font-weight:600;color:#0D1B2A;cursor:pointer;transition:all .2s}
-.bk-slot:hover{border-color:#C8A15A}
-.bk-slot.bk-slot-sel{background:#0D1B2A;border-color:#0D1B2A;color:#fff}
-.bk-slot.bk-slot-taken{opacity:.3;cursor:not-allowed;text-decoration:line-through}
-.bk-slot.bk-slot-taken:hover{border-color:#E8E8E8}
 .bk-tz-note{font-size:.72rem;color:#A7A7A7;margin-top:4px;margin-bottom:18px}
 
 /* Details form */
@@ -4536,7 +4551,6 @@ window.showTpPanel = function(id, navEl){
 @media(max-width:600px){
   .bk-input-row{grid-template-columns:1fr}
   .bk-modal{border-radius:18px;max-height:96vh}
-  .bk-slot-grid{grid-template-columns:repeat(2,1fr)}
 }
 
 /* ============ MOBILE RESPONSIVE PASS (portals + admin) ============ */
@@ -4650,40 +4664,17 @@ window.showTpPanel = function(id, navEl){
       </div>
     </div>
 
-    <!-- STEP 2: Date & time -->
+    <!-- STEP 2: Date & time — real availability via an embedded Calendly widget -->
     <div class="bk-panel" id="bk-step-2">
-      <span class="bk-label">Pick a date</span>
-      <div class="bk-cal-nav">
-        <span class="bk-cal-month">July 2025</span>
-        <div style="display:flex;gap:6px"><button class="bk-cal-arrow">◂</button><button class="bk-cal-arrow">▸</button></div>
+      <span class="bk-label">Pick a date &amp; time</span>
+      <div id="bk-calendly-status" style="text-align:center;color:#718096;font-size:.85rem;padding:40px 20px">Loading your tutor's availability…</div>
+      <div id="bk-calendly-wrap" style="display:none">
+        <div class="calendly-inline-widget" id="bk-calendly-embed" style="min-width:280px;height:630px"></div>
       </div>
-      <div class="bk-cal-strip">
-        <div class="bk-cal-day bk-day-sel" onclick="selectDay(this)"><div class="bk-cal-dow">Tue</div><div class="bk-cal-num">1</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Wed</div><div class="bk-cal-num">2</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Thu</div><div class="bk-cal-num">3</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Fri</div><div class="bk-cal-num">4</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Sat</div><div class="bk-cal-num">5</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Sun</div><div class="bk-cal-num">6</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Mon</div><div class="bk-cal-num">7</div></div>
-        <div class="bk-cal-day" onclick="selectDay(this)"><div class="bk-cal-dow">Tue</div><div class="bk-cal-num">8</div></div>
-      </div>
-
-      <span class="bk-label">Available times</span>
-      <div class="bk-slot-grid">
-        <div class="bk-slot bk-slot-sel" onclick="selectSlot(this)">9:00 AM</div>
-        <div class="bk-slot" onclick="selectSlot(this)">10:30 AM</div>
-        <div class="bk-slot bk-slot-taken">12:00 PM</div>
-        <div class="bk-slot" onclick="selectSlot(this)">2:00 PM</div>
-        <div class="bk-slot" onclick="selectSlot(this)">4:00 PM</div>
-        <div class="bk-slot bk-slot-taken">5:30 PM</div>
-        <div class="bk-slot" onclick="selectSlot(this)">6:00 PM</div>
-        <div class="bk-slot" onclick="selectSlot(this)">7:30 PM</div>
-      </div>
-      <div class="bk-tz-note">🌍 Times shown in Europe/London (GMT+1) · Lesson runs live on Zoom</div>
+      <div class="bk-tz-note">🌍 Times shown in your local timezone · Lesson runs live on Zoom</div>
 
       <div class="bk-actions">
         <button class="bk-back-btn" onclick="bkGoStep(1)">← Back</button>
-        <button class="bk-next-btn" onclick="bkGoStep(3)">Continue →</button>
       </div>
     </div>
 
@@ -4691,21 +4682,23 @@ window.showTpPanel = function(id, navEl){
     <div class="bk-panel" id="bk-step-3">
       <span class="bk-label">Student details</span>
       <div class="bk-input-row">
-        <input class="bk-input" type="text" placeholder="Student's first name" id="bk-student-name">
+        <input class="bk-input" type="text" placeholder="Student's first name *" id="bk-student-name" required>
         <input class="bk-input" type="text" placeholder="Year group (e.g. Year 11)" id="bk-year">
       </div>
       <span class="bk-label" style="margin-top:6px;display:block">Parent / guardian contact</span>
       <div class="bk-input-row">
-        <input class="bk-input" type="text" placeholder="Full name" id="bk-parent-name">
+        <input class="bk-input" type="text" placeholder="Full name *" id="bk-parent-name" required>
         <input class="bk-input" type="tel" placeholder="Phone number" id="bk-phone">
       </div>
-      <input class="bk-input" type="email" placeholder="Email address" id="bk-email" style="margin-bottom:10px">
+      <input class="bk-input" type="email" placeholder="Email address *" id="bk-email" required style="margin-bottom:4px">
+      <p style="font-size:.72rem;color:#A7A7A7;margin:0 0 10px">* Required — we need these to confirm your booking and send your calendar invite.</p>
       <span class="bk-label">Anything your tutor should know? <span style="font-weight:400;color:#A7A7A7">(optional)</span></span>
       <textarea class="bk-textarea" placeholder="E.g. exam board, specific topics, learning needs..."></textarea>
+      <div id="bk-step3-error" style="display:none;color:#c0392b;font-size:.8rem;margin-top:10px;padding:8px 12px;background:#fef2f2;border-radius:8px"></div>
 
       <div class="bk-actions">
         <button class="bk-back-btn" onclick="bkGoStep(2)">← Back</button>
-        <button class="bk-next-btn" onclick="bkGoStep(4)" id="bk-step3-next">Continue →</button>
+        <button class="bk-next-btn" onclick="bkStep3Continue()" id="bk-step3-next">Continue →</button>
       </div>
     </div>
 
@@ -4764,6 +4757,7 @@ window.showTpPanel = function(id, navEl){
 </div>
 
 <script src="https://js.stripe.com/v3/"></script>
+<script src="https://assets.calendly.com/assets/external/widget.js"></script>
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
 const BACKEND = 'https://seeds-backend-six.vercel.app';
@@ -4773,7 +4767,9 @@ const STRIPE_PK = 'pk_test_51JCVAfK7JOHHGmfJ3soySmouzVwdHLSPwFZKKz7ZsHmrpN8A9x9t
 const bkState = {
   tutor: 'Azeem Omar-Mufti', subject: 'Mathematics',
   type: 'trial', typeLabel: 'Free Trial Lesson', price: 0,
-  day: 'Tue 1', time: '9:00 AM',
+  // Real slot chosen inside the embedded Calendly widget (step 2) — day/time
+  // are just display strings derived from this once a slot is picked.
+  startTimeISO: null, day: '', time: '',
   customerId: null, paymentMethodId: null,
 };
 
@@ -4802,6 +4798,10 @@ function initStripe() {
 // ── Modal open/close ────────────────────────────────────────────────────────
 function openBooking(tutorName, subject) {
   if (tutorName) { bkState.tutor = tutorName; bkState.subject = subject; }
+  // Clear any previously-picked slot so a fresh attempt never inherits one
+  // from an earlier booking in the same page session.
+  bkState.startTimeISO = null; bkState.day = ''; bkState.time = '';
+  _bkCalendlyLoadedForTutor = null;
   document.getElementById('bk-overlay').classList.add('bk-open');
   document.body.style.overflow = 'hidden';
   bkGoStep(1);
@@ -4821,6 +4821,7 @@ function bkGoStep(n) {
   for (let i = 1; i <= 4; i++) {
     document.getElementById('bk-seg-' + i).classList.toggle('bk-seg-active', i <= n);
   }
+  if (n === 2) loadCalendlyWidget();
   if (n === 4) {
     updateBookingSummary();
     // Mount Stripe Elements only when the payment step is visible (paid lessons)
@@ -4841,16 +4842,65 @@ function selectType(el, type, price) {
   bkState.type = type; bkState.price = price;
   bkState.typeLabel = el.querySelector('.bk-type-name').childNodes[0].textContent.trim();
 }
-function selectDay(el) {
-  document.querySelectorAll('.bk-cal-day').forEach(d => d.classList.remove('bk-day-sel'));
-  el.classList.add('bk-day-sel');
-  bkState.day = el.querySelector('.bk-cal-dow').textContent + ' ' + el.querySelector('.bk-cal-num').textContent;
+
+// ── Calendly inline embed (step 2) — real per-tutor availability ────────────
+let _bkCalendlyLoadedForTutor = null;
+async function loadCalendlyWidget() {
+  const statusEl = document.getElementById('bk-calendly-status');
+  const wrapEl = document.getElementById('bk-calendly-wrap');
+  const embedEl = document.getElementById('bk-calendly-embed');
+  if (_bkCalendlyLoadedForTutor === bkState.tutor) return; // already loaded for this tutor
+  statusEl.style.display = 'block';
+  statusEl.textContent = "Loading " + bkState.tutor + "'s availability…";
+  wrapEl.style.display = 'none';
+  embedEl.innerHTML = '';
+  try {
+    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not load availability');
+    // widget.js is loaded as a regular (non-async) <script>, but guard
+    // against any load-order race rather than assuming it's always ready.
+    let attempts = 0;
+    while (!window.Calendly && attempts < 50) { await new Promise(r => setTimeout(r, 100)); attempts++; }
+    if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
+    _bkCalendlyLoadedForTutor = bkState.tutor;
+    statusEl.style.display = 'none';
+    wrapEl.style.display = 'block';
+    window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
+  } catch(e) {
+    statusEl.textContent = e.message || "We couldn't load real-time availability for this tutor. Please email hello@seedsinstitute.co.uk to arrange a time.";
+  }
 }
-function selectSlot(el) {
-  document.querySelectorAll('.bk-slot').forEach(s => s.classList.remove('bk-slot-sel'));
-  el.classList.add('bk-slot-sel');
-  bkState.time = el.textContent;
-}
+
+// Calendly's embed posts a window message once a visitor finishes scheduling
+// inside the iframe. The message doesn't include the plain start time, only
+// the event's API URI, so we look that up server-side and continue our own
+// wizard with the real, conflict-checked slot.
+window.addEventListener('message', async (e) => {
+  if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
+  if (e.data.event !== 'calendly.event_scheduled') return;
+  const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
+  if (!eventUri) return;
+  const statusEl = document.getElementById('bk-calendly-status');
+  document.getElementById('bk-calendly-wrap').style.display = 'none';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Confirming your slot…';
+  try {
+    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not confirm your chosen time');
+    bkState.startTimeISO = data.startTime;
+    const d = new Date(data.startTime);
+    bkState.day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    bkState.time = d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+    bkGoStep(3);
+  } catch(err) {
+    statusEl.textContent = err.message;
+    // Let them try picking again rather than getting stuck
+    _bkCalendlyLoadedForTutor = null;
+    setTimeout(loadCalendlyWidget, 1500);
+  }
+});
 // ── Step 4 summary ──────────────────────────────────────────────────────────
 function updateBookingSummary() {
   document.getElementById('bk-sum-tutor').textContent = bkState.tutor;
@@ -4890,14 +4940,40 @@ function bkShowSuccess() {
 
 // ── Build a JS Date from the selected day/time strings ───────────────────────
 function buildStartTime() {
-  // bkState.day is like "Tue 1" and bkState.time is like "4:00 PM"
-  // We combine with the current month/year and parse
-  const now = new Date();
-  const dayNum = parseInt(bkState.day.split(' ')[1]);
-  const timeStr = bkState.time; // "4:00 PM"
-  const dateStr = `${now.toLocaleString('en-GB', { month: 'long' })} ${dayNum} ${now.getFullYear()} ${timeStr}`;
-  const parsed = new Date(dateStr);
-  return isNaN(parsed.getTime()) ? new Date() : parsed;
+  // The real slot the visitor picked inside the embedded Calendly widget
+  // (step 2) — resolved server-side from the postMessage's event URI.
+  return bkState.startTimeISO ? new Date(bkState.startTimeISO) : null;
+}
+
+// ── Step 3 validation — student name, parent name, and a valid email are
+// mandatory (we can't confirm a booking or send a calendar invite without
+// them). Shows the error inline on step 3 itself, rather than setting it on
+// a different step's hidden element, which is what silently swallowed this
+// error before: a user with a blank/invalid email would click Confirm on
+// step 4, get bounced back to step 3, and see no visible feedback at all.
+function bkValidateStep3() {
+  const errEl = document.getElementById('bk-step3-error');
+  const studentName = document.getElementById('bk-student-name').value.trim();
+  const parentName  = document.getElementById('bk-parent-name').value.trim();
+  const email       = document.getElementById('bk-email').value.trim();
+  const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  if (!studentName || !parentName || !email) {
+    errEl.textContent = 'Please fill in the student\'s name, your name, and your email address — these are required to confirm the booking.';
+    errEl.style.display = 'block';
+    return false;
+  }
+  if (!emailLooksValid) {
+    errEl.textContent = 'That email address doesn\'t look right — please double-check it.';
+    errEl.style.display = 'block';
+    return false;
+  }
+  errEl.style.display = 'none';
+  return true;
+}
+function bkStep3Continue() {
+  if (!bkValidateStep3()) return;
+  bkGoStep(4);
 }
 
 // ── Main booking flow ───────────────────────────────────────────────────────
@@ -4907,13 +4983,19 @@ async function completeBooking() {
   const parentPhone = document.getElementById('bk-phone').value.trim();
   const studentName = document.getElementById('bk-student-name').value.trim();
 
-  if (!parentEmail || !studentName) {
-    bkShowError('Please fill in the student name and email address before continuing.');
+  // Defence in depth — step 3 already gates on this, so in normal use this
+  // should never trigger, but don't let a booking through without it.
+  if (!bkValidateStep3()) {
     bkGoStep(3);
     return;
   }
 
   const startTime = buildStartTime();
+  if (!startTime) {
+    bkShowError('Something went wrong finding your chosen time — please go back and pick a slot again.');
+    bkGoStep(2);
+    return;
+  }
 
   // ── FREE TRIAL — no payment, just send confirmation ──────────────────────
   if (bkState.type === 'trial') {
