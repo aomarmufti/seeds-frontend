@@ -4801,7 +4801,7 @@ function openBooking(tutorName, subject) {
   // Clear any previously-picked slot so a fresh attempt never inherits one
   // from an earlier booking in the same page session.
   bkState.startTimeISO = null; bkState.day = ''; bkState.time = '';
-  _bkCalendlyLoadedForTutor = null;
+  _bkCalendlyLoadedFor = null;
   document.getElementById('bk-overlay').classList.add('bk-open');
   document.body.style.overflow = 'hidden';
   bkGoStep(1);
@@ -4844,18 +4844,22 @@ function selectType(el, type, price) {
 }
 
 // ── Calendly inline embed (step 2) — real per-tutor availability ────────────
-let _bkCalendlyLoadedForTutor = null;
+// Cache key includes lessonType alongside tutor — a trial/consultation and a
+// regular paid lesson are different Calendly event types, so switching lesson
+// type for the same tutor (going back to step 1) must reload the widget too.
+let _bkCalendlyLoadedFor = null;
 async function loadCalendlyWidget() {
   const statusEl = document.getElementById('bk-calendly-status');
   const wrapEl = document.getElementById('bk-calendly-wrap');
   const embedEl = document.getElementById('bk-calendly-embed');
-  if (_bkCalendlyLoadedForTutor === bkState.tutor) return; // already loaded for this tutor
+  const cacheKey = bkState.tutor + '|' + bkState.type;
+  if (_bkCalendlyLoadedFor === cacheKey) return; // already loaded for this tutor + lesson type
   statusEl.style.display = 'block';
   statusEl.textContent = "Loading " + bkState.tutor + "'s availability…";
   wrapEl.style.display = 'none';
   embedEl.innerHTML = '';
   try {
-    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}`);
+    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load availability');
     // widget.js is loaded as a regular (non-async) <script>, but guard
@@ -4863,7 +4867,7 @@ async function loadCalendlyWidget() {
     let attempts = 0;
     while (!window.Calendly && attempts < 50) { await new Promise(r => setTimeout(r, 100)); attempts++; }
     if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
-    _bkCalendlyLoadedForTutor = bkState.tutor;
+    _bkCalendlyLoadedFor = cacheKey;
     statusEl.style.display = 'none';
     wrapEl.style.display = 'block';
     window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
@@ -4897,7 +4901,7 @@ window.addEventListener('message', async (e) => {
   } catch(err) {
     statusEl.textContent = err.message;
     // Let them try picking again rather than getting stuck
-    _bkCalendlyLoadedForTutor = null;
+    _bkCalendlyLoadedFor = null;
     setTimeout(loadCalendlyWidget, 1500);
   }
 });
