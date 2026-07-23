@@ -3810,6 +3810,12 @@ window.addEventListener('DOMContentLoaded', function() {
           </div>
         </div>
 
+        <!-- Contact (SCRUM-55: parent's email always, WhatsApp only if opted in) -->
+        <div class="tp-card">
+          <div class="tp-card-hdr"><span class="tp-card-title">Parent contact</span></div>
+          <div id="tp-detail-contact"><div style="color:#A7A7A7;font-size:.82rem">Loading…</div></div>
+        </div>
+
         <!-- Progress -->
         <div class="tp-card">
           <div class="tp-card-hdr"><span class="tp-card-title">Progress</span></div>
@@ -4035,6 +4041,32 @@ function tpOpenStudent(studentId, name, initials) {
   document.getElementById('tp-detail-av').textContent = initials;
   document.getElementById('tp-detail-sub').textContent = 'Loading…';
   tpLoadStudentLifecycle(studentId);
+  tpLoadStudentContact(studentId);
+}
+
+// SCRUM-55: contact card for this student's parent — email always,
+// WhatsApp only if the parent has opted in.
+async function tpLoadStudentContact(studentId) {
+  const el = document.getElementById('tp-detail-contact');
+  if (!el) return;
+  el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem">Loading…</div>';
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=contact-info&for=parent&studentId=${studentId}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to load contact info');
+    const waLink = data.whatsappNumber
+      ? `<a href="https://wa.me/${data.whatsappNumber.replace(/[^\d]/g,'')}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#25D366;color:#fff;text-decoration:none;border-radius:8px;font-size:.78rem;font-weight:600;margin-left:8px">💬 WhatsApp</a>`
+      : '';
+    el.innerHTML = data.email
+      ? `<a href="mailto:${escapeHtml(data.email)}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:600;color:#0D1B2A;text-decoration:none">✉ Email</a>${waLink}`
+      : '<div style="color:#A7A7A7;font-size:.82rem">Parent contact info not available.</div>';
+  } catch(e) {
+    el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem">Couldn\'t load parent contact info.</div>';
+  }
 }
 
 function closeStudentDetail() {
