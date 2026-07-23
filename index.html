@@ -1782,6 +1782,12 @@ function switchAud(e, panel) {
         <div style="text-align:center;color:#A7A7A7;padding:24px;font-size:.85rem">Loading your profile…</div>
       </div>
     </div>
+    <div class="p-card" style="margin-bottom:14px">
+      <div class="p-card-hdr" style="margin-bottom:10px"><span class="p-card-title">Your tutor</span></div>
+      <div id="sp-tutor-contact">
+        <div style="text-align:center;color:#A7A7A7;padding:14px;font-size:.82rem">Loading…</div>
+      </div>
+    </div>
     <div class="p-card">
       <div class="p-card-hdr" style="margin-bottom:10px"><span class="p-card-title">Visible to your tutor</span></div>
       <p style="font-size:.8rem;color:#718096;line-height:1.6">Your tutor can see your year group, subjects, current and target grades, and any notes you've shared. This helps them personalise every lesson.</p>
@@ -5848,7 +5854,7 @@ window.showPortalPanel = function(id, navEl) {
     });
   }
   if (id === 'p-payments') { spLoadPaymentHistory().then(spLoadSavedCards); }
-  if (id === 'p-profile') spRenderProfileView();
+  if (id === 'p-profile') { spRenderProfileView(); spLoadTutorContact(); }
 };
 </script>
 
@@ -6954,7 +6960,16 @@ if (typeof adRenderDashboard === 'function') {
       </div>
     </div>
     <span class="lg-label">Target grades by subject (optional)</span>
-    <input class="lg-input" type="text" id="sp-profile-targets" placeholder="e.g. Maths: A*, Chemistry: A" style="margin-bottom:16px">
+    <input class="lg-input" type="text" id="sp-profile-targets" placeholder="e.g. Maths: A*, Chemistry: A" style="margin-bottom:10px">
+    <div style="background:#FAF8F4;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <span class="lg-label">WhatsApp number (optional)</span>
+      <input class="lg-input" type="tel" id="sp-profile-whatsapp" placeholder="e.g. +44 7700 900000" style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:#4A5568;cursor:pointer">
+        <input type="checkbox" id="sp-profile-whatsapp-optin" style="width:auto;margin:0">
+        Share this number with your assigned tutor
+      </label>
+      <p style="font-size:.72rem;color:#A7A7A7;margin:6px 0 0">Your email is always visible to your tutor. WhatsApp is optional — only shared if you tick this box.</p>
+    </div>
     <button class="lg-enter" id="sp-profile-btn" onclick="spSaveProfile()">Save &amp; continue &rarr;</button>
   </div>
 </div>
@@ -6989,6 +7004,8 @@ async function spSaveProfile() {
   const subjects = document.getElementById('sp-profile-subjects-input')?.value?.trim() || '';
   const currentGrade = document.getElementById('sp-profile-current')?.value?.trim() || '';
   const aimGrade = document.getElementById('sp-profile-aim')?.value?.trim() || '';
+  const whatsappNumber = document.getElementById('sp-profile-whatsapp')?.value?.trim() || '';
+  const whatsappOptedIn = document.getElementById('sp-profile-whatsapp-optin')?.checked || false;
   if (!year) {
     errEl.textContent = 'Please select your school year.';
     errEl.style.display = 'block';
@@ -7012,6 +7029,8 @@ async function spSaveProfile() {
       target_grades: targetObj,
       subjects: subjects || null,
       onboarding_complete: true,
+      whatsapp_number: whatsappNumber || null,
+      whatsapp_opted_in: whatsappOptedIn && !!whatsappNumber,
     }, { onConflict: 'id' });
     if (error) throw new Error(error.message);
     // Mark done so modal never appears again this browser
@@ -7771,7 +7790,16 @@ window.adRenderStudents = async function() {
     <span class="lg-label">Subjects (comma-separated)</span>
     <input class="lg-input" type="text" id="tp-prof-subjects" placeholder="e.g. Mathematics, Further Maths" style="margin-bottom:8px">
     <span class="lg-label">Short bio (shown on homepage)</span>
-    <textarea class="tp-note-input" id="tp-prof-bio" placeholder="e.g. KCL Mathematics graduate with 5 years of GCSE and A-Level tutoring experience..." style="min-height:80px;margin-bottom:14px"></textarea>
+    <textarea class="tp-note-input" id="tp-prof-bio" placeholder="e.g. KCL Mathematics graduate with 5 years of GCSE and A-Level tutoring experience..." style="min-height:80px;margin-bottom:10px"></textarea>
+    <div style="background:#FAF8F4;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <span class="lg-label">WhatsApp number (optional)</span>
+      <input class="lg-input" type="tel" id="tp-prof-whatsapp" placeholder="e.g. +44 7700 900000" style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:#4A5568;cursor:pointer">
+        <input type="checkbox" id="tp-prof-whatsapp-optin" style="width:auto;margin:0">
+        Share this number with your students' parents
+      </label>
+      <p style="font-size:.72rem;color:#A7A7A7;margin:6px 0 0">Your email is always visible to parents. WhatsApp is optional — only shared if you tick this box.</p>
+    </div>
     <button class="lg-enter" id="tp-prof-btn" onclick="tpSaveProfile()">Save profile &rarr;</button>
     <div id="tp-prof-success" style="display:none;font-size:.82rem;color:#2D7A4F;padding:10px;background:#f0faf4;border-radius:8px;text-align:center;margin-top:10px">&#x2713; Profile updated.</div>
   </div>
@@ -7787,6 +7815,17 @@ async function tpOpenProfile() {
   // Pre-fill with current name
   document.getElementById('tp-prof-name').value = earnCurrentTutor || '';
   document.getElementById('tp-profile-modal').classList.add('open');
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const { data: p } = await sbClient.from('profiles').select('whatsapp_number,whatsapp_opted_in').eq('id', session.user.id).maybeSingle();
+    if (p) {
+      const wn = document.getElementById('tp-prof-whatsapp');
+      if (wn) wn.value = p.whatsapp_number || '';
+      const wo = document.getElementById('tp-prof-whatsapp-optin');
+      if (wo) wo.checked = !!p.whatsapp_opted_in;
+    }
+  } catch(e) { /* non-fatal — fields just stay blank */ }
 }
 
 async function tpSaveProfile() {
@@ -7795,6 +7834,8 @@ async function tpSaveProfile() {
   const tutorName = document.getElementById('tp-prof-name').value.trim();
   const subjects = document.getElementById('tp-prof-subjects').value.trim();
   const bio = document.getElementById('tp-prof-bio').value.trim();
+  const whatsappNumber = document.getElementById('tp-prof-whatsapp')?.value?.trim() || '';
+  const whatsappOptedIn = document.getElementById('tp-prof-whatsapp-optin')?.checked || false;
   if (!tutorName) { errEl.textContent='Display name is required'; errEl.style.display='block'; return; }
   btn.disabled=true; btn.textContent='Saving…'; errEl.style.display='none';
   try {
@@ -7804,6 +7845,8 @@ async function tpSaveProfile() {
       tutor_name: tutorName,
       ...(subjects ? { subjects } : {}),
       ...(bio ? { bio } : {}),
+      whatsapp_number: whatsappNumber || null,
+      whatsapp_opted_in: whatsappOptedIn && !!whatsappNumber,
     }).eq('id', session.user.id);
     document.getElementById('tp-prof-success').style.display='block';
     btn.textContent='Saved ✓';
@@ -8128,6 +8171,37 @@ async function spRenderProfileView() {
   }
 }
 
+// SCRUM-55: contact card for the parent's assigned tutor — email always,
+// WhatsApp only if the tutor has opted in.
+async function spLoadTutorContact() {
+  const el = document.getElementById('sp-tutor-contact');
+  if (!el) return;
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const { data: profile } = await sbClient.from('profiles').select('assigned_tutor').eq('id', session.user.id).maybeSingle();
+    const tutorName = profile?.assigned_tutor;
+    if (!tutorName) {
+      el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;padding:10px 0">No tutor assigned yet.</div>';
+      return;
+    }
+    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=contact-info&for=tutor&tutorName=' + encodeURIComponent(tutorName), {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to load contact info');
+    const waLink = data.whatsappNumber
+      ? `<a href="https://wa.me/${data.whatsappNumber.replace(/[^\d]/g,'')}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#25D366;color:#fff;text-decoration:none;border-radius:8px;font-size:.78rem;font-weight:600;margin-left:8px">💬 WhatsApp</a>`
+      : '';
+    el.innerHTML = `
+      <div style="font-weight:700;font-size:.9rem;color:#0D1B2A;margin-bottom:8px">${escapeHtml(tutorName)}</div>
+      <a href="mailto:${escapeHtml(data.email||'')}" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:600;color:#0D1B2A;text-decoration:none">✉ Email</a>${waLink}
+    `;
+  } catch(e) {
+    el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;padding:10px 0">Couldn\'t load tutor contact info.</div>';
+  }
+}
+
 function spOpenEditProfile() {
   // Pre-fill the profile modal with existing data then open it
   sbClient.from('profiles')
@@ -8138,7 +8212,7 @@ function spOpenEditProfile() {
 
   sbClient.auth.getSession().then(({ data: { session } }) => {
     if (!session) return;
-    sbClient.from('profiles').select('school_year,subjects,target_grades').eq('id',session.user.id).maybeSingle().then(({ data: p }) => {
+    sbClient.from('profiles').select('school_year,subjects,target_grades,whatsapp_number,whatsapp_opted_in').eq('id',session.user.id).maybeSingle().then(({ data: p }) => {
       if (p) {
         const yr = document.getElementById('sp-profile-year');
         if (yr) yr.value = p.school_year || '';
@@ -8146,6 +8220,10 @@ function spOpenEditProfile() {
         if (si) si.value = p.subjects || '';
         const tg = document.getElementById('sp-profile-targets');
         if (tg) tg.value = Object.entries(p.target_grades || {}).map(([k,v])=>k+': '+v).join(', ');
+        const wn = document.getElementById('sp-profile-whatsapp');
+        if (wn) wn.value = p.whatsapp_number || '';
+        const wo = document.getElementById('sp-profile-whatsapp-optin');
+        if (wo) wo.checked = !!p.whatsapp_opted_in;
       }
       document.getElementById('sp-profile-error').style.display = 'none';
       const btn = document.getElementById('sp-profile-btn');
