@@ -894,7 +894,7 @@ footer{background:#07111C;padding:56px 48px 30px}
         </div>
         <div id="p-parents" class="aud-panel">
           <p class="aud-body">You want two things: <strong style="color:rgba(255,255,255,.9)">results</strong> and a child who is <strong style="color:rgba(255,255,255,.9)">genuinely engaged</strong>. Seeds delivers both. Our structured syllabus tracking, past-paper approach, and weekly homework ensure exam readiness. The deeper methodology means students want to learn.</p>
-          <p class="aud-body">You receive monthly written progress reports, recordings of weekly group past-paper sessions, and tutor notes after every 1:1 lesson. You can always message your child's tutor directly.</p>
+          <p class="aud-body">You receive monthly written progress reports, recordings of weekly group past-paper sessions, and tutor notes after every 1:1 lesson. You can always contact your child's tutor directly.</p>
         </div>
       </div>
 
@@ -1512,36 +1512,6 @@ function switchAud(e, panel) {
 .p-insight{background:rgba(45,122,79,0.07);border:1px solid rgba(45,122,79,0.16);border-radius:12px;padding:14px 16px;border-left:3px solid #2D7A4F}
 .p-insight-lbl{font-size:.64rem;font-weight:700;color:#2D7A4F;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
 .p-insight-body{font-size:.81rem;color:#4A5568;line-height:1.65}
-/* chat */
-.chat-wrap{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 180px);background:#fff;border-radius:15px;border:1px solid #E8E8E8;overflow:hidden}
-.chat-sb{background:#FAF8F4;border-right:1px solid #E8E8E8;overflow-y:auto}
-.chat-sb-hdr{padding:14px 15px;border-bottom:1px solid #E8E8E8;font-size:.8rem;font-weight:700;color:#0D1B2A}
-.chat-contact{display:flex;gap:9px;align-items:center;padding:11px 15px;cursor:pointer;transition:background .22s;border-bottom:1px solid #E8E8E8}
-.chat-contact:hover,.chat-contact.c-active{background:#F5F0E8}
-.chat-contact.c-active{border-right:2px solid #C8A15A}
-.c-av{width:34px;height:34px;border-radius:50%;background:#0D1B2A;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0;position:relative}
-.c-online{position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;background:#2D7A4F;border:1.5px solid #FAF8F4}
-.c-name{font-size:.8rem;font-weight:600;color:#0D1B2A;margin-bottom:1px}
-.c-prev{font-size:.7rem;color:#718096;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-.c-time{font-size:.62rem;color:#718096;flex-shrink:0}
-.chat-main-area{display:flex;flex-direction:column}
-.chat-topbar{padding:13px 17px;border-bottom:1px solid #E8E8E8;display:flex;align-items:center;gap:11px}
-.ct-av{width:36px;height:36px;border-radius:50%;background:#0D1B2A;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;color:#fff;flex-shrink:0}
-.ct-name{font-size:.87rem;font-weight:700;color:#0D1B2A}
-.ct-status{font-size:.7rem;color:#2D7A4F;display:flex;align-items:center;gap:4px}
-.ct-dot{width:6px;height:6px;border-radius:50%;background:#2D7A4F;animation:blink 2s infinite}
-.chat-msgs{flex:1;overflow-y:auto;padding:17px;display:flex;flex-direction:column;gap:11px;background:#FAF8F4}
-.msg-w{display:flex}
-.msg-w.sent{justify-content:flex-end}
-.msg-b{max-width:72%;padding:9px 13px;border-radius:13px;font-size:.82rem;line-height:1.5}
-.msg-b.recv{background:#fff;color:#0D1B2A;border:1px solid #E8E8E8;border-radius:13px 13px 13px 4px}
-.msg-b.sent{background:#0D1B2A;color:#fff;border-radius:13px 13px 4px 13px}
-.msg-time{font-size:.61rem;margin-top:3px;text-align:right;opacity:.45}
-.chat-inp-area{padding:13px 15px;border-top:1px solid #E8E8E8;display:flex;gap:8px;background:#fff}
-.chat-inp-f{flex:1;padding:9px 13px;border:1.5px solid #E8E8E8;border-radius:9px;font-size:.83rem;font-family:"Inter",sans-serif;outline:none;background:#FAF8F4;color:#0D1B2A;transition:border-color .22s}
-.chat-inp-f:focus{border-color:#C8A15A}
-.chat-send{padding:9px 15px;background:#0D1B2A;color:#fff;border:none;border-radius:9px;font-size:.79rem;font-weight:600;cursor:pointer;font-family:"Inter",sans-serif;transition:all .22s}
-.chat-send:hover{background:#1a2d42;transform:translateY(-1px)}
 /* calendar */
 .cal-grid-p{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:18px}
 .cal-lbl{text-align:center;font-size:.67rem;font-weight:600;color:#718096;padding:3px 0}
@@ -1600,7 +1570,6 @@ function switchAud(e, panel) {
     <div class="p-nav-item" onclick="showPortalPanel('p-progress',this)">📈 &nbsp;Progress</div>
     <div class="p-nav-item" onclick="showPortalPanel('p-hw',this)">📝 &nbsp;Homework</div>
     <div style="font-size:.6rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:12px 10px 5px;display:block">Connect</div>
-    <!-- Messages nav item removed — feature disabled for now, see backend lifecycle.js validResources -->
     <div class="p-nav-item" onclick="showPortalPanel('p-payments',this)">💳 &nbsp;Payments</div>
     <div class="p-nav-item" onclick="showPortalPanel('p-profile',this)" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding-top:12px">👤 &nbsp;My Profile</div>
   </div>
@@ -1819,26 +1788,6 @@ function switchAud(e, panel) {
     </div>
   </div>
 
-  <!-- CHAT -->
-  <div id="p-chat" class="p-panel">
-    <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A;margin-bottom:16px">Messages</h2>
-    <div class="chat-wrap">
-      <div class="chat-sb">
-        <div class="chat-sb-hdr">Conversations</div>
-        <div class="chat-contact c-active"><div class="c-av">S<div class="c-online"></div></div><div style="flex:1;min-width:0"><div class="c-name">Your Seeds tutors</div><div class="c-prev">Messages with your tutors &amp; admin</div></div></div>
-      </div>
-      <div class="chat-main-area">
-        <div class="chat-topbar"><div class="ct-av">S</div><div><div class="ct-name">Your Seeds tutors</div><div class="ct-status"><span class="ct-dot"></span>Messages are saved</div></div></div>
-        <div class="chat-msgs" id="p-chat-msgs">
-          <div style="text-align:center;color:#A7A7A7;font-size:.82rem;padding:20px">Loading messages…</div>
-        </div>
-        <div class="chat-inp-area">
-          <input class="chat-inp-f" id="p-chat-inp" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendPortalMsg()">
-          <button class="chat-send" onclick="sendPortalMsg()">Send ↑</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
 </div><!-- /p-main -->
 </div><!-- /portal-overlay -->
@@ -2229,60 +2178,6 @@ function togglePHW(el){
   el.textContent=el.classList.contains('p-done')?'✓':'';
   const t=el.nextElementSibling?.querySelector('.p-hw-title');
   if(t) t.classList.toggle('p-striked');
-}
-// ── STUDENT MESSAGING (persistent) ───────────────────────────────────────
-let spMsgStudentId = null;
-
-async function spLoadMessages() {
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) return;
-    const email = session.user.email;
-    // Resolve student_id via a message fetch by email
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=messages&studentEmail=${encodeURIComponent(email)}`);
-    const messages = await r.json();
-    // Store student id for sending (from analytics students lookup)
-    const sr = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
-    const students = await sr.json();
-    const me = students.find(s => (s.parent_email||'').toLowerCase() === email.toLowerCase());
-    spMsgStudentId = me ? me.id : null;
-    spRenderMessages(messages);
-  } catch(e) { console.error('spLoadMessages:', e.message); }
-}
-
-function spRenderMessages(messages) {
-  const msgs = document.getElementById('p-chat-msgs');
-  if (!msgs) return;
-  if (!messages.length) {
-    msgs.innerHTML = '<div style="text-align:center;color:#A7A7A7;font-size:.82rem;padding:20px">No messages yet. Say hello to your tutor!</div>';
-    return;
-  }
-  msgs.innerHTML = messages.slice().reverse().map(m => {
-    const t = new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    const isMe = m.sender_role === 'student';
-    return isMe
-      ? `<div class="msg-w sent"><div class="msg-b sent">${escapeHtml(m.body)}<div class="msg-time">${t}</div></div></div>`
-      : `<div class="msg-w"><div class="msg-b recv">${escapeHtml(m.body)}<div class="msg-time">${escapeHtml(m.sender_name)||'Tutor'} · ${t}</div></div></div>`;
-  }).join('');
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-async function sendPortalMsg(){
-  const inp = document.getElementById('p-chat-inp');
-  const val = inp.value.trim();
-  if(!val) return;
-  if(!spMsgStudentId){ await spLoadMessages(); }
-  if(!spMsgStudentId){ alert('Could not identify your account.'); return; }
-  inp.value='';
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    const { data: profile } = await sbClient.from('profiles').select('full_name').eq('id', session.user.id).single();
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=messages`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ studentId: spMsgStudentId, senderRole:'student', senderName: profile?.full_name||'Student', body: val }),
-    });
-    spLoadMessages();
-  } catch(e) { alert('Failed to send: '+e.message); }
 }
 </script>
 
@@ -3505,7 +3400,7 @@ async function adRenderStudents() {
         <td>${tutors}</td>
         <td>${bookings.length}</td>
         <td style="color:#718096">${joined}</td>
-        <td><button class="ad-btn-xs ad-btn-ghost" onclick="adOpenMessage({toType:'student'})">✉ Message</button></td>
+        <td></td>
       </tr>`;
     }).join('');
   } catch(e) {
@@ -3736,37 +3631,6 @@ window.addEventListener('DOMContentLoaded', function() {
 .tp-upload-text{font-size:.82rem;color:#0D1B2A;font-weight:600;margin-bottom:2px}
 .tp-upload-sub{font-size:.72rem;color:#718096}
 
-/* Chat - reuse student portal pattern */
-.tp-chat-wrap{display:grid;grid-template-columns:220px 1fr;height:calc(100vh - 180px);background:#fff;border-radius:15px;border:1px solid #E8E8E8;overflow:hidden}
-.tp-chat-sb{background:#FAF8F4;border-right:1px solid #E8E8E8;overflow-y:auto}
-.tp-chat-sb-hdr{padding:14px 15px;border-bottom:1px solid #E8E8E8;font-size:.8rem;font-weight:700;color:#0D1B2A}
-.tp-chat-contact{display:flex;gap:9px;align-items:center;padding:11px 15px;cursor:pointer;transition:background .22s;border-bottom:1px solid #E8E8E8}
-.tp-chat-contact:hover,.tp-chat-contact.tp-c-active{background:#F5F0E8}
-.tp-chat-contact.tp-c-active{border-right:2px solid #C8A15A}
-.tp-c-av{width:34px;height:34px;border-radius:50%;background:#0D1B2A;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0;position:relative}
-.tp-c-online{position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;background:#2D7A4F;border:1.5px solid #FAF8F4}
-.tp-c-name{font-size:.8rem;font-weight:600;color:#0D1B2A;margin-bottom:1px}
-.tp-c-prev{font-size:.7rem;color:#718096;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-.tp-c-time{font-size:.62rem;color:#718096;flex-shrink:0}
-.tp-chat-main-area{display:flex;flex-direction:column}
-.tp-chat-topbar{padding:13px 17px;border-bottom:1px solid #E8E8E8;display:flex;align-items:center;gap:11px}
-.tp-ct-av{width:36px;height:36px;border-radius:50%;background:#0D1B2A;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;color:#fff;flex-shrink:0}
-.tp-ct-name{font-size:.87rem;font-weight:700;color:#0D1B2A}
-.tp-ct-status{font-size:.7rem;color:#2D7A4F;display:flex;align-items:center;gap:4px}
-.tp-ct-dot{width:6px;height:6px;border-radius:50%;background:#2D7A4F;animation:blink 2s infinite}
-.tp-chat-msgs{flex:1;overflow-y:auto;padding:17px;display:flex;flex-direction:column;gap:11px;background:#FAF8F4}
-.tp-msg-w{display:flex}
-.tp-msg-w.tp-sent{justify-content:flex-end}
-.tp-msg-b{max-width:72%;padding:9px 13px;border-radius:13px;font-size:.82rem;line-height:1.5}
-.tp-msg-b.tp-recv{background:#fff;color:#0D1B2A;border:1px solid #E8E8E8;border-radius:13px 13px 13px 4px}
-.tp-msg-b.tp-sent-msg{background:#0D1B2A;color:#fff;border-radius:13px 13px 4px 13px}
-.tp-msg-time{font-size:.61rem;margin-top:3px;text-align:right;opacity:.45}
-.tp-chat-inp-area{padding:13px 15px;border-top:1px solid #E8E8E8;display:flex;gap:8px;background:#fff}
-.tp-chat-inp-f{flex:1;padding:9px 13px;border:1.5px solid #E8E8E8;border-radius:9px;font-size:.83rem;font-family:'Inter',sans-serif;outline:none;background:#FAF8F4;color:#0D1B2A;transition:border-color .22s}
-.tp-chat-inp-f:focus{border-color:#C8A15A}
-.tp-chat-send{padding:9px 15px;background:#0D1B2A;color:#fff;border:none;border-radius:9px;font-size:.79rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .22s}
-.tp-chat-send:hover{background:#1a2d42}
-
 /* Earnings */
 .tp-bar-chart{display:flex;align-items:flex-end;gap:8px;height:120px;margin-bottom:10px;padding:0 4px}
 .tp-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
@@ -3785,8 +3649,6 @@ window.addEventListener('DOMContentLoaded', function() {
   .tp-kpi-row{grid-template-columns:1fr 1fr}
   .tp-avail-grid{grid-template-columns:repeat(4,1fr)}
   .tp-resource-grid{grid-template-columns:1fr 1fr}
-  .tp-chat-wrap{grid-template-columns:1fr}
-  .tp-chat-sb{display:none}
 }
 </style>
 
@@ -3833,8 +3695,7 @@ window.addEventListener('DOMContentLoaded', function() {
       <div class="tp-nav-item" onclick="showTpPanel('tp-schedule',this)">📅 &nbsp;Schedule</div>
       <div class="tp-nav-item" onclick="showTpPanel('tp-students',this)">👥 &nbsp;My Students</div>
       <div class="tp-nav-item" onclick="showTpPanel('tp-resources',this)">📁 &nbsp;Resources</div>
-      <!-- Messages nav item removed — feature disabled for now, see backend lifecycle.js validResources -->
-      <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">Finance</div>
+        <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">Finance</div>
       <div class="tp-nav-item" onclick="showTpPanel('tp-earnings',this)">💰 &nbsp;Earnings</div>
       <div class="tp-nav-item" onclick="tpOpenProfile()" style="margin-top:auto;border-top:1px solid rgba(255,255,255,.08);padding-top:12px">👤 &nbsp;Edit profile</div>
     </div>
@@ -3990,7 +3851,7 @@ window.addEventListener('DOMContentLoaded', function() {
     <!-- RESOURCES -->
     <div id="tp-resources" class="tp-panel">
       <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A;margin-bottom:16px">Resources</h2>
-      <div class="tp-upload-zone" onclick="alert('Resource sharing is coming soon. For now, share materials with students via the Messages tab or email.')">
+      <div class="tp-upload-zone" onclick="alert('Resource sharing is coming soon. For now, share materials with students via email.')">
         <div class="tp-upload-icon">📤</div>
         <div class="tp-upload-text">Upload a resource</div>
         <div class="tp-upload-sub">PDF, worksheet, slides, or past paper — drag and drop or click to browse</div>
@@ -4002,27 +3863,6 @@ window.addEventListener('DOMContentLoaded', function() {
         <div class="tp-resource-card"><div class="tp-resource-icon">📝</div><div class="tp-resource-name">Algebra Homework — Set 4</div><div class="tp-resource-meta">PDF · Worksheet</div></div>
         <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Mechanics Formula Sheet</div><div class="tp-resource-meta">PDF · Reference</div></div>
         <div class="tp-resource-card"><div class="tp-resource-icon">📊</div><div class="tp-resource-name">Circle Theorems Slides</div><div class="tp-resource-meta">Slides · 18 slides</div></div>
-      </div>
-    </div>
-
-    <!-- MESSAGES -->
-    <div id="tp-chat" class="tp-panel">
-      <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A;margin-bottom:16px">Messages</h2>
-      <div class="tp-chat-wrap">
-        <div class="tp-chat-sb">
-          <div class="tp-chat-sb-hdr">Students &amp; parents</div>
-          <div style="padding:14px;color:#A7A7A7;font-size:.8rem">Loading…</div>
-        </div>
-        <div class="tp-chat-main-area">
-          <div class="tp-chat-topbar"><div class="tp-ct-av">S</div><div><div class="tp-ct-name">Select a student</div><div class="tp-ct-status"><span class="tp-ct-dot"></span>Messages are saved</div></div></div>
-          <div class="tp-chat-msgs" id="tp-chat-msgs">
-            <div style="text-align:center;color:#A7A7A7;font-size:.82rem;padding:20px">Select a student to view messages.</div>
-          </div>
-          <div class="tp-chat-inp-area">
-            <input class="tp-chat-inp-f" id="tp-chat-inp" type="text" placeholder="Message Ibrahim..." onkeydown="if(event.key==='Enter')sendTpMsg()">
-            <button class="tp-chat-send" onclick="sendTpMsg()">Send ↑</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -4320,81 +4160,6 @@ async function tpSaveProgress() {
     document.getElementById('tp-prog-target').value = '';
     tpLoadStudentLifecycle(_tpCurrentStudent.id);
   } catch(e) { alert('Failed: '+e.message); }
-}
-// ── TUTOR MESSAGING (persistent) ─────────────────────────────────────────
-let _tpChatStudentId = null;
-let _tpChatStudentName = null;
-
-async function tpLoadChatSidebar() {
-  const sb = document.querySelector('.tp-chat-sb');
-  if (!sb) return;
-  try {
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
-    const students = await r.json();
-    const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
-    const hdr = '<div class="tp-chat-sb-hdr">Students &amp; parents</div>';
-    if (!mine.length) { sb.innerHTML = hdr + '<div style="padding:14px;color:#A7A7A7;font-size:.8rem">No students yet.</div>'; return; }
-    sb.innerHTML = hdr + mine.map((s,i) => {
-      const initials = s.student_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const esc = s.student_name.replace(/'/g,"\\'");
-      return `<div class="tp-chat-contact${i===0?' tp-c-active':''}" onclick="tpSelectChat('${s.id}','${esc}',this)">
-        <div class="tp-c-av">${initials}</div>
-        <div style="flex:1;min-width:0"><div class="tp-c-name">${s.student_name}</div><div class="tp-c-prev">Tap to view messages</div></div>
-      </div>`;
-    }).join('');
-    // Auto-select first
-    if (mine.length) tpSelectChat(mine[0].id, mine[0].student_name, sb.querySelector('.tp-chat-contact'));
-  } catch(e) { console.error('tpLoadChatSidebar:', e.message); }
-}
-
-function tpSelectChat(studentId, name, el) {
-  _tpChatStudentId = studentId;
-  _tpChatStudentName = name;
-  document.querySelectorAll('.tp-chat-sb .tp-chat-contact').forEach(c => c.classList.remove('tp-c-active'));
-  if (el) el.classList.add('tp-c-active');
-  // Update topbar
-  const topName = document.querySelector('.tp-ct-name');
-  if (topName) topName.textContent = name;
-  const inp = document.getElementById('tp-chat-inp');
-  if (inp) inp.placeholder = 'Message ' + name.split(' ')[0] + '...';
-  tpLoadChatMessages();
-}
-
-async function tpLoadChatMessages() {
-  if (!_tpChatStudentId) return;
-  const msgs = document.getElementById('tp-chat-msgs');
-  if (!msgs) return;
-  try {
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=messages&studentId=${_tpChatStudentId}`);
-    const messages = await r.json();
-    if (!messages.length) {
-      msgs.innerHTML = '<div style="text-align:center;color:#A7A7A7;font-size:.82rem;padding:20px">No messages yet.</div>';
-      return;
-    }
-    msgs.innerHTML = messages.slice().reverse().map(m => {
-      const t = new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      const isMe = m.sender_role === 'tutor' || m.sender_role === 'admin';
-      return isMe
-        ? `<div class="tp-msg-w tp-sent"><div class="tp-msg-b tp-sent-msg">${escapeHtml(m.body)}<div class="tp-msg-time">${t}</div></div></div>`
-        : `<div class="tp-msg-w"><div class="tp-msg-b tp-recv">${escapeHtml(m.body)}<div class="tp-msg-time">${t}</div></div></div>`;
-    }).join('');
-    msgs.scrollTop = msgs.scrollHeight;
-  } catch(e) { console.error('tpLoadChatMessages:', e.message); }
-}
-
-async function sendTpMsg(){
-  const inp = document.getElementById('tp-chat-inp');
-  const val = inp.value.trim();
-  if(!val) return;
-  if(!_tpChatStudentId){ alert('Select a student first.'); return; }
-  inp.value='';
-  try {
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=messages`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ studentId:_tpChatStudentId, senderRole:'tutor', senderName:earnCurrentTutor, body:val }),
-    });
-    tpLoadChatMessages();
-  } catch(e) { alert('Failed to send: '+e.message); }
 }
 
 // ── EARNINGS DATA ────────────────────────────────────────────────────────
@@ -4792,10 +4557,6 @@ window.showTpPanel = function(id, navEl){
   .tp-nav-item{flex-direction:column;gap:2px;font-size:.66rem;padding:7px 10px;white-space:nowrap;margin-bottom:0;text-align:center}
   .tp-main{margin-left:0;padding:16px 14px;margin-top:56px}
   .tp-kpi-row{grid-template-columns:1fr 1fr}
-
-  /* Chat layouts stack */
-  .chat-wrap,.tp-chat-wrap{grid-template-columns:1fr !important}
-  .chat-sb,.tp-chat-sb{max-height:130px}
 
   /* Modals fit small screens */
   .ad-modal{padding:22px 18px;max-height:94vh}
@@ -6075,7 +5836,6 @@ const _origSPOpen = window._openStudentPortal;
 window._openStudentPortal = function() {
   _origSPOpen();
   spLoadData();
-  setTimeout(spCheckUnreadMessages, 1500);
 };
 const _origSPPanel = window.showPortalPanel;
 window.showPortalPanel = function(id, navEl) {
@@ -6087,7 +5847,6 @@ window.showPortalPanel = function(id, navEl) {
       if (session) spLoadLifecycle(session.user.email);
     });
   }
-  if (id === 'p-chat') { spLoadMessages(); spCheckUnreadMessages(); }
   if (id === 'p-payments') { spLoadPaymentHistory().then(spLoadSavedCards); }
   if (id === 'p-profile') spRenderProfileView();
 };
@@ -6289,7 +6048,6 @@ window.showTpPanel = function(id, navEl) {
   if (id==='tp-schedule') { tpCalViewDate = new Date(); setTimeout(tpCalRender, 300); }
   if (id==='tp-earnings') { earnLoadData(); setTimeout(earnLoadFullHistory, 1000); }
   if (id==='tp-students') tpRenderStudentsList();
-  if (id==='tp-chat') { tpLoadChatSidebar(); tpCheckUnreadMessages(); }
 };
 </script>
 <!-- ── TUTOR: PROPOSE SLOTS MODAL ────────────────────────────────────── -->
@@ -6596,12 +6354,6 @@ async function adChargeStudent(bookingId, btn) {
   </div>
 </div>
 
-<!-- ── ITEM 9: UNREAD MESSAGE BADGE CSS ──────────────────────────────── -->
-<style>
-.p-nav-unread{display:inline-block;background:#c0392b;color:#fff;font-size:.6rem;font-weight:700;padding:2px 5px;border-radius:10px;margin-left:5px;vertical-align:middle}
-.tp-nav-unread{display:inline-block;background:#c0392b;color:#fff;font-size:.6rem;font-weight:700;padding:2px 5px;border-radius:10px;margin-left:5px;vertical-align:middle}
-</style>
-
 <script>
 // ── ITEM 6: POST-LESSON LOG ──────────────────────────────────────────────
 let _tpLogLesson = null; // { bookingId, studentId, studentName, subject, tutorName }
@@ -6760,36 +6512,6 @@ async function earnLoadFullHistory() {
   } catch(e) { console.error('earnLoadFullHistory:', e.message); }
 }
 
-// ── ITEM 9: UNREAD MESSAGE BADGES ───────────────────────────────────────
-async function spCheckUnreadMessages() {
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) return;
-    const email = session.user.email;
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=messages&studentEmail=' + encodeURIComponent(email));
-    const msgs = await r.json();
-    const unread = (msgs || []).filter(m => !m.read && m.sender_role !== 'student').length;
-    const badge = document.querySelector('.p-nav-item[onclick*="p-chat"] .p-nav-unread');
-    if (badge) {
-      badge.textContent = unread;
-      badge.style.display = unread > 0 ? 'inline-block' : 'none';
-    }
-  } catch(e) {}
-}
-
-async function tpCheckUnreadMessages() {
-  if (!_tpChatStudentId) return;
-  try {
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=messages&studentId=' + _tpChatStudentId);
-    const msgs = await r.json();
-    const unread = (msgs || []).filter(m => !m.read && m.sender_role === 'student').length;
-    const badge = document.querySelector('.tp-nav-item[onclick*="tp-chat"] .tp-nav-unread');
-    if (badge) {
-      badge.textContent = unread;
-      badge.style.display = unread > 0 ? 'inline-block' : 'none';
-    }
-  } catch(e) {}
-}
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════════════
@@ -6831,7 +6553,7 @@ async function tpCheckUnreadMessages() {
       </div>
       <div style="display:flex;gap:12px">
         <span style="font-size:1.2rem">✨</span>
-        <div><div style="font-weight:600;color:#0D1B2A;font-size:.85rem">Then your lessons begin</div><div style="font-size:.78rem;color:#718096">Track progress, complete homework, and message your tutor — all in this portal.</div></div>
+        <div><div style="font-weight:600;color:#0D1B2A;font-size:.85rem">Then your lessons begin</div><div style="font-size:.78rem;color:#718096">Track progress and complete homework, all in this portal.</div></div>
       </div>
     </div>
     <button class="lg-enter" onclick="spDismissWelcome()" style="width:100%">Got it &mdash; let's go! &rarr;</button>
@@ -7202,30 +6924,6 @@ if (typeof adRenderDashboard === 'function') {
      session timeout, smart join button, lead notes in panel
      ══════════════════════════════════════════════════════════════════════ -->
 
-<!-- ADMIN MESSAGE COMPOSER MODAL -->
-<div class="ad-modal-overlay" id="ad-msg-modal">
-  <div class="ad-modal">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-      <h3>Send message</h3>
-      <button type="button" onclick="document.getElementById('ad-msg-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
-    </div>
-    <p>Message is sent in-platform (recipient sees it in Messages) and also emailed.</p>
-    <div id="ad-msg-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
-    <span class="lg-label">To</span>
-    <select class="lg-input" id="ad-msg-to-type" onchange="adMsgLoadRecipients()" style="cursor:pointer;margin-bottom:8px">
-      <option value="student">Student / parent</option>
-      <option value="tutor">Tutor</option>
-    </select>
-    <select class="lg-input" id="ad-msg-to" style="cursor:pointer;margin-bottom:10px">
-      <option value="">Loading…</option>
-    </select>
-    <span class="lg-label">Message</span>
-    <textarea class="tp-note-input" id="ad-msg-body" placeholder="Type your message…" style="min-height:90px;margin-bottom:12px"></textarea>
-    <button class="lg-enter" id="ad-msg-btn" onclick="adSendMessage()">Send message &rarr;</button>
-    <div id="ad-msg-success" style="display:none;font-size:.82rem;color:#2D7A4F;padding:10px 12px;background:#f0faf4;border-radius:8px;text-align:center;margin-top:10px">&#x2713; Message sent.</div>
-  </div>
-</div>
-
 <!-- STUDENT PROFILE SETUP MODAL (first login) -->
 <div class="ad-modal-overlay" id="sp-profile-modal" style="z-index:18000">
   <div class="ad-modal" style="max-width:460px">
@@ -7282,104 +6980,6 @@ if (typeof adRenderDashboard === 'function') {
 </div>
 
 <script>
-// ══ ADMIN MESSAGING ═══════════════════════════════════════════════════════
-let _adMsgStudents = [];
-let _adMsgTutors = [];
-
-function adOpenMessage(opts) {
-  // opts: { toType, studentId, studentEmail, tutorName }
-  document.getElementById('ad-msg-error').style.display = 'none';
-  document.getElementById('ad-msg-success').style.display = 'none';
-  document.getElementById('ad-msg-body').value = '';
-  document.getElementById('ad-msg-btn').disabled = false;
-  document.getElementById('ad-msg-btn').textContent = 'Send message →';
-  if (opts && opts.toType) {
-    document.getElementById('ad-msg-to-type').value = opts.toType;
-  }
-  document.getElementById('ad-msg-modal').classList.add('open');
-  adMsgLoadRecipients(opts);
-}
-
-async function adMsgLoadRecipients(opts) {
-  const type = document.getElementById('ad-msg-to-type').value;
-  const sel = document.getElementById('ad-msg-to');
-  sel.innerHTML = '<option value="">Loading…</option>';
-  try {
-    if (type === 'student') {
-      if (!_adMsgStudents.length) {
-        const r = await fetch(AD_BACKEND + '/api/analytics?resource=students');
-        _adMsgStudents = await r.json();
-      }
-      sel.innerHTML = '<option value="">Select student…</option>' +
-        _adMsgStudents.map(s => `<option value="${s.id}:${s.parent_email}:${s.student_name}">${s.student_name} (${s.parent_email})</option>`).join('');
-    } else {
-      // Tutors — from analytics tutors map
-      const tutors = adData?.tutors ? Object.keys(adData.tutors) : [];
-      if (!tutors.length) {
-        const r = await fetch(AD_BACKEND + '/api/analytics', { headers: await adAuthHeaders() });
-        const d = await r.json();
-        _adMsgTutors = Object.keys(d.tutors || {});
-      } else { _adMsgTutors = tutors; }
-      // Get tutor emails
-      const r2 = await fetch(AD_BACKEND + '/api/analytics?resource=students');
-      // Use profiles — approximate via existing data
-      sel.innerHTML = '<option value="">Select tutor…</option>' +
-        _adMsgTutors.map(t => `<option value="tutor:${encodeURIComponent(t)}:${t}">${t}</option>`).join('');
-    }
-  } catch(e) { sel.innerHTML = '<option value="">Failed to load</option>'; }
-}
-
-async function adSendMessage() {
-  const btn = document.getElementById('ad-msg-btn');
-  const errEl = document.getElementById('ad-msg-error');
-  const toVal = document.getElementById('ad-msg-to').value;
-  const body = document.getElementById('ad-msg-body').value.trim();
-  if (!toVal || !body) {
-    errEl.textContent = 'Select a recipient and enter a message.';
-    errEl.style.display = 'block'; return;
-  }
-  btn.disabled = true; btn.textContent = 'Sending…'; errEl.style.display = 'none';
-  const type = document.getElementById('ad-msg-to-type').value;
-  const parts = toVal.split(':');
-
-  try {
-    if (type === 'student') {
-      const studentId = parts[0];
-      const studentEmail = parts[1];
-      const studentName = parts.slice(2).join(':');
-      // Post message via lifecycle
-      await fetch(AD_BACKEND + '/api/lifecycle?resource=messages', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          studentId, senderRole: 'admin', senderName: 'Seeds Admin', body,
-          portalUrl: window.location.origin + window.location.pathname,
-        }),
-      });
-    } else {
-      // Message to tutor — post via leads system as notification
-      const tutorName = decodeURIComponent(parts[1]);
-      // Get tutor email via profile lookup
-      const r = await fetch(AD_BACKEND + '/api/analytics', { headers: await adAuthHeaders() });
-      const d = await r.json();
-      // Send email notification directly
-      const nodemailer_fallback = `Please log in to Seeds to view your message from admin.`;
-      const emailRes = await fetch(AD_BACKEND + '/api/lifecycle?resource=messages', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          studentId: null, senderRole: 'admin', senderName: 'Seeds Admin',
-          body: `[Message to tutor ${tutorName}]: ${body}`,
-          portalUrl: window.location.origin + window.location.pathname,
-        }),
-      });
-    }
-    document.getElementById('ad-msg-success').style.display = 'block';
-    btn.textContent = 'Sent ✓';
-  } catch(e) {
-    errEl.textContent = e.message; errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Send message →';
-  }
-}
-
 // ══ STUDENT PROFILE SETUP ═════════════════════════════════════════════════
 async function spSaveProfile() {
   const btn = document.getElementById('sp-profile-btn');
@@ -7580,23 +7180,6 @@ if (typeof spRenderHome !== 'undefined') {
     });
   };
 }
-
-// ══ ADD MESSAGE BUTTON TO ADMIN PANELS ════════════════════════════════════
-// Wire into admin portal after load
-const _origOpenAdFinal2 = window._openAdminPortal;
-window._openAdminPortal = function() {
-  _origOpenAdFinal2();
-  // Add "Send message" button to admin top bar if not already there
-  const topbar = document.querySelector('.ad-topbar-right');
-  if (topbar && !document.getElementById('ad-msg-btn-global')) {
-    const btn = document.createElement('button');
-    btn.id = 'ad-msg-btn-global';
-    btn.textContent = '✉ Message';
-    btn.style.cssText = 'padding:7px 14px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-right:8px';
-    btn.onclick = () => adOpenMessage({});
-    topbar.insertBefore(btn, topbar.firstChild);
-  }
-};
 
 // Wire profile check into student open
 const _origSPOpenProfile = window._openStudentPortal;
@@ -8159,7 +7742,6 @@ window.adRenderStudents = async function() {
         <td style="color:#718096">${joined}</td>
         <td style="white-space:nowrap">
           <button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adOpenEditStudent('${eid}','${s.student_name}','','','')">Edit</button>
-          <button class="ad-btn-xs" style="color:#2D7A4F;border:1px solid #c3e6cb;background:#fff;margin-right:5px" onclick="adOpenMessage({toType:'student'})">✉</button>
           <button class="ad-btn-xs ad-btn-ghost" onclick="adLogSafeguarding('${s.id}','${s.student_name}')" title="Safeguarding log">🛡</button>
         </td>
       </tr>`;
@@ -8196,76 +7778,6 @@ window.adRenderStudents = async function() {
 </div>
 
 <script>
-// ══ MESSAGE READ RECEIPTS ════════════════════════════════════════════════
-
-// Mark messages as read when chat is opened
-async function markMessagesRead(studentId, readerRole) {
-  try {
-    // Get all unread messages for this conversation from the other party
-    const msgs = await fetch(SP_BACKEND + '/api/lifecycle?resource=messages&studentId=' + studentId);
-    const data = await msgs.json();
-    const unread = (Array.isArray(data) ? data : []).filter(m => !m.read && m.sender_role !== readerRole);
-    for (const m of unread) {
-      await fetch(SP_BACKEND + '/api/lifecycle?resource=messages', {
-        method: 'PATCH', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ id: m.id, read: true }),
-      });
-    }
-  } catch(e) { console.warn('markMessagesRead:', e.message); }
-}
-
-// Override tpLoadChatMessages to mark as read
-const _origTpLoadChatMsgs = window.tpLoadChatMessages;
-window.tpLoadChatMessages = async function() {
-  await _origTpLoadChatMsgs();
-  if (_tpChatStudentId) {
-    markMessagesRead(_tpChatStudentId, 'tutor');
-    // Refresh unread count
-    setTimeout(tpCheckUnreadMessages, 500);
-  }
-};
-
-// Override spLoadMessages to mark as read
-const _origSpLoadMsgs = window.spLoadMessages;
-window.spLoadMessages = async function() {
-  await _origSpLoadMsgs();
-  // Mark tutor messages as read
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) return;
-    const email = session.user.email;
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
-    const students = await r.json();
-    const me = students.find(s => (s.parent_email||'').toLowerCase() === email.toLowerCase());
-    if (me) {
-      markMessagesRead(me.id, 'student');
-      setTimeout(spCheckUnreadMessages, 500);
-    }
-  } catch(e) {}
-};
-
-// Render read receipts in chat bubbles
-function spRenderMessagesWithReceipts(messages) {
-  const msgs = document.getElementById('p-chat-msgs');
-  if (!msgs) return;
-  if (!messages.length) {
-    msgs.innerHTML = '<div style="text-align:center;color:#A7A7A7;font-size:.82rem;padding:20px">No messages yet. Say hello to your tutor!</div>';
-    return;
-  }
-  msgs.innerHTML = messages.slice().reverse().map(m => {
-    const t = new Date(m.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    const isMe = m.sender_role === 'student';
-    const readTick = isMe && m.read ? ' <span title="Read" style="color:rgba(255,255,255,.7);font-size:.65rem">✓✓</span>' : '';
-    return isMe
-      ? `<div class="msg-w sent"><div class="msg-b sent">${escapeHtml(m.body)}<div class="msg-time">${t}${readTick}</div></div></div>`
-      : `<div class="msg-w"><div class="msg-b recv">${escapeHtml(m.body)}<div class="msg-time">${escapeHtml(m.sender_name)||'Tutor'} · ${t}</div></div></div>`;
-  }).join('');
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-// Override spRenderMessages to use receipt version
-window.spRenderMessages = spRenderMessagesWithReceipts;
-
 // ══ TUTOR PROFILE EDITING ═════════════════════════════════════════════════
 async function tpOpenProfile() {
   document.getElementById('tp-profile-error').style.display = 'none';
@@ -8437,7 +7949,7 @@ if (typeof earnCurrentTutor !== 'undefined') {
 
     <div class="faq-item"><div class="faq-q" onclick="this.parentNode.classList.toggle('open')">What is the faith-integrated approach? <span class="faq-chevron">▾</span></div><div class="faq-a">Seeds weaves Islamic theological concepts — particularly the Names of Allah — into academic subjects as a lens for curiosity and wonder. It's an approach that connects learning to meaning. Families of all faiths and none are warmly welcome; the academic teaching is rigorous and complete regardless of background, and the faith dimension is a gentle enrichment rather than a requirement.</div></div>
 
-    <div class="faq-item"><div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How do I cancel or reschedule a lesson? <span class="faq-chevron">▾</span></div><div class="faq-a">You can reschedule or cancel free of charge up to 24 hours before your lesson. Cancellations within 24 hours are non-refundable, and no-shows are charged in full. To make changes, message your tutor through the portal or contact us directly.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How do I cancel or reschedule a lesson? <span class="faq-chevron">▾</span></div><div class="faq-a">You can reschedule or cancel free of charge up to 24 hours before your lesson. Cancellations within 24 hours are non-refundable, and no-shows are charged in full. To make changes, contact your tutor or reach out to us directly.</div></div>
 
     <div class="faq-item"><div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How do payments work? <span class="faq-chevron">▾</span></div><div class="faq-a">We use Stripe, a leading secure payment processor. Your card details are saved securely on file (we never see or store your full card number) and charged automatically before each confirmed lesson. You can view your full payment history and download receipts from the Payments tab in your portal.</div></div>
 
@@ -8523,7 +8035,6 @@ if (typeof earnCurrentTutor !== 'undefined') {
       <li><strong>Parent/guardian details:</strong> name, email, phone number.</li>
       <li><strong>Booking &amp; lesson data:</strong> lesson times, tutor notes, homework, attendance.</li>
       <li><strong>Payment data:</strong> handled by Stripe; we store only a payment reference, never full card numbers.</li>
-      <li><strong>Communications:</strong> messages between you and your tutor.</li>
       <li><strong>Technical data:</strong> basic login and usage information.</li>
     </ul>
 
