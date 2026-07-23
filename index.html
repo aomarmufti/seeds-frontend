@@ -1696,7 +1696,7 @@ function switchAud(e, panel) {
       <p style="margin-bottom:16px">Request a lesson with one of your tutors. We'll confirm and charge your saved card.</p>
       <div id="sp-book-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
       <span class="lg-label">Tutor</span>
-      <select class="lg-input" id="sp-book-tutor" style="cursor:pointer;margin-bottom:10px">
+      <select class="lg-input" id="sp-book-tutor" onchange="spLoadBookCalendly()" style="cursor:pointer;margin-bottom:10px">
         <option value="Azeem Omar-Mufti">Azeem Omar-Mufti — Mathematics</option>
         <option value="Suleiman">Suleiman — History & Arabic</option>
         <option value="Abdul-Moez">Abdul-Moez — Chemistry & Biology</option>
@@ -1704,13 +1704,17 @@ function switchAud(e, panel) {
       <span class="lg-label">Subject</span>
       <input class="lg-input" type="text" id="sp-book-subject" placeholder="e.g. Mathematics" style="margin-bottom:10px">
       <span class="lg-label">Lesson type</span>
-      <select class="lg-input" id="sp-book-type" style="cursor:pointer;margin-bottom:10px">
+      <select class="lg-input" id="sp-book-type" onchange="spLoadBookCalendly()" style="cursor:pointer;margin-bottom:10px">
         <option value="gcse">GCSE 1:1 — £40</option>
         <option value="alevel">A-Level 1:1 — £45</option>
         <option value="group">Group session — £20</option>
       </select>
-      <span class="lg-label">Preferred date & time</span>
-      <input class="lg-input" type="datetime-local" id="sp-book-time" style="margin-bottom:14px">
+      <span class="lg-label">Pick a real available time</span>
+      <div id="sp-book-calendly-status" style="text-align:center;color:#718096;font-size:.8rem;padding:24px 10px">Loading availability…</div>
+      <div id="sp-book-calendly-wrap" style="display:none;margin-bottom:10px">
+        <div class="calendly-inline-widget" id="sp-book-calendly-embed" style="min-width:280px;height:480px"></div>
+      </div>
+      <div id="sp-book-time-chosen" style="display:none;font-size:.8rem;color:#2D7A4F;padding:8px 12px;background:#f0faf4;border-radius:8px;margin-bottom:10px"></div>
       <div style="background:#FAF8F4;border-radius:10px;padding:12px 14px;font-size:.8rem;color:#4A5568;margin-bottom:14px">
         💳 We'll charge your saved card when the lesson is confirmed. No card yet? You'll receive a payment link by email.
       </div>
@@ -4880,11 +4884,20 @@ async function loadCalendlyWidget() {
 // inside the iframe. The message doesn't include the plain start time, only
 // the event's API URI, so we look that up server-side and continue our own
 // wizard with the real, conflict-checked slot.
+//
+// More than one Calendly embed can exist on this page (this public wizard,
+// plus the logged-in student portal's own "Book a lesson" modal) — only one
+// modal is ever actually open at a time, so route the event to whichever
+// one is currently visible rather than assuming it's always this wizard.
 window.addEventListener('message', async (e) => {
   if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
   if (e.data.event !== 'calendly.event_scheduled') return;
   const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
   if (!eventUri) return;
+
+  const wizardOpen = document.getElementById('bk-overlay')?.classList.contains('bk-open');
+  if (!wizardOpen) return; // some other embed's event — its own listener handles it
+
   const statusEl = document.getElementById('bk-calendly-status');
   document.getElementById('bk-calendly-wrap').style.display = 'none';
   statusEl.style.display = 'block';
@@ -5852,6 +5865,13 @@ function spRenderCalendar() {
 }
 
 // ── IN-PORTAL BOOKING (for logged-in students) ───────────────────────────
+// Real availability via the same Calendly embed pattern as the public
+// booking wizard — previously this was a raw datetime-local input the
+// student could set to anything, with zero connection to the tutor's
+// actual schedule (a conflict only surfaced as a 409 after submitting).
+let _spBookStartTimeISO = null;
+let _spBookCalendlyLoadedFor = null;
+
 function spOpenInPortalBooking() {
   document.getElementById('sp-book-error').style.display = 'none';
   document.getElementById('sp-book-success').style.display = 'none';
@@ -5860,11 +5880,73 @@ function spOpenInPortalBooking() {
   // Pre-fill subject from their existing bookings
   const subjects = [...new Set(spBookings.map(b=>b.subject).filter(Boolean))];
   if (subjects.length) document.getElementById('sp-book-subject').value = subjects[0];
-  // Pre-fill tomorrow at 4pm
-  const t = new Date(); t.setDate(t.getDate()+1); t.setHours(16,0,0,0);
-  document.getElementById('sp-book-time').value = t.toISOString().slice(0,16);
+  _spBookStartTimeISO = null;
+  _spBookCalendlyLoadedFor = null;
+  document.getElementById('sp-book-time-chosen').style.display = 'none';
   document.getElementById('sp-book-modal').classList.add('open');
+  spLoadBookCalendly();
 }
+
+async function spLoadBookCalendly() {
+  const tutorName = document.getElementById('sp-book-tutor').value;
+  const lessonType = document.getElementById('sp-book-type').value;
+  const statusEl = document.getElementById('sp-book-calendly-status');
+  const wrapEl = document.getElementById('sp-book-calendly-wrap');
+  const embedEl = document.getElementById('sp-book-calendly-embed');
+  const cacheKey = tutorName + '|' + lessonType;
+  if (_spBookCalendlyLoadedFor === cacheKey) return;
+  _spBookStartTimeISO = null;
+  document.getElementById('sp-book-time-chosen').style.display = 'none';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Loading ' + tutorName + "'s availability…";
+  wrapEl.style.display = 'none';
+  embedEl.innerHTML = '';
+  try {
+    const r = await fetch(`${SP_BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(tutorName)}&lessonType=${encodeURIComponent(lessonType)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not load availability');
+    let attempts = 0;
+    while (!window.Calendly && attempts < 50) { await new Promise(res => setTimeout(res, 100)); attempts++; }
+    if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
+    _spBookCalendlyLoadedFor = cacheKey;
+    statusEl.style.display = 'none';
+    wrapEl.style.display = 'block';
+    window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
+  } catch(e) {
+    statusEl.textContent = e.message || "We couldn't load real-time availability for this tutor. Please email hello@seedsinstitute.co.uk to arrange a time.";
+  }
+}
+
+// Handles this modal's share of the page-wide calendly.event_scheduled
+// postMessage — only acts when this modal is the one actually open.
+window.addEventListener('message', async (e) => {
+  if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
+  if (e.data.event !== 'calendly.event_scheduled') return;
+  const modalOpen = document.getElementById('sp-book-modal')?.classList.contains('open');
+  if (!modalOpen) return;
+  const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
+  if (!eventUri) return;
+
+  const statusEl = document.getElementById('sp-book-calendly-status');
+  const chosenEl = document.getElementById('sp-book-time-chosen');
+  document.getElementById('sp-book-calendly-wrap').style.display = 'none';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Confirming your slot…';
+  try {
+    const r = await fetch(`${SP_BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not confirm your chosen time');
+    _spBookStartTimeISO = data.startTime;
+    const d = new Date(data.startTime);
+    statusEl.style.display = 'none';
+    chosenEl.style.display = 'block';
+    chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+  } catch(err) {
+    statusEl.textContent = err.message;
+    _spBookCalendlyLoadedFor = null;
+    setTimeout(spLoadBookCalendly, 1500);
+  }
+});
 
 async function spSubmitBooking() {
   const btn = document.getElementById('sp-book-btn');
@@ -5872,8 +5954,8 @@ async function spSubmitBooking() {
   const tutorName = document.getElementById('sp-book-tutor').value;
   const subject = document.getElementById('sp-book-subject').value.trim();
   const lessonType = document.getElementById('sp-book-type').value;
-  const startTime = document.getElementById('sp-book-time').value;
-  if (!startTime) { errEl.textContent='Please pick a date and time'; errEl.style.display='block'; return; }
+  if (!_spBookStartTimeISO) { errEl.textContent='Please pick a time in the calendar above'; errEl.style.display='block'; return; }
+  const startTime = _spBookStartTimeISO;
   btn.disabled = true; btn.textContent = 'Requesting…'; errEl.style.display = 'none';
   try {
     const { data: { session } } = await sbClient.auth.getSession();
@@ -6230,14 +6312,18 @@ async function tpSubmitSlots() {
     <span class="lg-label">Subject</span>
     <input class="lg-input" type="text" id="tp-al-subject" placeholder="e.g. Mathematics">
     <span class="lg-label">Lesson type</span>
-    <select class="lg-input" id="tp-al-type" style="cursor:pointer">
+    <select class="lg-input" id="tp-al-type" onchange="tpLoadAlCalendly()" style="cursor:pointer">
       <option value="gcse">GCSE 1:1 (&pound;40)</option>
       <option value="alevel">A-Level 1:1 (&pound;45)</option>
       <option value="group">Group (&pound;20)</option>
       <option value="trial">Free trial (&pound;0)</option>
     </select>
-    <span class="lg-label">Date &amp; time</span>
-    <input class="lg-input" type="datetime-local" id="tp-al-time" onchange="tpAlValidate()">
+    <span class="lg-label">Pick a free slot from your own calendar</span>
+    <div id="tp-al-calendly-status" style="text-align:center;color:#718096;font-size:.8rem;padding:24px 10px">Loading your availability…</div>
+    <div id="tp-al-calendly-wrap" style="display:none;margin-bottom:10px">
+      <div class="calendly-inline-widget" id="tp-al-calendly-embed" style="min-width:280px;height:480px"></div>
+    </div>
+    <div id="tp-al-time-chosen" style="display:none;font-size:.8rem;color:#2D7A4F;padding:8px 12px;background:#f0faf4;border-radius:8px;margin-bottom:10px"></div>
     <span class="lg-label">Repeat weekly for</span>
     <select class="lg-input" id="tp-al-weeks" style="cursor:pointer">
       <option value="1">Just this lesson</option>
@@ -6252,14 +6338,19 @@ async function tpSubmitSlots() {
 
 <script>
 let _tpAlStudents = [];
+let _tpAlStartTimeISO = null;
+let _tpAlCalendlyLoadedFor = null;
 async function tpOpenAddLesson() {
   document.getElementById('tp-al-error').style.display = 'none';
   document.getElementById('tp-al-success').style.display = 'none';
   document.getElementById('tp-al-subject').value = '';
-  document.getElementById('tp-al-time').value = '';
   document.getElementById('tp-al-btn').disabled = true;
   document.getElementById('tp-al-btn').textContent = 'Add to calendar';
+  _tpAlStartTimeISO = null;
+  _tpAlCalendlyLoadedFor = null;
+  document.getElementById('tp-al-time-chosen').style.display = 'none';
   document.getElementById('tp-add-lesson-modal').classList.add('open');
+  tpLoadAlCalendly();
   // Load this tutor's students
   const sel = document.getElementById('tp-al-student');
   sel.innerHTML = '<option value="">Loading...</option>';
@@ -6277,10 +6368,74 @@ async function tpOpenAddLesson() {
     sel.innerHTML = '<option value="">Failed to load</option>';
   }
 }
+
+// Real availability via the tutor's own Calendly, same pattern as the
+// public wizard and the student portal's booking modal — previously this
+// was a raw datetime-local input the tutor could set to literally anything,
+// with no check against their own real schedule.
+async function tpLoadAlCalendly() {
+  const lessonType = document.getElementById('tp-al-type').value;
+  const statusEl = document.getElementById('tp-al-calendly-status');
+  const wrapEl = document.getElementById('tp-al-calendly-wrap');
+  const embedEl = document.getElementById('tp-al-calendly-embed');
+  const cacheKey = earnCurrentTutor + '|' + lessonType;
+  if (_tpAlCalendlyLoadedFor === cacheKey) return;
+  _tpAlStartTimeISO = null;
+  document.getElementById('tp-al-time-chosen').style.display = 'none';
+  tpAlValidate();
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Loading your availability…';
+  wrapEl.style.display = 'none';
+  embedEl.innerHTML = '';
+  try {
+    const r = await fetch(SP_BACKEND + '/api/bookings?action=calendly-link&tutorName=' + encodeURIComponent(earnCurrentTutor) + '&lessonType=' + encodeURIComponent(lessonType));
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not load your availability');
+    let attempts = 0;
+    while (!window.Calendly && attempts < 50) { await new Promise(res => setTimeout(res, 100)); attempts++; }
+    if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
+    _tpAlCalendlyLoadedFor = cacheKey;
+    statusEl.style.display = 'none';
+    wrapEl.style.display = 'block';
+    window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
+  } catch(e) {
+    statusEl.textContent = e.message || "We couldn't load your real-time availability. Please email hello@seedsinstitute.co.uk to arrange this instead.";
+  }
+}
+
+window.addEventListener('message', async (e) => {
+  if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
+  if (e.data.event !== 'calendly.event_scheduled') return;
+  const modalOpen = document.getElementById('tp-add-lesson-modal')?.classList.contains('open');
+  if (!modalOpen) return;
+  const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
+  if (!eventUri) return;
+
+  const statusEl = document.getElementById('tp-al-calendly-status');
+  const chosenEl = document.getElementById('tp-al-time-chosen');
+  document.getElementById('tp-al-calendly-wrap').style.display = 'none';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Confirming your slot…';
+  try {
+    const r = await fetch(SP_BACKEND + '/api/bookings?action=calendly-event&eventUri=' + encodeURIComponent(eventUri));
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not confirm this time');
+    _tpAlStartTimeISO = data.startTime;
+    const d = new Date(data.startTime);
+    statusEl.style.display = 'none';
+    chosenEl.style.display = 'block';
+    chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+    tpAlValidate();
+  } catch(err) {
+    statusEl.textContent = err.message;
+    _tpAlCalendlyLoadedFor = null;
+    setTimeout(tpLoadAlCalendly, 1500);
+  }
+});
+
 function tpAlValidate() {
   const s = document.getElementById('tp-al-student').value;
-  const t = document.getElementById('tp-al-time').value;
-  document.getElementById('tp-al-btn').disabled = !(s && t);
+  document.getElementById('tp-al-btn').disabled = !(s && _tpAlStartTimeISO);
 }
 async function tpCreateLesson() {
   const btn = document.getElementById('tp-al-btn');
@@ -6288,8 +6443,9 @@ async function tpCreateLesson() {
   const studentId = document.getElementById('tp-al-student').value;
   const subject = document.getElementById('tp-al-subject').value.trim();
   const lessonType = document.getElementById('tp-al-type').value;
-  const startTime = document.getElementById('tp-al-time').value;
+  const startTime = _tpAlStartTimeISO;
   const weeks = parseInt(document.getElementById('tp-al-weeks').value);
+  if (!startTime) { errEl.textContent = 'Please pick a time in the calendar above'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Adding...'; errEl.style.display = 'none';
   try {
     const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=lessons', {
@@ -6799,8 +6955,15 @@ async function spDismissWelcome() {
   localStorage.setItem('sp_welcomed', '1');
   try {
     const { data: { session } } = await sbClient.auth.getSession();
+    // Upsert (with role) rather than update — a student with no profiles
+    // row yet would otherwise have this silently affect zero rows, leaving
+    // onboarding_complete permanently false and the setup modal re-prompting
+    // on every future login despite being dismissed here.
     if (session) {
-      await sbClient.from('profiles').update({ onboarding_complete: true }).eq('id', session.user.id);
+      await sbClient.from('profiles').upsert(
+        { id: session.user.id, role: 'student', onboarding_complete: true },
+        { onConflict: 'id' }
+      );
     }
   } catch(e) {}
 }
@@ -7021,7 +7184,7 @@ if (typeof adRenderDashboard === 'function') {
   <div class="ad-modal" style="max-width:460px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
       <h3>Complete your profile</h3>
-      <button type="button" onclick="document.getElementById('sp-profile-modal').classList.remove('open');localStorage.setItem('sp_profile_done_skip','1')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
+      <button type="button" onclick="spDismissProfileModal()" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
     </div>
     <p style="color:#718096;font-size:.85rem;margin-bottom:16px">This helps your tutor personalise every lesson for you.</p>
     <div id="sp-profile-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
@@ -7108,9 +7271,13 @@ async function spSaveProfile() {
       const [sub, grade] = t.split(':');
       if (sub && grade) targetObj[sub.trim()] = grade.trim();
     });
-    // Upsert so it works even if no profile row exists yet
+    // Upsert so it works even if no profile row exists yet — role must be
+    // included here since a fresh insert (no existing row) would otherwise
+    // violate profiles.role's NOT NULL constraint. This modal only ever
+    // shows in the student portal, so 'student' is always correct here.
     const { error } = await sbClient.from('profiles').upsert({
       id: uid,
+      role: 'student',
       school_year: year,
       target_grades: targetObj,
       subjects: subjects || null,
@@ -7119,7 +7286,7 @@ async function spSaveProfile() {
       whatsapp_opted_in: whatsappOptedIn && !!whatsappNumber,
     }, { onConflict: 'id' });
     if (error) throw new Error(error.message);
-    // Mark done so modal never appears again this browser
+    // Mark done so modal never appears again on this device
     localStorage.setItem('sp_profile_done_' + uid, '1');
     document.getElementById('sp-profile-modal').classList.remove('open');
     seedsToast('✓ Profile saved', false);
@@ -7131,6 +7298,18 @@ async function spSaveProfile() {
     btn.disabled = false;
     btn.textContent = 'Save & continue →';
   }
+}
+
+// Closing without completing the form should still count as "seen" so it
+// only ever prompts once per device, not on every login — previously this
+// set an untracked, non-per-user localStorage key that nothing ever read,
+// so dismissing had no lasting effect.
+async function spDismissProfileModal() {
+  document.getElementById('sp-profile-modal').classList.remove('open');
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session) localStorage.setItem('sp_profile_done_' + session.user.id, '1');
+  } catch(e) {}
 }
 
 // Check if student needs profile setup (on portal open)
@@ -7584,8 +7763,8 @@ function spOpenInPortalBookingRecurring() {
   setTimeout(() => {
     const modal = document.getElementById('sp-book-modal');
     if (!modal || document.getElementById('sp-book-weeks-row')) return;
-    const timePick = document.getElementById('sp-book-time');
-    if (!timePick) return;
+    const anchor = document.getElementById('sp-book-time-chosen');
+    if (!anchor) return;
     const row = document.createElement('div');
     row.id = 'sp-book-weeks-row';
     row.innerHTML = '<span class="lg-label">Repeat weekly for</span>' +
@@ -7594,7 +7773,7 @@ function spOpenInPortalBookingRecurring() {
       '<option value="4">4 weeks</option>' +
       '<option value="8">8 weeks</option>' +
       '<option value="12">12 weeks</option></select>';
-    timePick.parentNode.insertBefore(row, timePick.nextSibling);
+    anchor.parentNode.insertBefore(row, anchor.nextSibling);
   }, 100);
 }
 
