@@ -2183,6 +2183,7 @@ function showPortalPanel(id,navEl){
   document.getElementById(id).classList.add('p-active');
   document.querySelectorAll('.p-nav-item').forEach(n=>n.classList.remove('p-active-nav'));
   if(navEl) navEl.classList.add('p-active-nav');
+  if (id === 'p-rec' && typeof spLoadRecordings === 'function') spLoadRecordings();
 }
 function togglePHW(el){
   el.classList.toggle('p-done');
@@ -3868,18 +3869,22 @@ window.addEventListener('DOMContentLoaded', function() {
     <!-- RESOURCES -->
     <div id="tp-resources" class="tp-panel">
       <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A;margin-bottom:16px">Resources</h2>
-      <div class="tp-upload-zone" onclick="alert('Resource sharing is coming soon. For now, share materials with students via email.')">
-        <div class="tp-upload-icon">📤</div>
-        <div class="tp-upload-text">Upload a resource</div>
-        <div class="tp-upload-sub">PDF, worksheet, slides, or past paper — drag and drop or click to browse</div>
+      <div class="tp-card" style="margin-bottom:20px">
+        <div class="tp-card-hdr"><span class="tp-card-title">Share a link</span></div>
+        <p style="font-size:.82rem;color:#718096;margin-bottom:12px">Paste a Google Drive, OneDrive, or other link — worksheets, slides, past papers, whatever you already use.</p>
+        <div id="tp-res-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
+        <span class="lg-label">Share with</span>
+        <select class="lg-input" id="tp-res-student" style="cursor:pointer;margin-bottom:8px"><option value="">All my students</option></select>
+        <span class="lg-label">Subject (optional)</span>
+        <input class="lg-input" type="text" id="tp-res-subject" placeholder="e.g. Mathematics" style="margin-bottom:8px">
+        <span class="lg-label">Title</span>
+        <input class="lg-input" type="text" id="tp-res-title" placeholder="e.g. Quadratics Practice Pack" style="margin-bottom:8px">
+        <span class="lg-label">Link</span>
+        <input class="lg-input" type="url" id="tp-res-url" placeholder="https://drive.google.com/..." style="margin-bottom:10px">
+        <button class="tp-btn-xs tp-btn-primary" onclick="tpAddResource()">Add resource</button>
       </div>
-      <div class="tp-resource-grid">
-        <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Quadratics Practice Pack</div><div class="tp-resource-meta">PDF · 12 pages</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📊</div><div class="tp-resource-name">Trigonometry Slides</div><div class="tp-resource-meta">Slides · 24 slides</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Edexcel Paper 2 (2023)</div><div class="tp-resource-meta">PDF · Past paper</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📝</div><div class="tp-resource-name">Algebra Homework — Set 4</div><div class="tp-resource-meta">PDF · Worksheet</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Mechanics Formula Sheet</div><div class="tp-resource-meta">PDF · Reference</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📊</div><div class="tp-resource-name">Circle Theorems Slides</div><div class="tp-resource-meta">Slides · 18 slides</div></div>
+      <div class="tp-resource-grid" id="tp-resource-grid">
+        <div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>
       </div>
     </div>
 
@@ -6235,6 +6240,7 @@ window.showTpPanel = function(id, navEl) {
   if (id==='tp-schedule') { tpCalViewDate = new Date(); setTimeout(tpCalRender, 300); }
   if (id==='tp-earnings') { earnLoadData(); setTimeout(earnLoadFullHistory, 1000); }
   if (id==='tp-students') tpRenderStudentsList();
+  if (id==='tp-resources') tpLoadResources();
 };
 </script>
 <!-- ── TUTOR: PROPOSE SLOTS MODAL ────────────────────────────────────── -->
@@ -6511,6 +6517,89 @@ async function tpCreateLesson() {
     errEl.textContent = e.message; errEl.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Add to calendar';
   }
+}
+</script>
+
+<script>
+// ── TUTOR: RESOURCES (SCRUM-25, descoped to a pasted link) ────────────────
+async function tpLoadResourceStudents() {
+  const sel = document.getElementById('tp-res-student');
+  if (!sel || sel.dataset.loaded) return;
+  try {
+    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
+    const students = await r.json();
+    const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
+    mine.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.student_name;
+      sel.appendChild(opt);
+    });
+    sel.dataset.loaded = '1';
+  } catch(e) { /* non-fatal — "All my students" still works */ }
+}
+
+async function tpLoadResources() {
+  const grid = document.getElementById('tp-resource-grid');
+  await tpLoadResourceStudents();
+  grid.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>';
+  try {
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&tutorName=${encodeURIComponent(earnCurrentTutor)}`, { headers: await seedsAuthHeaders() });
+    const items = await r.json();
+    if (!r.ok) throw new Error(items.error || 'Failed to load');
+    if (!items.length) {
+      grid.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">No resources shared yet.</div>';
+      return;
+    }
+    grid.innerHTML = items.map(it => `
+      <div class="tp-resource-card">
+        <div class="tp-resource-icon">🔗</div>
+        <a href="${escapeHtml(it.url)}" target="_blank" rel="noopener" class="tp-resource-name" style="text-decoration:none;color:inherit">${escapeHtml(it.title)}</a>
+        <div class="tp-resource-meta">${it.subject ? escapeHtml(it.subject) + ' · ' : ''}${it.type === 'recording' ? 'Recording' : (it.student_id ? 'One student' : 'All students')}</div>
+        <button onclick="tpDeleteResource('${it.id}')" style="margin-top:8px;background:none;border:none;color:#c0392b;font-size:.72rem;cursor:pointer;padding:0">Remove</button>
+      </div>`).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="color:#c0392b;font-size:.85rem;padding:20px;text-align:center">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function tpAddResource() {
+  const errEl = document.getElementById('tp-res-error');
+  errEl.style.display = 'none';
+  const studentId = document.getElementById('tp-res-student').value;
+  const subject = document.getElementById('tp-res-subject').value.trim();
+  const title = document.getElementById('tp-res-title').value.trim();
+  const url = document.getElementById('tp-res-url').value.trim();
+  if (!title || !url) {
+    errEl.textContent = 'Please add a title and a link.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials`, {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ tutorName: earnCurrentTutor, studentId: studentId || undefined, subject: subject || undefined, title, url }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to add resource');
+    document.getElementById('tp-res-subject').value = '';
+    document.getElementById('tp-res-title').value = '';
+    document.getElementById('tp-res-url').value = '';
+    seedsToast('✓ Resource added', false);
+    tpLoadResources();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function tpDeleteResource(id) {
+  if (!confirm('Remove this resource?')) return;
+  try {
+    await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&id=${id}&tutorName=${encodeURIComponent(earnCurrentTutor)}`, {
+      method: 'DELETE', headers: await seedsAuthHeaders(),
+    });
+    tpLoadResources();
+  } catch(e) { seedsToast('Failed to remove: ' + e.message); }
 }
 </script>
 
@@ -7326,6 +7415,44 @@ async function spDismissProfileModal() {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) localStorage.setItem('sp_profile_done_' + session.user.id, '1');
   } catch(e) {}
+}
+
+// SCRUM-24: Group Sessions recordings — descoped to a pasted link (Zoom
+// cloud recording, Drive, etc.) rather than hosting video ourselves.
+async function spLoadRecordings() {
+  const grid = document.getElementById('sp-rec-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">Loading…</div>';
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const students = await sRes.json();
+    const me = students.find(s => (s.parent_email||'').toLowerCase() === (session.user.email||'').toLowerCase());
+    if (!me) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">No student record found yet.</div>';
+      return;
+    }
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&studentId=${me.id}&type=recording`, { headers: await seedsAuthHeaders() });
+    const items = await r.json();
+    if (!r.ok) throw new Error(items.error || 'Failed to load');
+    if (!items.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">
+        <div style="font-size:2rem;margin-bottom:10px">🎥</div>
+        <div style="font-size:.9rem;font-weight:600;color:#718096;margin-bottom:4px">No recordings yet</div>
+        <div style="font-size:.8rem">Recordings of your group past-paper sessions will appear here after each session.</div>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = items.map(it => `
+      <a href="${escapeHtml(it.url)}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;border:1.5px solid #E8E8E8;border-radius:12px;padding:16px">
+        <div style="font-size:1.5rem;margin-bottom:8px">🎥</div>
+        <div style="font-weight:600;color:#0D1B2A;font-size:.88rem;margin-bottom:4px">${escapeHtml(it.title)}</div>
+        <div style="font-size:.76rem;color:#718096">${it.subject ? escapeHtml(it.subject) : 'Group session'} · ${new Date(it.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
+      </a>`).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#c0392b">${escapeHtml(e.message)}</div>`;
+  }
 }
 
 // Check if student needs profile setup (on portal open)
