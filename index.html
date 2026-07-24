@@ -3487,7 +3487,9 @@ async function adVerifyLessons(tutorName, btn) {
   container.style.display = 'block';
   container.innerHTML = '<div style="padding:12px;color:#A7A7A7;font-size:.8rem">Loading lesson records…</div>';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/payouts?resource=verify&tutor=${encodeURIComponent(tutorName)}`);
+    const r = await fetch(`${AD_BACKEND}/api/payouts?resource=verify&tutor=${encodeURIComponent(tutorName)}`, {
+      headers: await adAuthHeaders(),
+    });
     const lessons = await r.json();
     btn.textContent = 'Hide lessons';
     if (!lessons.length) {
@@ -4273,7 +4275,7 @@ async function earnLoadData() {
     // Fetch analytics (bookings + payout summary) AND payout history in parallel
     const [analyticsR, payoutsR] = await Promise.all([
       fetch(`${BACKEND}/api/analytics`),
-      fetch(`${BACKEND}/api/payouts?tutor=${encodeURIComponent(tutor)}`),
+      fetch(`${BACKEND}/api/payouts?tutor=${encodeURIComponent(tutor)}`, { headers: await seedsAuthHeaders() }),
     ]);
     const data = await analyticsR.json();
     const payoutHistory = await payoutsR.json();
@@ -4340,7 +4342,9 @@ async function earnCheckConnect() {
   const el = document.getElementById('earn-connect-status');
   if (!el || !earnCurrentTutor) return;
   try {
-    const r = await fetch(`${SP_BACKEND}/api/payouts?resource=connect-status&tutor=${encodeURIComponent(earnCurrentTutor)}`);
+    const r = await fetch(`${SP_BACKEND}/api/payouts?resource=connect-status&tutor=${encodeURIComponent(earnCurrentTutor)}`, {
+      headers: await seedsAuthHeaders(),
+    });
     const s = await r.json();
     if (s.onboardingComplete) {
       el.innerHTML = '<span style="color:#2D7A4F">✓ Payouts enabled</span><div style="font-size:.72rem;color:#718096;margin-top:2px">Bank account connected via Stripe</div>';
@@ -4360,7 +4364,7 @@ async function earnStartConnect(btn) {
   btn.disabled = true; btn.textContent = 'Opening…';
   try {
     const r = await fetch(`${SP_BACKEND}/api/payouts`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         action: 'create-connect-account',
         tutorName: earnCurrentTutor,
@@ -4487,7 +4491,7 @@ async function earnRequestPayout(){
   try {
     const r = await fetch(`${BACKEND}/api/payouts`, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: await seedsAuthHeaders(),
       body:JSON.stringify({ tutorName: tutor, amountPence: Math.round(amt*100) }),
     });
     const data = await r.json();
@@ -6889,7 +6893,9 @@ async function earnLoadFullHistory() {
   // Fetch from a dedicated resource that returns all bookings for this tutor
   const tutor = earnCurrentTutor || 'Azeem Omar-Mufti';
   try {
-    const r = await fetch(SP_BACKEND + '/api/payouts?resource=verify&tutor=' + encodeURIComponent(tutor));
+    const r = await fetch(SP_BACKEND + '/api/payouts?resource=verify&tutor=' + encodeURIComponent(tutor), {
+      headers: await seedsAuthHeaders(),
+    });
     const allLessons = await r.json();
     if (!Array.isArray(allLessons)) return;
     // Merge into EARN_LESSONS if we have fewer entries currently
