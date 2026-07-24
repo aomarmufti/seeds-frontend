@@ -1763,9 +1763,17 @@ function switchAud(e, panel) {
     </div>
     <div id="sp-outstanding-payments"></div>
     <div class="p-card" style="margin-bottom:14px">
-      <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Saved cards</span></div>
+      <div class="p-card-hdr">
+        <span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Saved cards</span>
+        <span class="p-card-link" onclick="spOpenAddCard()">+ Add card</span>
+      </div>
       <div id="sp-saved-cards">
         <div style="color:#A7A7A7;font-size:.82rem;padding:20px;text-align:center">Loading…</div>
+      </div>
+      <div id="sp-add-card-form" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid #F0EDE8">
+        <div id="sp-add-card-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
+        <div id="sp-add-card-element" style="padding:12px 14px;border:1.5px solid #E8E8E8;border-radius:8px;margin-bottom:10px;background:#fff"></div>
+        <button class="lg-enter" id="sp-add-card-btn" onclick="spSubmitAddCard()" style="width:auto;padding:9px 20px">Save card</button>
       </div>
     </div>
     <div class="p-card">
@@ -5138,6 +5146,7 @@ async function completeBooking() {
         lessonType: bkState.type, studentLevel: lessonLevel,
         startTime: startTime.toISOString(),
         paymentIntentId: payData.paymentIntentId,
+        customerId: bkState.customerId,
       }),
     });
     const confirmData = await confirmRes.json();
@@ -8123,6 +8132,56 @@ async function spLoadSavedCards() {
   } catch(e) {
     el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">Couldn\'t load saved cards.</div>';
     console.error('spLoadSavedCards:', e.message);
+  }
+}
+
+// Lets a student/parent save a card independently of booking a lesson —
+// previously the only way to end up with a saved card was mid-booking
+// through the public wizard.
+let _spAddCardElement = null;
+function spOpenAddCard() {
+  const form = document.getElementById('sp-add-card-form');
+  if (form.style.display !== 'none') { form.style.display = 'none'; return; }
+  form.style.display = 'block';
+  initStripe();
+  if (!_spAddCardElement && stripeInstance) {
+    _spAddCardElement = stripeInstance.elements().create('card', {
+      style: {
+        base: { fontFamily: 'Inter, sans-serif', fontSize: '15px', color: '#0D1B2A', '::placeholder': { color: '#A7A7A7' } },
+        invalid: { color: '#c0392b' },
+      },
+      hidePostalCode: true,
+    });
+    _spAddCardElement.mount('#sp-add-card-element');
+  }
+}
+
+async function spSubmitAddCard() {
+  const btn = document.getElementById('sp-add-card-btn');
+  const errEl = document.getElementById('sp-add-card-error');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const authH = await seedsAuthHeaders();
+    const r = await fetch(`${SP_BACKEND}/api/billing`, {
+      method: 'POST', headers: authH,
+      body: JSON.stringify({ resource: 'setup-intent' }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not start card setup');
+    const { setupIntent, error: stripeError } = await stripeInstance.confirmCardSetup(
+      data.clientSecret, { payment_method: { card: _spAddCardElement } }
+    );
+    if (stripeError) throw new Error(stripeError.message);
+    _spCustomerId = data.customerId;
+    document.getElementById('sp-add-card-form').style.display = 'none';
+    _spAddCardElement.clear();
+    await spLoadSavedCards();
+    seedsToast('Card saved ✓', false);
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save card';
   }
 }
 
