@@ -5418,11 +5418,9 @@ async function spLoadData() {
     const studentName = profile?.full_name || '';
     const studentEmail = session.user.email;
 
-    const r = await fetch(`${SP_BACKEND}/api/analytics`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-bookings`, { headers: await seedsAuthHeaders() });
     const analytics = await r.json();
-    spBookings = (analytics.recentBookings || []).filter(b =>
-      b.parentEmail && b.parentEmail.toLowerCase() === studentEmail.toLowerCase() && b.status !== 'cancelled'
-    );
+    spBookings = (analytics.recentBookings || []).filter(b => b.status !== 'cancelled');
     spRenderHome(studentName);
     spRenderCalendar();
     calRender(); // refresh grid with real bookings
@@ -6020,6 +6018,7 @@ async function spSubmitBooking() {
   const tutorName = document.getElementById('sp-book-tutor').value;
   const subject = document.getElementById('sp-book-subject').value.trim();
   const lessonType = document.getElementById('sp-book-type').value;
+  if (!subject) { errEl.textContent='Please enter a subject'; errEl.style.display='block'; return; }
   if (!_spBookStartTimeISO) { errEl.textContent='Please pick a time in the calendar above'; errEl.style.display='block'; return; }
   const startTime = _spBookStartTimeISO;
   btn.disabled = true; btn.textContent = 'Requesting…'; errEl.style.display = 'none';
@@ -6096,9 +6095,9 @@ let tpLiveBookings = [];
 async function tpLoadSchedule() {
   if (!earnCurrentTutor) return;
   try {
-    const r = await fetch(`${SP_BACKEND}/api/analytics`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-tutor-bookings`, { headers: await seedsAuthHeaders() });
     const data = await r.json();
-    tpLiveBookings = (data.recentBookings||[]).filter(b => b.tutorName === earnCurrentTutor && b.status !== 'cancelled');
+    tpLiveBookings = (data.recentBookings||[]).filter(b => b.status !== 'cancelled');
     // This week's lessons count
     const now = new Date();
     const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
@@ -6107,7 +6106,14 @@ async function tpLoadSchedule() {
     const weekEl = document.getElementById('tp-kpi-week');
     if (weekEl) weekEl.textContent = weekCount;
     tpRenderHomeToday();
-    tpRenderSchedulePanel();
+    // Note: tpRenderSchedulePanel() used to run here too, but it targeted
+    // the SAME card element as the real calendar grid (tpCalRender below)
+    // and unconditionally overwrote it with a plain "No bookings yet."
+    // message — destroying #tp-cal-grid-body/#tp-cal-month-label whenever
+    // called, which made tpCalRender() bail out early (its `if (!grid)
+    // return`) and left the "Upcoming lessons" list stuck on its static
+    // "Loading…" placeholder forever. Removed; the calendar grid below
+    // already renders its own empty state correctly.
     if (typeof tpCalRender === 'function') tpCalRender();
     tpRenderAssignedLeads();
     tpRenderRecentHomework();
@@ -6200,33 +6206,6 @@ function tpRenderHomeToday() {
 function tpJoinLesson(meetLink) {
   if (meetLink) window.open(meetLink, '_blank');
   else alert('No meeting link set for this lesson yet.');
-}
-
-function tpRenderSchedulePanel() {
-  const card = document.querySelector('#tp-schedule .tp-card');
-  if (!card) return;
-  const hdr = card.querySelector('.tp-card-hdr');
-  const sorted = [...tpLiveBookings].sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
-  if (!sorted.length) {
-    card.innerHTML = (hdr?.outerHTML||'') + '<div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">No bookings yet.</div>';
-    return;
-  }
-  card.innerHTML = (hdr?.outerHTML||'') + sorted.map((b,i)=>{
-    const {label,cls} = tpTimeBtn(b.startTime);
-    const last = i===sorted.length-1 ? 'border-bottom:none' : '';
-    return `<div class="tp-lesson-row" style="${last}">
-      <div class="tp-l-stripe" style="background:${COLOURS[b.lessonType]||'#C8A15A'}"></div>
-      <div class="tp-l-info">
-        <div class="tp-l-subj">${b.studentName} — ${b.subject}</div>
-        <div class="tp-l-meta">${tpFmt(b.startTime)} · ${TYPE_LBL[b.lessonType]} · 55 min</div>
-      </div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <button class="tp-l-btn ${cls}"${cls==='tp-l-btn-live'?` onclick="tpJoinLesson('${b.meetLink||''}')"`:''}>${label}</button>
-        <button onclick="tpOpenPrepMode(this)" data-bid="${b.id||''}" data-sid="${b.studentId||''}" data-sname="${b.studentName||''}" data-subj="${b.subject||''}" data-meet="${b.meetLink||''}" data-start="${b.startTime||''}" title="Prep/Log" style="padding:5px 9px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.68rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">📋</button>
-        <button onclick="tpOpenSelfManage(this.dataset.bid,this.dataset.sname,this.dataset.subj,this.dataset.start)" data-bid="${b.id||''}" data-sname="${b.studentName||''}" data-subj="${b.subject||''}" data-start="${b.startTime||''}" title="Reschedule/cancel" style="padding:5px 9px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.68rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">⚙️</button>
-      </div>
-    </div>`;
-  }).join('');
 }
 
 async function tpRenderAssignedLeads() {
@@ -6513,6 +6492,7 @@ async function tpCreateLesson() {
   const lessonType = document.getElementById('tp-al-type').value;
   const startTime = _tpAlStartTimeISO;
   const weeks = parseInt(document.getElementById('tp-al-weeks').value);
+  if (!subject) { errEl.textContent = 'Please enter a subject'; errEl.style.display = 'block'; return; }
   if (!startTime) { errEl.textContent = 'Please pick a time in the calendar above'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Adding...'; errEl.style.display = 'none';
   try {
