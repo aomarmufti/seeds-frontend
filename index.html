@@ -2137,15 +2137,23 @@ function lgOpenPortalForSession(session, profile) {
   } else if (role === 'tutor') {
     _openTutorPortal();
     const tutorName = profile.tutor_name || profile.full_name;
+    // lgTutorMap only has the original 3 tutors' switcher branding (avatar
+    // initials/colour) — it must stay cosmetic-only. Previously the whole
+    // dashboard init (earnCurrentTutor, analytics, KPIs) was gated behind a
+    // match in this hardcoded map, so any tutor whose tutor_name didn't
+    // match exactly (a new tutor via SCRUM-28's dynamic tutors table, or
+    // just a slightly different stored name) got a silently blank
+    // dashboard — nothing in tpLoadSchedule() etc. runs without
+    // earnCurrentTutor set.
+    earnCurrentTutor = tutorName;
     const t = lgTutorMap[tutorName];
     if (t) {
-      earnCurrentTutor = tutorName;
       const switcher = document.querySelector('.tp-switcher');
       if (switcher) switcher.style.display = 'none';
       const swEl = document.getElementById('tp-sw-' + t.key);
       if (swEl) switchTutor(swEl, t.name, t.subject, t.initials);
-      adLoadAnalytics().then(() => tpUpdateHomeKPIs(tutorName));
     }
+    adLoadAnalytics().then(() => tpUpdateHomeKPIs(tutorName));
   } else {
     _openStudentPortal();
   }
@@ -2558,7 +2566,7 @@ async function adUpdateLeadsBadge() {
     // Count new leads + pending student signups
     const authHeaders = await adAuthHeaders();
     const [leadsR, pendingR] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads?status=new`),
+      fetch(`${AD_BACKEND}/api/leads?status=new`, { headers: authHeaders }),
       fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: authHeaders }),
     ]);
     const newLeads = await leadsR.json();
@@ -2840,9 +2848,10 @@ async function adRenderAttention() {
   if (!el) return;
   try {
     // New leads + pending signups + unconfirmed assigned leads
+    const attnAuthHeaders = await adAuthHeaders();
     const [newR, pendR] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads?status=new`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: await adAuthHeaders() }),
+      fetch(`${AD_BACKEND}/api/leads?status=new`, { headers: attnAuthHeaders }),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: attnAuthHeaders }),
     ]);
     const newLeads = await newR.json();
     const pending = await pendR.json();
@@ -3253,9 +3262,10 @@ async function adRenderLeads() {
   tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr>';
   try {
     // Fetch journey form leads AND pending student signups in parallel
+    const leadsAuthHeaders = await adAuthHeaders();
     const [leadsRes, pendingRes] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: await adAuthHeaders() }),
+      fetch(`${AD_BACKEND}/api/leads`, { headers: leadsAuthHeaders }),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: leadsAuthHeaders }),
     ]);
     adLeadsData = await leadsRes.json();
 
@@ -3375,7 +3385,7 @@ async function adAssignLead(id, tutorName, btn) {
   try {
     const r = await fetch(`${AD_BACKEND}/api/leads`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ id, status: 'assigned', assignedTutor: tutorName }),
     });
     const data = await r.json();
@@ -3435,7 +3445,7 @@ async function adRenderStudents() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr>';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics?resource=students`);
+    const r = await fetch(`${AD_BACKEND}/api/analytics?resource=students`, { headers: await adAuthHeaders() });
     const students = await r.json();
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
@@ -3485,7 +3495,9 @@ async function adVerifyLessons(tutorName, btn) {
   container.style.display = 'block';
   container.innerHTML = '<div style="padding:12px;color:#A7A7A7;font-size:.8rem">Loading lesson records…</div>';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/payouts?resource=verify&tutor=${encodeURIComponent(tutorName)}`);
+    const r = await fetch(`${AD_BACKEND}/api/payouts?resource=verify&tutor=${encodeURIComponent(tutorName)}`, {
+      headers: await adAuthHeaders(),
+    });
     const lessons = await r.json();
     btn.textContent = 'Hide lessons';
     if (!lessons.length) {
@@ -4054,7 +4066,7 @@ async function tpRenderStudentsList() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#A7A7A7;padding:20px">Loading students…</td></tr>';
   try {
     // Get this tutor's bookings to derive their student list
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
     // Filter to students who have a booking with this tutor
     const mine = students.filter(s =>
@@ -4271,7 +4283,7 @@ async function earnLoadData() {
     // Fetch analytics (bookings + payout summary) AND payout history in parallel
     const [analyticsR, payoutsR] = await Promise.all([
       fetch(`${BACKEND}/api/analytics`),
-      fetch(`${BACKEND}/api/payouts?tutor=${encodeURIComponent(tutor)}`),
+      fetch(`${BACKEND}/api/payouts?tutor=${encodeURIComponent(tutor)}`, { headers: await seedsAuthHeaders() }),
     ]);
     const data = await analyticsR.json();
     const payoutHistory = await payoutsR.json();
@@ -4338,7 +4350,9 @@ async function earnCheckConnect() {
   const el = document.getElementById('earn-connect-status');
   if (!el || !earnCurrentTutor) return;
   try {
-    const r = await fetch(`${SP_BACKEND}/api/payouts?resource=connect-status&tutor=${encodeURIComponent(earnCurrentTutor)}`);
+    const r = await fetch(`${SP_BACKEND}/api/payouts?resource=connect-status&tutor=${encodeURIComponent(earnCurrentTutor)}`, {
+      headers: await seedsAuthHeaders(),
+    });
     const s = await r.json();
     if (s.onboardingComplete) {
       el.innerHTML = '<span style="color:#2D7A4F">✓ Payouts enabled</span><div style="font-size:.72rem;color:#718096;margin-top:2px">Bank account connected via Stripe</div>';
@@ -4358,7 +4372,7 @@ async function earnStartConnect(btn) {
   btn.disabled = true; btn.textContent = 'Opening…';
   try {
     const r = await fetch(`${SP_BACKEND}/api/payouts`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         action: 'create-connect-account',
         tutorName: earnCurrentTutor,
@@ -4485,7 +4499,7 @@ async function earnRequestPayout(){
   try {
     const r = await fetch(`${BACKEND}/api/payouts`, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: await seedsAuthHeaders(),
       body:JSON.stringify({ tutorName: tutor, amountPence: Math.round(amt*100) }),
     });
     const data = await r.json();
@@ -5412,11 +5426,9 @@ async function spLoadData() {
     const studentName = profile?.full_name || '';
     const studentEmail = session.user.email;
 
-    const r = await fetch(`${SP_BACKEND}/api/analytics`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-bookings`, { headers: await seedsAuthHeaders() });
     const analytics = await r.json();
-    spBookings = (analytics.recentBookings || []).filter(b =>
-      b.parentEmail && b.parentEmail.toLowerCase() === studentEmail.toLowerCase() && b.status !== 'cancelled'
-    );
+    spBookings = (analytics.recentBookings || []).filter(b => b.status !== 'cancelled');
     spRenderHome(studentName);
     spRenderCalendar();
     calRender(); // refresh grid with real bookings
@@ -5629,7 +5641,9 @@ async function spPayForLesson(bookingId, email, lessonType, studentName, tutorNa
 }
 async function spCheckPendingSlots(email) {
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads?email=${encodeURIComponent(email)}`);
+    const r = await fetch(`${SP_BACKEND}/api/leads?email=${encodeURIComponent(email)}`, {
+      headers: await seedsAuthHeaders(),
+    });
     const leads = await r.json();
     const pending = (leads || []).filter(l => {
       if (l.status !== 'confirmed' || !l.notes) return false;
@@ -6012,6 +6026,7 @@ async function spSubmitBooking() {
   const tutorName = document.getElementById('sp-book-tutor').value;
   const subject = document.getElementById('sp-book-subject').value.trim();
   const lessonType = document.getElementById('sp-book-type').value;
+  if (!subject) { errEl.textContent='Please enter a subject'; errEl.style.display='block'; return; }
   if (!_spBookStartTimeISO) { errEl.textContent='Please pick a time in the calendar above'; errEl.style.display='block'; return; }
   const startTime = _spBookStartTimeISO;
   btn.disabled = true; btn.textContent = 'Requesting…'; errEl.style.display = 'none';
@@ -6088,9 +6103,9 @@ let tpLiveBookings = [];
 async function tpLoadSchedule() {
   if (!earnCurrentTutor) return;
   try {
-    const r = await fetch(`${SP_BACKEND}/api/analytics`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-tutor-bookings`, { headers: await seedsAuthHeaders() });
     const data = await r.json();
-    tpLiveBookings = (data.recentBookings||[]).filter(b => b.tutorName === earnCurrentTutor && b.status !== 'cancelled');
+    tpLiveBookings = (data.recentBookings||[]).filter(b => b.status !== 'cancelled');
     // This week's lessons count
     const now = new Date();
     const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
@@ -6099,7 +6114,14 @@ async function tpLoadSchedule() {
     const weekEl = document.getElementById('tp-kpi-week');
     if (weekEl) weekEl.textContent = weekCount;
     tpRenderHomeToday();
-    tpRenderSchedulePanel();
+    // Note: tpRenderSchedulePanel() used to run here too, but it targeted
+    // the SAME card element as the real calendar grid (tpCalRender below)
+    // and unconditionally overwrote it with a plain "No bookings yet."
+    // message — destroying #tp-cal-grid-body/#tp-cal-month-label whenever
+    // called, which made tpCalRender() bail out early (its `if (!grid)
+    // return`) and left the "Upcoming lessons" list stuck on its static
+    // "Loading…" placeholder forever. Removed; the calendar grid below
+    // already renders its own empty state correctly.
     if (typeof tpCalRender === 'function') tpCalRender();
     tpRenderAssignedLeads();
     tpRenderRecentHomework();
@@ -6111,7 +6133,7 @@ async function tpRenderRecentHomework() {
   if (!el) return;
   try {
     // Get this tutor's students, then their recently-completed homework
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     let items = [];
@@ -6194,36 +6216,12 @@ function tpJoinLesson(meetLink) {
   else alert('No meeting link set for this lesson yet.');
 }
 
-function tpRenderSchedulePanel() {
-  const card = document.querySelector('#tp-schedule .tp-card');
-  if (!card) return;
-  const hdr = card.querySelector('.tp-card-hdr');
-  const sorted = [...tpLiveBookings].sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
-  if (!sorted.length) {
-    card.innerHTML = (hdr?.outerHTML||'') + '<div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">No bookings yet.</div>';
-    return;
-  }
-  card.innerHTML = (hdr?.outerHTML||'') + sorted.map((b,i)=>{
-    const {label,cls} = tpTimeBtn(b.startTime);
-    const last = i===sorted.length-1 ? 'border-bottom:none' : '';
-    return `<div class="tp-lesson-row" style="${last}">
-      <div class="tp-l-stripe" style="background:${COLOURS[b.lessonType]||'#C8A15A'}"></div>
-      <div class="tp-l-info">
-        <div class="tp-l-subj">${b.studentName} — ${b.subject}</div>
-        <div class="tp-l-meta">${tpFmt(b.startTime)} · ${TYPE_LBL[b.lessonType]} · 55 min</div>
-      </div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <button class="tp-l-btn ${cls}"${cls==='tp-l-btn-live'?` onclick="tpJoinLesson('${b.meetLink||''}')"`:''}>${label}</button>
-        <button onclick="tpOpenPrepMode(this)" data-bid="${b.id||''}" data-sid="${b.studentId||''}" data-sname="${b.studentName||''}" data-subj="${b.subject||''}" data-meet="${b.meetLink||''}" data-start="${b.startTime||''}" title="Prep/Log" style="padding:5px 9px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.68rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">📋</button>
-        <button onclick="tpOpenSelfManage(this.dataset.bid,this.dataset.sname,this.dataset.subj,this.dataset.start)" data-bid="${b.id||''}" data-sname="${b.studentName||''}" data-subj="${b.subject||''}" data-start="${b.startTime||''}" title="Reschedule/cancel" style="padding:5px 9px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.68rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">⚙️</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 async function tpRenderAssignedLeads() {
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads`);
+    // Backend now scopes GET (no email filter) to this tutor's own leads
+    // server-side — the client-side filter below is just an extra status
+    // check, not the access boundary.
+    const r = await fetch(`${SP_BACKEND}/api/leads`, { headers: await seedsAuthHeaders() });
     const leads = await r.json();
     const mine = leads.filter(l => l.assigned_tutor === earnCurrentTutor && l.status === 'assigned');
     const cards = document.querySelectorAll('#tp-home .tp-card');
@@ -6257,7 +6255,7 @@ async function tpConfirmLead(leadId, btn) {
   try {
     const r = await fetch(`${SP_BACKEND}/api/leads`, {
       method: 'PATCH',
-      headers: {'Content-Type':'application/json'},
+      headers: await seedsAuthHeaders(),
       body: JSON.stringify({id: leadId, status: 'confirmed'}),
     });
     if (!r.ok) throw new Error('Failed');
@@ -6337,7 +6335,7 @@ async function tpSubmitSlots() {
   try {
     var r = await fetch(SP_BACKEND + '/api/leads', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         id: _tpProposeLead.id,
         status: 'confirmed',
@@ -6412,7 +6410,7 @@ async function tpOpenAddLesson() {
   const sel = document.getElementById('tp-al-student');
   sel.innerHTML = '<option value="">Loading...</option>';
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
+    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
     _tpAlStudents = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     if (!_tpAlStudents.length) {
@@ -6502,6 +6500,7 @@ async function tpCreateLesson() {
   const lessonType = document.getElementById('tp-al-type').value;
   const startTime = _tpAlStartTimeISO;
   const weeks = parseInt(document.getElementById('tp-al-weeks').value);
+  if (!subject) { errEl.textContent = 'Please enter a subject'; errEl.style.display = 'block'; return; }
   if (!startTime) { errEl.textContent = 'Please pick a time in the calendar above'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Adding...'; errEl.style.display = 'none';
   try {
@@ -6564,7 +6563,7 @@ async function tpLoadResourceStudents() {
   const sel = document.getElementById('tp-res-student');
   if (!sel || sel.dataset.loaded) return;
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
+    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     mine.forEach(s => {
@@ -6882,7 +6881,9 @@ async function earnLoadFullHistory() {
   // Fetch from a dedicated resource that returns all bookings for this tutor
   const tutor = earnCurrentTutor || 'Azeem Omar-Mufti';
   try {
-    const r = await fetch(SP_BACKEND + '/api/payouts?resource=verify&tutor=' + encodeURIComponent(tutor));
+    const r = await fetch(SP_BACKEND + '/api/payouts?resource=verify&tutor=' + encodeURIComponent(tutor), {
+      headers: await seedsAuthHeaders(),
+    });
     const allLessons = await r.json();
     if (!Array.isArray(allLessons)) return;
     // Merge into EARN_LESSONS if we have fewer entries currently
@@ -7464,7 +7465,7 @@ async function spLoadRecordings() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await sRes.json();
     const me = students.find(s => (s.parent_email||'').toLowerCase() === (session.user.email||'').toLowerCase());
     if (!me) {
@@ -8247,7 +8248,7 @@ window.adRenderStudents = async function() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px;font-size:.82rem">Loading...</td></tr>';
   try {
-    const r = await fetch(AD_BACKEND + '/api/analytics?resource=students');
+    const r = await fetch(AD_BACKEND + '/api/analytics?resource=students', { headers: await adAuthHeaders() });
     const students = await r.json();
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
