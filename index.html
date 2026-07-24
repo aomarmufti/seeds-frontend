@@ -2137,15 +2137,23 @@ function lgOpenPortalForSession(session, profile) {
   } else if (role === 'tutor') {
     _openTutorPortal();
     const tutorName = profile.tutor_name || profile.full_name;
+    // lgTutorMap only has the original 3 tutors' switcher branding (avatar
+    // initials/colour) — it must stay cosmetic-only. Previously the whole
+    // dashboard init (earnCurrentTutor, analytics, KPIs) was gated behind a
+    // match in this hardcoded map, so any tutor whose tutor_name didn't
+    // match exactly (a new tutor via SCRUM-28's dynamic tutors table, or
+    // just a slightly different stored name) got a silently blank
+    // dashboard — nothing in tpLoadSchedule() etc. runs without
+    // earnCurrentTutor set.
+    earnCurrentTutor = tutorName;
     const t = lgTutorMap[tutorName];
     if (t) {
-      earnCurrentTutor = tutorName;
       const switcher = document.querySelector('.tp-switcher');
       if (switcher) switcher.style.display = 'none';
       const swEl = document.getElementById('tp-sw-' + t.key);
       if (swEl) switchTutor(swEl, t.name, t.subject, t.initials);
-      adLoadAnalytics().then(() => tpUpdateHomeKPIs(tutorName));
     }
+    adLoadAnalytics().then(() => tpUpdateHomeKPIs(tutorName));
   } else {
     _openStudentPortal();
   }
