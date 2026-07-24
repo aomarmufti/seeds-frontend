@@ -3437,7 +3437,7 @@ async function adRenderStudents() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr>';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics?resource=students`);
+    const r = await fetch(`${AD_BACKEND}/api/analytics?resource=students`, { headers: await adAuthHeaders() });
     const students = await r.json();
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
@@ -4058,7 +4058,7 @@ async function tpRenderStudentsList() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#A7A7A7;padding:20px">Loading students…</td></tr>';
   try {
     // Get this tutor's bookings to derive their student list
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
     // Filter to students who have a booking with this tutor
     const mine = students.filter(s =>
@@ -6119,7 +6119,7 @@ async function tpRenderRecentHomework() {
   if (!el) return;
   try {
     // Get this tutor's students, then their recently-completed homework
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     let items = [];
@@ -6423,7 +6423,7 @@ async function tpOpenAddLesson() {
   const sel = document.getElementById('tp-al-student');
   sel.innerHTML = '<option value="">Loading...</option>';
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
+    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
     _tpAlStudents = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     if (!_tpAlStudents.length) {
@@ -6575,7 +6575,7 @@ async function tpLoadResourceStudents() {
   const sel = document.getElementById('tp-res-student');
   if (!sel || sel.dataset.loaded) return;
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
+    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     mine.forEach(s => {
@@ -7477,7 +7477,7 @@ async function spLoadRecordings() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await sRes.json();
     const me = students.find(s => (s.parent_email||'').toLowerCase() === (session.user.email||'').toLowerCase());
     if (!me) {
@@ -8260,7 +8260,7 @@ window.adRenderStudents = async function() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px;font-size:.82rem">Loading...</td></tr>';
   try {
-    const r = await fetch(AD_BACKEND + '/api/analytics?resource=students');
+    const r = await fetch(AD_BACKEND + '/api/analytics?resource=students', { headers: await adAuthHeaders() });
     const students = await r.json();
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
