@@ -4082,10 +4082,11 @@ function closeStudentDetail() {
 async function tpLoadStudentLifecycle(studentId) {
   // Load notes, homework, progress in parallel
   try {
+    const _tpAuthH = await seedsAuthHeaders();
     const [notesR, hwR, progR] = await Promise.all([
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=notes&studentId=${studentId}`),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${studentId}`),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentId=${studentId}`),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=notes&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentId=${studentId}`, { headers: _tpAuthH }),
     ]);
     const notes = await notesR.json();
     const homework = await hwR.json();
@@ -4161,7 +4162,7 @@ async function tpSaveNote() {
   if (!val) return;
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=notes`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, tutorName:earnCurrentTutor, note:val }),
     });
     textarea.value = '';
@@ -4177,7 +4178,7 @@ async function tpAssignHomework() {
   const due = document.getElementById('tp-hw-due').value;
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, tutorName:earnCurrentTutor, title, description:desc, dueDate:due||null }),
     });
     document.getElementById('tp-hw-title').value = '';
@@ -4195,7 +4196,7 @@ async function tpSaveProgress() {
   if (!subject || isNaN(percent)) { alert('Enter subject and percent'); return; }
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=progress`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, subject, percent, targetGrade:target||null }),
     });
     document.getElementById('tp-prog-subject').value = '';
@@ -5346,6 +5347,15 @@ async function adApproveStudent(userId, tutorName, btn) {
 const SP_BACKEND = 'https://seeds-backend-six.vercel.app';
 let spBookings = [];
 
+// SCRUM-13: notes/homework/progress/lessons/availability now require the
+// caller's Supabase session token so the backend can verify ownership —
+// shared by both the student and tutor portals since both call the same
+// lifecycle.js endpoints.
+async function seedsAuthHeaders() {
+  const { data: { session } } = await sbClient.auth.getSession();
+  return session ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` } : { 'Content-Type': 'application/json' };
+}
+
 async function spLoadData() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
@@ -5374,9 +5384,10 @@ let spStudentId = null;
 
 async function spLoadLifecycle(email) {
   try {
+    const _spAuthH = await seedsAuthHeaders();
     const [progR, hwR] = await Promise.all([
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentEmail=${encodeURIComponent(email)}`),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentEmail=${encodeURIComponent(email)}`),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
     ]);
     const progress = await progR.json();
     const homework = await hwR.json();
@@ -5496,7 +5507,7 @@ async function spToggleHomework(id, markComplete, el) {
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await seedsAuthHeaders(),
       body: JSON.stringify({ id, completed: markComplete }),
     });
     // Reload
@@ -5545,7 +5556,7 @@ async function spPayForLesson(bookingId, email, lessonType, studentName, tutorNa
   btn.disabled = true; btn.textContent = 'Processing…';
   try {
     const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         bookingId, studentEmail: email, lessonType,
         studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
@@ -5970,8 +5981,9 @@ async function spSubmitBooking() {
     if (!me) throw new Error('Could not find your student record — contact your tutor to add the lesson.');
 
     // Create the booking via lifecycle
+    const _spLessonAuthH = await seedsAuthHeaders();
     const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=lessons`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _spLessonAuthH,
       body: JSON.stringify({
         studentId: me.id, tutorName, subject,
         lessonType, startTime: new Date(startTime).toISOString(), recurringWeeks: 1,
@@ -5986,7 +5998,7 @@ async function spSubmitBooking() {
     // Trigger charge
     if (lessonType !== 'trial' && data.bookings?.[0]) {
       await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: _spLessonAuthH,
         body: JSON.stringify({
           bookingId: data.bookings[0].id, studentEmail, lessonType,
           studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
@@ -6060,9 +6072,10 @@ async function tpRenderRecentHomework() {
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     let items = [];
+    const _tpHwAuthH = await seedsAuthHeaders();
     for (const s of mine.slice(0, 8)) {
       try {
-        const hr = await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${s.id}`);
+        const hr = await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${s.id}`, { headers: _tpHwAuthH });
         const hw = await hr.json();
         hw.filter(h => h.completed).forEach(h => items.push({ student: s.student_name, ...h }));
       } catch(e) {}
@@ -6448,8 +6461,9 @@ async function tpCreateLesson() {
   if (!startTime) { errEl.textContent = 'Please pick a time in the calendar above'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Adding...'; errEl.style.display = 'none';
   try {
+    const _tpAlAuthH = await seedsAuthHeaders();
     const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=lessons', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpAlAuthH,
       body: JSON.stringify({
         studentId, tutorName: earnCurrentTutor, subject,
         lessonType, startTime: new Date(startTime).toISOString(), recurringWeeks: weeks,
@@ -6468,7 +6482,7 @@ async function tpCreateLesson() {
     if (lessonType !== 'trial' && studentEmail && data.bookings && data.bookings[0]) {
       btn.textContent = 'Charging…';
       const chargeR = await fetch(SP_BACKEND + '/api/lifecycle?resource=charge-student', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: _tpAlAuthH,
         body: JSON.stringify({
           bookingId: data.bookings[0].id,
           studentEmail, lessonType,
@@ -6516,7 +6530,7 @@ async function adChargeStudent(bookingId, btn) {
 
     btn.textContent = 'Charging…';
     const chargeR = await fetch(`${AD_BACKEND}/api/lifecycle?resource=charge-student`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({
         bookingId,
         studentEmail: email,
@@ -6653,10 +6667,11 @@ async function tpSubmitLessonLog() {
 
   btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
 
+  const _tpLogAuthH = await seedsAuthHeaders();
   const calls = [];
   if (notes) {
     calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=notes', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         bookingId: _tpLogLesson.bookingId,
         studentId: _tpLogLesson.studentId,
@@ -6668,7 +6683,7 @@ async function tpSubmitLessonLog() {
   }
   if (hwTitle) {
     calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=homework', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         studentId: _tpLogLesson.studentId,
         tutorName: earnCurrentTutor,
@@ -6680,7 +6695,7 @@ async function tpSubmitLessonLog() {
   }
   if (subject && progress !== null) {
     calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=progress', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         studentId: _tpLogLesson.studentId,
         subject: subject || _tpLogLesson.subject,
@@ -6851,10 +6866,11 @@ async function tpOpenPrepMode(btn) {
   }
 
   try {
+    const _tpPrepAuthH = await seedsAuthHeaders();
     const [notesR, hwR, progR] = await Promise.all([
-      fetch(SP_BACKEND + '/api/lifecycle?resource=notes&studentId=' + sid),
-      fetch(SP_BACKEND + '/api/lifecycle?resource=homework&studentId=' + sid),
-      fetch(SP_BACKEND + '/api/lifecycle?resource=progress&studentId=' + sid),
+      fetch(SP_BACKEND + '/api/lifecycle?resource=notes&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetch(SP_BACKEND + '/api/lifecycle?resource=homework&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetch(SP_BACKEND + '/api/lifecycle?resource=progress&studentId=' + sid, { headers: _tpPrepAuthH }),
     ]);
     const notes = await notesR.json();
     const hw = await hwR.json();
@@ -6916,7 +6932,7 @@ async function tpSaveAvailability() {
   });
   try {
     await fetch(SP_BACKEND + '/api/lifecycle?resource=availability', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ tutorName: earnCurrentTutor, slots }),
     });
     seedsToast('✓ Availability saved', false);
@@ -6927,7 +6943,7 @@ async function tpSaveAvailability() {
 async function tpLoadAvailability() {
   if (!earnCurrentTutor) return;
   try {
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=availability&tutorName=' + encodeURIComponent(earnCurrentTutor));
+    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=availability&tutorName=' + encodeURIComponent(earnCurrentTutor), { headers: await seedsAuthHeaders() });
     const data = await r.json();
     const slots = data.slots || [];
     document.querySelectorAll('.tp-avail-slot').forEach(el => {
@@ -7022,7 +7038,7 @@ async function spRenderProgressWithTrend(progress) {
     // Fetch history for trend
     let trendHTML = '';
     try {
-      const hr = await fetch(SP_BACKEND + '/api/lifecycle?resource=progress-history&studentEmail=' + encodeURIComponent(email) + '&subject=' + encodeURIComponent(p.subject));
+      const hr = await fetch(SP_BACKEND + '/api/lifecycle?resource=progress-history&subject=' + encodeURIComponent(p.subject), { headers: await seedsAuthHeaders() });
       const history = await hr.json();
       if (history.length >= 2) {
         const maxP = Math.max(...history.map(h => h.percent || 0), 1);
@@ -8182,13 +8198,13 @@ if (typeof _openTutorPortal !== 'undefined') {
 }
 
 // ══ SAFEGUARDING LOG (admin student detail) ═══════════════════════════════
-function adLogSafeguarding(studentId, studentName) {
+async function adLogSafeguarding(studentId, studentName) {
   const note = prompt(`Safeguarding note for ${studentName}:
 (This will be timestamped and stored securely)`);
   if (!note || !note.trim()) return;
   // Store as a lead note or lifecycle note
   fetch(AD_BACKEND + '/api/lifecycle?resource=notes', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
     body: JSON.stringify({
       studentId, tutorName: 'Admin (Safeguarding)', subject: 'SAFEGUARDING',
       note: '[SAFEGUARDING] ' + note.trim(),
