@@ -2183,6 +2183,7 @@ function showPortalPanel(id,navEl){
   document.getElementById(id).classList.add('p-active');
   document.querySelectorAll('.p-nav-item').forEach(n=>n.classList.remove('p-active-nav'));
   if(navEl) navEl.classList.add('p-active-nav');
+  if (id === 'p-rec' && typeof spLoadRecordings === 'function') spLoadRecordings();
 }
 function togglePHW(el){
   el.classList.toggle('p-done');
@@ -3868,18 +3869,22 @@ window.addEventListener('DOMContentLoaded', function() {
     <!-- RESOURCES -->
     <div id="tp-resources" class="tp-panel">
       <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A;margin-bottom:16px">Resources</h2>
-      <div class="tp-upload-zone" onclick="alert('Resource sharing is coming soon. For now, share materials with students via email.')">
-        <div class="tp-upload-icon">📤</div>
-        <div class="tp-upload-text">Upload a resource</div>
-        <div class="tp-upload-sub">PDF, worksheet, slides, or past paper — drag and drop or click to browse</div>
+      <div class="tp-card" style="margin-bottom:20px">
+        <div class="tp-card-hdr"><span class="tp-card-title">Share a link</span></div>
+        <p style="font-size:.82rem;color:#718096;margin-bottom:12px">Paste a Google Drive, OneDrive, or other link — worksheets, slides, past papers, whatever you already use.</p>
+        <div id="tp-res-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
+        <span class="lg-label">Share with</span>
+        <select class="lg-input" id="tp-res-student" style="cursor:pointer;margin-bottom:8px"><option value="">All my students</option></select>
+        <span class="lg-label">Subject (optional)</span>
+        <input class="lg-input" type="text" id="tp-res-subject" placeholder="e.g. Mathematics" style="margin-bottom:8px">
+        <span class="lg-label">Title</span>
+        <input class="lg-input" type="text" id="tp-res-title" placeholder="e.g. Quadratics Practice Pack" style="margin-bottom:8px">
+        <span class="lg-label">Link</span>
+        <input class="lg-input" type="url" id="tp-res-url" placeholder="https://drive.google.com/..." style="margin-bottom:10px">
+        <button class="tp-btn-xs tp-btn-primary" onclick="tpAddResource()">Add resource</button>
       </div>
-      <div class="tp-resource-grid">
-        <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Quadratics Practice Pack</div><div class="tp-resource-meta">PDF · 12 pages</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📊</div><div class="tp-resource-name">Trigonometry Slides</div><div class="tp-resource-meta">Slides · 24 slides</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Edexcel Paper 2 (2023)</div><div class="tp-resource-meta">PDF · Past paper</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📝</div><div class="tp-resource-name">Algebra Homework — Set 4</div><div class="tp-resource-meta">PDF · Worksheet</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📄</div><div class="tp-resource-name">Mechanics Formula Sheet</div><div class="tp-resource-meta">PDF · Reference</div></div>
-        <div class="tp-resource-card"><div class="tp-resource-icon">📊</div><div class="tp-resource-name">Circle Theorems Slides</div><div class="tp-resource-meta">Slides · 18 slides</div></div>
+      <div class="tp-resource-grid" id="tp-resource-grid">
+        <div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>
       </div>
     </div>
 
@@ -4082,10 +4087,11 @@ function closeStudentDetail() {
 async function tpLoadStudentLifecycle(studentId) {
   // Load notes, homework, progress in parallel
   try {
+    const _tpAuthH = await seedsAuthHeaders();
     const [notesR, hwR, progR] = await Promise.all([
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=notes&studentId=${studentId}`),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${studentId}`),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentId=${studentId}`),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=notes&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentId=${studentId}`, { headers: _tpAuthH }),
     ]);
     const notes = await notesR.json();
     const homework = await hwR.json();
@@ -4161,7 +4167,7 @@ async function tpSaveNote() {
   if (!val) return;
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=notes`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, tutorName:earnCurrentTutor, note:val }),
     });
     textarea.value = '';
@@ -4177,7 +4183,7 @@ async function tpAssignHomework() {
   const due = document.getElementById('tp-hw-due').value;
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, tutorName:earnCurrentTutor, title, description:desc, dueDate:due||null }),
     });
     document.getElementById('tp-hw-title').value = '';
@@ -4195,7 +4201,7 @@ async function tpSaveProgress() {
   if (!subject || isNaN(percent)) { alert('Enter subject and percent'); return; }
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=progress`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, subject, percent, targetGrade:target||null }),
     });
     document.getElementById('tp-prog-subject').value = '';
@@ -5346,6 +5352,15 @@ async function adApproveStudent(userId, tutorName, btn) {
 const SP_BACKEND = 'https://seeds-backend-six.vercel.app';
 let spBookings = [];
 
+// SCRUM-13: notes/homework/progress/lessons/availability now require the
+// caller's Supabase session token so the backend can verify ownership —
+// shared by both the student and tutor portals since both call the same
+// lifecycle.js endpoints.
+async function seedsAuthHeaders() {
+  const { data: { session } } = await sbClient.auth.getSession();
+  return session ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` } : { 'Content-Type': 'application/json' };
+}
+
 async function spLoadData() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
@@ -5374,9 +5389,10 @@ let spStudentId = null;
 
 async function spLoadLifecycle(email) {
   try {
+    const _spAuthH = await seedsAuthHeaders();
     const [progR, hwR] = await Promise.all([
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentEmail=${encodeURIComponent(email)}`),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentEmail=${encodeURIComponent(email)}`),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
+      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
     ]);
     const progress = await progR.json();
     const homework = await hwR.json();
@@ -5496,7 +5512,7 @@ async function spToggleHomework(id, markComplete, el) {
   try {
     await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await seedsAuthHeaders(),
       body: JSON.stringify({ id, completed: markComplete }),
     });
     // Reload
@@ -5545,7 +5561,7 @@ async function spPayForLesson(bookingId, email, lessonType, studentName, tutorNa
   btn.disabled = true; btn.textContent = 'Processing…';
   try {
     const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         bookingId, studentEmail: email, lessonType,
         studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
@@ -5970,8 +5986,9 @@ async function spSubmitBooking() {
     if (!me) throw new Error('Could not find your student record — contact your tutor to add the lesson.');
 
     // Create the booking via lifecycle
+    const _spLessonAuthH = await seedsAuthHeaders();
     const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=lessons`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _spLessonAuthH,
       body: JSON.stringify({
         studentId: me.id, tutorName, subject,
         lessonType, startTime: new Date(startTime).toISOString(), recurringWeeks: 1,
@@ -5986,7 +6003,7 @@ async function spSubmitBooking() {
     // Trigger charge
     if (lessonType !== 'trial' && data.bookings?.[0]) {
       await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: _spLessonAuthH,
         body: JSON.stringify({
           bookingId: data.bookings[0].id, studentEmail, lessonType,
           studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
@@ -6060,9 +6077,10 @@ async function tpRenderRecentHomework() {
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     let items = [];
+    const _tpHwAuthH = await seedsAuthHeaders();
     for (const s of mine.slice(0, 8)) {
       try {
-        const hr = await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${s.id}`);
+        const hr = await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${s.id}`, { headers: _tpHwAuthH });
         const hw = await hr.json();
         hw.filter(h => h.completed).forEach(h => items.push({ student: s.student_name, ...h }));
       } catch(e) {}
@@ -6222,6 +6240,7 @@ window.showTpPanel = function(id, navEl) {
   if (id==='tp-schedule') { tpCalViewDate = new Date(); setTimeout(tpCalRender, 300); }
   if (id==='tp-earnings') { earnLoadData(); setTimeout(earnLoadFullHistory, 1000); }
   if (id==='tp-students') tpRenderStudentsList();
+  if (id==='tp-resources') tpLoadResources();
 };
 </script>
 <!-- ── TUTOR: PROPOSE SLOTS MODAL ────────────────────────────────────── -->
@@ -6448,8 +6467,9 @@ async function tpCreateLesson() {
   if (!startTime) { errEl.textContent = 'Please pick a time in the calendar above'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Adding...'; errEl.style.display = 'none';
   try {
+    const _tpAlAuthH = await seedsAuthHeaders();
     const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=lessons', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpAlAuthH,
       body: JSON.stringify({
         studentId, tutorName: earnCurrentTutor, subject,
         lessonType, startTime: new Date(startTime).toISOString(), recurringWeeks: weeks,
@@ -6468,7 +6488,7 @@ async function tpCreateLesson() {
     if (lessonType !== 'trial' && studentEmail && data.bookings && data.bookings[0]) {
       btn.textContent = 'Charging…';
       const chargeR = await fetch(SP_BACKEND + '/api/lifecycle?resource=charge-student', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: _tpAlAuthH,
         body: JSON.stringify({
           bookingId: data.bookings[0].id,
           studentEmail, lessonType,
@@ -6501,6 +6521,89 @@ async function tpCreateLesson() {
 </script>
 
 <script>
+// ── TUTOR: RESOURCES (SCRUM-25, descoped to a pasted link) ────────────────
+async function tpLoadResourceStudents() {
+  const sel = document.getElementById('tp-res-student');
+  if (!sel || sel.dataset.loaded) return;
+  try {
+    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students');
+    const students = await r.json();
+    const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
+    mine.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.student_name;
+      sel.appendChild(opt);
+    });
+    sel.dataset.loaded = '1';
+  } catch(e) { /* non-fatal — "All my students" still works */ }
+}
+
+async function tpLoadResources() {
+  const grid = document.getElementById('tp-resource-grid');
+  await tpLoadResourceStudents();
+  grid.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>';
+  try {
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&tutorName=${encodeURIComponent(earnCurrentTutor)}`, { headers: await seedsAuthHeaders() });
+    const items = await r.json();
+    if (!r.ok) throw new Error(items.error || 'Failed to load');
+    if (!items.length) {
+      grid.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">No resources shared yet.</div>';
+      return;
+    }
+    grid.innerHTML = items.map(it => `
+      <div class="tp-resource-card">
+        <div class="tp-resource-icon">🔗</div>
+        <a href="${escapeHtml(it.url)}" target="_blank" rel="noopener" class="tp-resource-name" style="text-decoration:none;color:inherit">${escapeHtml(it.title)}</a>
+        <div class="tp-resource-meta">${it.subject ? escapeHtml(it.subject) + ' · ' : ''}${it.type === 'recording' ? 'Recording' : (it.student_id ? 'One student' : 'All students')}</div>
+        <button onclick="tpDeleteResource('${it.id}')" style="margin-top:8px;background:none;border:none;color:#c0392b;font-size:.72rem;cursor:pointer;padding:0">Remove</button>
+      </div>`).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="color:#c0392b;font-size:.85rem;padding:20px;text-align:center">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function tpAddResource() {
+  const errEl = document.getElementById('tp-res-error');
+  errEl.style.display = 'none';
+  const studentId = document.getElementById('tp-res-student').value;
+  const subject = document.getElementById('tp-res-subject').value.trim();
+  const title = document.getElementById('tp-res-title').value.trim();
+  const url = document.getElementById('tp-res-url').value.trim();
+  if (!title || !url) {
+    errEl.textContent = 'Please add a title and a link.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials`, {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ tutorName: earnCurrentTutor, studentId: studentId || undefined, subject: subject || undefined, title, url }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to add resource');
+    document.getElementById('tp-res-subject').value = '';
+    document.getElementById('tp-res-title').value = '';
+    document.getElementById('tp-res-url').value = '';
+    seedsToast('✓ Resource added', false);
+    tpLoadResources();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function tpDeleteResource(id) {
+  if (!confirm('Remove this resource?')) return;
+  try {
+    await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&id=${id}&tutorName=${encodeURIComponent(earnCurrentTutor)}`, {
+      method: 'DELETE', headers: await seedsAuthHeaders(),
+    });
+    tpLoadResources();
+  } catch(e) { seedsToast('Failed to remove: ' + e.message); }
+}
+</script>
+
+<script>
 // ── ADMIN: CHARGE A STUDENT ───────────────────────────────────────────────
 async function adChargeStudent(bookingId, btn) {
   btn.disabled = true; btn.textContent = 'Looking up…';
@@ -6516,7 +6619,7 @@ async function adChargeStudent(bookingId, btn) {
 
     btn.textContent = 'Charging…';
     const chargeR = await fetch(`${AD_BACKEND}/api/lifecycle?resource=charge-student`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({
         bookingId,
         studentEmail: email,
@@ -6653,10 +6756,11 @@ async function tpSubmitLessonLog() {
 
   btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
 
+  const _tpLogAuthH = await seedsAuthHeaders();
   const calls = [];
   if (notes) {
     calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=notes', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         bookingId: _tpLogLesson.bookingId,
         studentId: _tpLogLesson.studentId,
@@ -6668,7 +6772,7 @@ async function tpSubmitLessonLog() {
   }
   if (hwTitle) {
     calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=homework', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         studentId: _tpLogLesson.studentId,
         tutorName: earnCurrentTutor,
@@ -6680,7 +6784,7 @@ async function tpSubmitLessonLog() {
   }
   if (subject && progress !== null) {
     calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=progress', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         studentId: _tpLogLesson.studentId,
         subject: subject || _tpLogLesson.subject,
@@ -6851,10 +6955,11 @@ async function tpOpenPrepMode(btn) {
   }
 
   try {
+    const _tpPrepAuthH = await seedsAuthHeaders();
     const [notesR, hwR, progR] = await Promise.all([
-      fetch(SP_BACKEND + '/api/lifecycle?resource=notes&studentId=' + sid),
-      fetch(SP_BACKEND + '/api/lifecycle?resource=homework&studentId=' + sid),
-      fetch(SP_BACKEND + '/api/lifecycle?resource=progress&studentId=' + sid),
+      fetch(SP_BACKEND + '/api/lifecycle?resource=notes&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetch(SP_BACKEND + '/api/lifecycle?resource=homework&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetch(SP_BACKEND + '/api/lifecycle?resource=progress&studentId=' + sid, { headers: _tpPrepAuthH }),
     ]);
     const notes = await notesR.json();
     const hw = await hwR.json();
@@ -6916,7 +7021,7 @@ async function tpSaveAvailability() {
   });
   try {
     await fetch(SP_BACKEND + '/api/lifecycle?resource=availability', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ tutorName: earnCurrentTutor, slots }),
     });
     seedsToast('✓ Availability saved', false);
@@ -6927,7 +7032,7 @@ async function tpSaveAvailability() {
 async function tpLoadAvailability() {
   if (!earnCurrentTutor) return;
   try {
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=availability&tutorName=' + encodeURIComponent(earnCurrentTutor));
+    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=availability&tutorName=' + encodeURIComponent(earnCurrentTutor), { headers: await seedsAuthHeaders() });
     const data = await r.json();
     const slots = data.slots || [];
     document.querySelectorAll('.tp-avail-slot').forEach(el => {
@@ -7022,7 +7127,7 @@ async function spRenderProgressWithTrend(progress) {
     // Fetch history for trend
     let trendHTML = '';
     try {
-      const hr = await fetch(SP_BACKEND + '/api/lifecycle?resource=progress-history&studentEmail=' + encodeURIComponent(email) + '&subject=' + encodeURIComponent(p.subject));
+      const hr = await fetch(SP_BACKEND + '/api/lifecycle?resource=progress-history&subject=' + encodeURIComponent(p.subject), { headers: await seedsAuthHeaders() });
       const history = await hr.json();
       if (history.length >= 2) {
         const maxP = Math.max(...history.map(h => h.percent || 0), 1);
@@ -7310,6 +7415,44 @@ async function spDismissProfileModal() {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) localStorage.setItem('sp_profile_done_' + session.user.id, '1');
   } catch(e) {}
+}
+
+// SCRUM-24: Group Sessions recordings — descoped to a pasted link (Zoom
+// cloud recording, Drive, etc.) rather than hosting video ourselves.
+async function spLoadRecordings() {
+  const grid = document.getElementById('sp-rec-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">Loading…</div>';
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
+    const students = await sRes.json();
+    const me = students.find(s => (s.parent_email||'').toLowerCase() === (session.user.email||'').toLowerCase());
+    if (!me) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">No student record found yet.</div>';
+      return;
+    }
+    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&studentId=${me.id}&type=recording`, { headers: await seedsAuthHeaders() });
+    const items = await r.json();
+    if (!r.ok) throw new Error(items.error || 'Failed to load');
+    if (!items.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">
+        <div style="font-size:2rem;margin-bottom:10px">🎥</div>
+        <div style="font-size:.9rem;font-weight:600;color:#718096;margin-bottom:4px">No recordings yet</div>
+        <div style="font-size:.8rem">Recordings of your group past-paper sessions will appear here after each session.</div>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = items.map(it => `
+      <a href="${escapeHtml(it.url)}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;border:1.5px solid #E8E8E8;border-radius:12px;padding:16px">
+        <div style="font-size:1.5rem;margin-bottom:8px">🎥</div>
+        <div style="font-weight:600;color:#0D1B2A;font-size:.88rem;margin-bottom:4px">${escapeHtml(it.title)}</div>
+        <div style="font-size:.76rem;color:#718096">${it.subject ? escapeHtml(it.subject) : 'Group session'} · ${new Date(it.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
+      </a>`).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#c0392b">${escapeHtml(e.message)}</div>`;
+  }
 }
 
 // Check if student needs profile setup (on portal open)
@@ -8182,13 +8325,13 @@ if (typeof _openTutorPortal !== 'undefined') {
 }
 
 // ══ SAFEGUARDING LOG (admin student detail) ═══════════════════════════════
-function adLogSafeguarding(studentId, studentName) {
+async function adLogSafeguarding(studentId, studentName) {
   const note = prompt(`Safeguarding note for ${studentName}:
 (This will be timestamped and stored securely)`);
   if (!note || !note.trim()) return;
   // Store as a lead note or lifecycle note
   fetch(AD_BACKEND + '/api/lifecycle?resource=notes', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
     body: JSON.stringify({
       studentId, tutorName: 'Admin (Safeguarding)', subject: 'SAFEGUARDING',
       note: '[SAFEGUARDING] ' + note.trim(),
