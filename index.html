@@ -1693,7 +1693,7 @@ function switchAud(e, panel) {
         <h3>Book a lesson</h3>
         <button type="button" onclick="document.getElementById('sp-book-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
       </div>
-      <p style="margin-bottom:16px">Request a lesson with one of your tutors. We'll confirm and charge your saved card.</p>
+      <p style="margin-bottom:16px">Book a lesson with one of your tutors — it's billed automatically on your next billing date, not right now.</p>
       <div id="sp-book-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
       <span class="lg-label">Tutor</span>
       <select class="lg-input" id="sp-book-tutor" onchange="spLoadBookCalendly()" style="cursor:pointer;margin-bottom:10px">
@@ -1716,10 +1716,10 @@ function switchAud(e, panel) {
       </div>
       <div id="sp-book-time-chosen" style="display:none;font-size:.8rem;color:#2D7A4F;padding:8px 12px;background:#f0faf4;border-radius:8px;margin-bottom:10px"></div>
       <div style="background:#FAF8F4;border-radius:10px;padding:12px 14px;font-size:.8rem;color:#4A5568;margin-bottom:14px">
-        💳 We'll charge your saved card when the lesson is confirmed. No card yet? You'll receive a payment link by email.
+        💳 No payment needed now — this lesson will be included in your next billing cycle (see Payments in your portal).
       </div>
-      <button class="lg-enter" id="sp-book-btn" onclick="spSubmitBooking()">Request lesson →</button>
-      <div id="sp-book-success" style="display:none;font-size:.82rem;color:#2D7A4F;padding:10px 12px;background:#f0faf4;border-radius:8px;text-align:center;margin-top:10px">✓ Request sent — your tutor will confirm shortly and payment will be processed.</div>
+      <button class="lg-enter" id="sp-book-btn" onclick="spSubmitBooking()">Book lesson →</button>
+      <div id="sp-book-success" style="display:none;font-size:.82rem;color:#2D7A4F;padding:10px 12px;background:#f0faf4;border-radius:8px;text-align:center;margin-top:10px">✓ Lesson booked!</div>
     </div>
   </div>
 
@@ -1762,6 +1762,16 @@ function switchAud(e, panel) {
       <button onclick="spOpenBillingPortal()" style="padding:8px 16px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Manage billing →</button>
     </div>
     <div id="sp-outstanding-payments"></div>
+    <div class="p-card" style="margin-bottom:14px">
+      <div class="p-card-hdr">
+        <span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Billing cycle</span>
+      </div>
+      <p style="font-size:.8rem;color:#718096;margin:0 0 12px">Lessons are billed automatically for everything completed since your last bill — choose how often.</p>
+      <div id="sp-billing-cycle-picker" style="display:flex;gap:10px">
+        <button id="sp-cycle-weekly" onclick="spSetBillingCycle('weekly')" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #E8E8E8;background:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Weekly</button>
+        <button id="sp-cycle-monthly" onclick="spSetBillingCycle('monthly')" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #E8E8E8;background:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Monthly</button>
+      </div>
+    </div>
     <div class="p-card" style="margin-bottom:14px">
       <div class="p-card-hdr">
         <span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Saved cards</span>
@@ -2475,11 +2485,19 @@ function togglePHW(el){
           </select>
           <select id="ad-bk-filter-status" onchange="adFilterBookings()" style="padding:7px 10px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-family:Inter,sans-serif;cursor:pointer;color:#0D1B2A">
             <option value="">All statuses</option>
-            <option value="scheduled">Awaiting payment</option>
+            <option value="scheduled">Scheduled</option>
             <option value="confirmed">Confirmed</option>
-            <option value="completed">Completed</option>
+            <option value="completed">Completed (paid out)</option>
             <option value="payment_failed">Payment failed</option>
             <option value="cancelled">Cancelled</option>
+          </select>
+          <select id="ad-bk-filter-paystatus" onchange="adFilterBookings()" style="padding:7px 10px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-family:Inter,sans-serif;cursor:pointer;color:#0D1B2A">
+            <option value="">All payment statuses</option>
+            <option value="unbilled">Unbilled</option>
+            <option value="invoiced">Invoiced</option>
+            <option value="paid">Paid</option>
+            <option value="failed">Failed</option>
+            <option value="free">Free</option>
           </select>
           <input type="date" id="ad-bk-filter-date" onchange="adFilterBookings()" style="padding:7px 10px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.78rem;font-family:Inter,sans-serif;color:#0D1B2A">
           <button onclick="adClearBookingFilters()" style="padding:7px 12px;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.75rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">Clear</button>
@@ -2908,19 +2926,20 @@ async function adRenderAttention() {
 function adFilterBookings() {
   const tutor = document.getElementById('ad-bk-filter-tutor')?.value || '';
   const status = document.getElementById('ad-bk-filter-status')?.value || '';
+  const payStatus = document.getElementById('ad-bk-filter-paystatus')?.value || '';
   const date = document.getElementById('ad-bk-filter-date')?.value || '';
-  adRenderBookings(tutor, status, date);
+  adRenderBookings(tutor, status, date, payStatus);
 }
 
 function adClearBookingFilters() {
-  ['ad-bk-filter-tutor','ad-bk-filter-status','ad-bk-filter-date'].forEach(id => {
+  ['ad-bk-filter-tutor','ad-bk-filter-status','ad-bk-filter-paystatus','ad-bk-filter-date'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
   adRenderBookings();
 }
 
-function adRenderBookings(filterTutor='', filterStatus='', filterDate='') {
+function adRenderBookings(filterTutor='', filterStatus='', filterDate='', filterPayStatus='') {
   if (!adData?.recentBookings) return;
   const tbody = document.querySelector('#ad-bookings-tbody') || document.querySelector('#ad-bookings .ad-table tbody');
   if (!tbody) return;
@@ -2928,6 +2947,7 @@ function adRenderBookings(filterTutor='', filterStatus='', filterDate='') {
   let bookings = adData.recentBookings;
   if (filterTutor) bookings = bookings.filter(b => b.tutorName === filterTutor);
   if (filterStatus) bookings = bookings.filter(b => b.status === filterStatus);
+  if (filterPayStatus) bookings = bookings.filter(b => b.paymentStatus === filterPayStatus);
   if (filterDate) {
     const d = new Date(filterDate).toDateString();
     bookings = bookings.filter(b => new Date(b.startTime).toDateString() === d);
@@ -2939,20 +2959,21 @@ function adRenderBookings(filterTutor='', filterStatus='', filterDate='') {
   tbody.innerHTML = bookings.map(b => {
     const initials = (b.studentName||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const isCancelled = b.status === 'cancelled';
-    // Student-payment status — 'confirmed' (paid, upcoming) and 'completed'
-    // (paid, lesson happened) are both genuinely paid; previously only
-    // 'confirmed' counted, so every completed lesson wrongly showed as
-    // "Pending" here. 'payment_failed' gets its own distinct badge rather
-    // than being lumped in with a lesson still awaiting its first attempt.
+    // Under periodic billing every non-cancelled booking is status
+    // 'confirmed' immediately — payment_status is the only accurate signal
+    // for "has this actually been paid for", so the badge is driven by it
+    // directly rather than inferred from the lesson's own status.
     const payBadge = isCancelled
       ? '<span class="ad-pay-status" style="background:#f5f5f5;color:#999">Cancelled</span>'
-      : b.feePence === 0
+      : b.paymentStatus === 'free'
       ? '<span class="ad-pay-status ad-pay-free">Free</span>'
-      : (b.status === 'confirmed' || b.status === 'completed')
+      : b.paymentStatus === 'paid'
         ? '<span class="ad-pay-status ad-pay-paid">Paid</span>'
-        : b.status === 'payment_failed'
+        : b.paymentStatus === 'failed'
           ? '<span class="ad-pay-status" style="background:#fdeaea;color:#c0392b">Failed</span>'
-          : '<span class="ad-pay-status ad-pay-pending">Awaiting payment</span>';
+          : b.paymentStatus === 'invoiced'
+            ? '<span class="ad-pay-status" style="background:#fff3cd;color:#8a6d00">Invoiced</span>'
+            : '<span class="ad-pay-status ad-pay-pending">Unbilled</span>';
     const actions = isCancelled ? '' : `
       <button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adRescheduleBooking('${b.id}','${b.startTime}')">Reschedule</button>
       <button class="ad-btn-xs" style="color:#c0392b;border:1px solid #f0d0d0;background:#fff" onclick="adCancelBooking('${b.id}',this)">Cancel</button>`;
@@ -2964,7 +2985,7 @@ function adRenderBookings(filterTutor='', filterStatus='', filterDate='') {
       <td>${TYPE_LABEL[b.lessonType]||b.lessonType}</td>
       <td>${payBadge}</td>
       <td style="white-space:nowrap">${actions}</td>
-      <td>${b.feePence > 0 && b.status !== 'cancelled' ? `<button class="ad-btn-xs" style="color:#2D7A4F;border:1px solid #c3e6cb;background:#fff" onclick="adChargeStudent('${b.id}',this)">💳 Charge</button>` : ''} ${b.paymentIntentId ? `<button class="ad-btn-xs ad-btn-ghost" onclick="adDownloadInvoice('${b.id}')">Receipt</button>` : ''}</td>
+      <td>${b.paymentStatus === 'unbilled' && b.feePence > 0 && b.status !== 'cancelled' ? `<button class="ad-btn-xs" style="color:#2D7A4F;border:1px solid #c3e6cb;background:#fff" onclick="adChargeStudent('${b.id}',this)">💳 Charge now</button>` : ''} ${b.paymentIntentId ? `<button class="ad-btn-xs ad-btn-ghost" onclick="adDownloadInvoice('${b.id}')">Receipt</button>` : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -4349,6 +4370,7 @@ async function earnLoadData() {
       // which earnRenderLedger uses for its own "awaiting payout" state.
       paid: b.status === 'completed',
       status: b.status,
+      paymentStatus: b.paymentStatus,
       paymentIntentId: b.paymentIntentId,
     }));
 
@@ -4480,18 +4502,22 @@ function earnRenderLedger(){
   tbody.innerHTML = lessons.map(l=>{
     const cut = earnCut(l.fee);
     if (l.paid) paidTotal += cut; else if (l.fee > 0) pendingTotal += cut;
-    const studentPaid = !!l.paymentIntentId;
+    // Two independent facts, not one: has the FAMILY paid (payment_status,
+    // now billed periodically rather than per-lesson) vs has the TUTOR
+    // been paid out (l.paid, status='completed'). A lesson can be
+    // confirmed and happening long before either is true.
+    const studentPaid = l.paymentStatus === 'paid';
     const status = l.fee===0
       ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#F5F0E8;color:#718096;font-weight:600">Trial</span>`
       : l.paid
         ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#2D7A4F18;color:#2D7A4F;font-weight:600">✓ Paid out</span>`
         : studentPaid
           ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#C8A15A18;color:#C8A15A;font-weight:600">Awaiting payout</span>`
-          : l.status === 'payment_failed'
+          : l.paymentStatus === 'failed'
             ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#c0392b18;color:#c0392b;font-weight:600">Payment failed</span>`
-            : l.status === 'scheduled'
-              ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Awaiting student payment</span>`
-              : `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Unpaid by student</span>`;
+            : l.paymentStatus === 'invoiced'
+              ? `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Billed — awaiting payment</span>`
+              : `<span style="font-size:.72rem;padding:3px 9px;border-radius:20px;background:#4A90D918;color:#4A90D9;font-weight:600">Not yet billed</span>`;
     return `<tr>
       <td>${l.student}</td>
       <td>${LABEL[l.type]||l.type}</td>
@@ -4752,23 +4778,12 @@ window.showTpPanel = function(id, navEl){
         <div class="bk-radio"><div class="bk-radio-dot"></div></div>
       </div>
 
-      <span class="bk-label" style="margin-top:18px;display:block">Lesson type</span>
+      <span class="bk-label" style="margin-top:18px;display:block">Your first session — free, no card required</span>
       <div class="bk-type-card bk-selected" onclick="selectType(this,'trial',0)">
-        <div><div class="bk-type-name">Free Trial Lesson <span class="bk-type-tag">Popular</span></div><div class="bk-type-desc">30 min · No card required · Diagnostic assessment</div></div>
+        <div><div class="bk-type-name">Free Trial Lesson <span class="bk-type-tag">Popular</span></div><div class="bk-type-desc">30 min · Diagnostic assessment, or a free consultation call if you'd rather talk first</div></div>
         <div class="bk-type-price bk-free">Free</div>
       </div>
-      <div class="bk-type-card" onclick="selectType(this,'single',45)">
-        <div><div class="bk-type-name">Single Lesson</div><div class="bk-type-desc">55 min · One-off session</div></div>
-        <div class="bk-type-price">£45<span>per lesson</span></div>
-      </div>
-      <div class="bk-type-card" onclick="selectType(this,'weekly',45)">
-        <div><div class="bk-type-name">Weekly Course</div><div class="bk-type-desc">55 min · Recurring · Cancel anytime</div></div>
-        <div class="bk-type-price">£45<span>per week</span></div>
-      </div>
-      <div class="bk-type-card" onclick="selectType(this,'group',22)">
-        <div><div class="bk-type-name">Group Past-Paper Session <span class="bk-type-tag" style="background:#4A90D9">Recorded</span></div><div class="bk-type-desc">60 min · Small group · Past papers worked together · Recorded</div></div>
-        <div class="bk-type-price">£22<span>per session</span></div>
-      </div>
+      <p style="font-size:.78rem;color:#718096;margin-top:10px">Paid 1:1 and group lessons are booked from your Student Portal once you're enrolled — billed automatically on a weekly or monthly cycle, never charged here.</p>
 
       <div class="bk-actions">
         <button class="bk-next-btn" onclick="bkGoStep(2)">Continue →</button>
@@ -4823,19 +4838,8 @@ window.showTpPanel = function(id, navEl){
         <div class="bk-summary-row bk-summary-total"><span>Total due today</span><span id="bk-sum-price">Free</span></div>
       </div>
 
-      <div id="bk-payment-section">
-        <span class="bk-label">Payment method</span>
-
-        <div class="bk-card-fields bk-card-active" id="bk-card-fields">
-          <div id="bk-stripe-element" style="padding:13px 14px;border:1.5px solid #E8E8E8;border-radius:10px;margin-bottom:10px;background:#fff"></div>
-          <div id="bk-card-error" style="color:#c0392b;font-size:.8rem;margin-bottom:8px;display:none"></div>
-          <button class="bk-next-btn" style="width:100%;margin-top:6px" id="bk-pay-btn" onclick="completeBooking()">Confirm &amp; Pay</button>
-        </div>
-
-        <div class="bk-secure-note">🔒 Secured by Stripe · Your card details are never stored on our servers</div>
-      </div>
-
-      <div id="bk-free-section" style="display:none">
+      <div id="bk-step4-error" style="display:none;color:#c0392b;font-size:.8rem;margin-bottom:10px;padding:8px 12px;background:#fef2f2;border-radius:8px"></div>
+      <div id="bk-free-section">
         <button class="bk-next-btn" style="width:100%;padding:14px 0;font-size:.92rem" id="bk-free-btn" onclick="completeBooking()">Confirm Free Trial Lesson →</button>
         <div class="bk-secure-note">No payment required · You can cancel or reschedule anytime</div>
       </div>
@@ -4885,25 +4889,16 @@ const bkState = {
 };
 
 // ── Stripe setup ────────────────────────────────────────────────────────────
-let stripeInstance, cardElement;
+// Shared Stripe.js instance — the public wizard no longer collects a card at
+// all (only a free trial/consultation can be booked here; paid lessons are
+// billed automatically through the portal), but the student portal's own
+// "Add card" flow (spOpenAddCard, further down) still needs a live
+// Stripe instance, so this stays.
+let stripeInstance;
 function initStripe() {
   if (stripeInstance) return;
   if (typeof Stripe === 'undefined') { console.error('Stripe.js not loaded'); return; }
   stripeInstance = Stripe(STRIPE_PK);
-  const elements = stripeInstance.elements();
-  cardElement = elements.create('card', {
-    style: {
-      base: { fontFamily: 'Inter, sans-serif', fontSize: '15px', color: '#0D1B2A', '::placeholder': { color: '#A7A7A7' } },
-      invalid: { color: '#c0392b' },
-    },
-    hidePostalCode: true,
-  });
-  cardElement.mount('#bk-stripe-element');
-  cardElement.on('change', e => {
-    const err = document.getElementById('bk-card-error');
-    if (e.error) { err.textContent = e.error.message; err.style.display = 'block'; }
-    else { err.style.display = 'none'; }
-  });
 }
 
 // ── Modal open/close ────────────────────────────────────────────────────────
@@ -4933,11 +4928,7 @@ function bkGoStep(n) {
     document.getElementById('bk-seg-' + i).classList.toggle('bk-seg-active', i <= n);
   }
   if (n === 2) loadCalendlyWidget();
-  if (n === 4) {
-    updateBookingSummary();
-    // Mount Stripe Elements only when the payment step is visible (paid lessons)
-    if (bkState.type !== 'trial') setTimeout(initStripe, 50);
-  }
+  if (n === 4) updateBookingSummary();
   document.querySelector('.bk-modal').scrollTop = 0;
 }
 
@@ -5032,22 +5023,18 @@ function updateBookingSummary() {
   document.getElementById('bk-sum-time').textContent = bkState.day + ' · ' + bkState.time;
   const studentName = document.getElementById('bk-student-name').value || 'Student';
   document.getElementById('bk-sum-student').textContent = studentName;
-  document.getElementById('bk-sum-price').textContent = bkState.price === 0 ? 'Free' : '£' + bkState.price;
-  const isFree = bkState.type === 'trial';
-  document.getElementById('bk-payment-section').style.display = isFree ? 'none' : 'block';
-  document.getElementById('bk-free-section').style.display = isFree ? 'block' : 'none';
+  document.getElementById('bk-sum-price').textContent = 'Free';
 }
 
 // ── UI helpers ──────────────────────────────────────────────────────────────
 function bkSetLoading(loading, label) {
-  const isFree = bkState.type === 'trial';
-  const btn = document.getElementById(isFree ? 'bk-free-btn' : 'bk-pay-btn');
+  const btn = document.getElementById('bk-free-btn');
   if (!btn) return;
   btn.disabled = loading;
-  btn.textContent = loading ? (label || '…') : (isFree ? 'Confirm Free Trial Lesson →' : 'Confirm & Pay');
+  btn.textContent = loading ? (label || '…') : 'Confirm Free Trial Lesson →';
 }
 function bkShowError(msg) {
-  const err = document.getElementById('bk-card-error');
+  const err = document.getElementById('bk-step4-error');
   if (err) { err.textContent = msg; err.style.display = 'block'; }
   else { alert(msg); }
 }
@@ -5121,106 +5108,31 @@ async function completeBooking() {
     return;
   }
 
-  // ── FREE TRIAL — no payment, just send confirmation ──────────────────────
-  if (bkState.type === 'trial') {
-    bkSetLoading(true, 'Confirming…');
-    try {
-      const res = await fetch(`${BACKEND}/api/bookings?action=confirm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentName, parentName, parentEmail, parentPhone,
-          tutorName: bkState.tutor, subject: bkState.subject,
-          lessonType: 'trial', studentLevel: null,
-          startTime: startTime.toISOString(), paymentIntentId: null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Booking failed');
-      bkShowSuccess();
-    } catch (err) {
-      bkShowError(err.message);
-    } finally {
-      bkSetLoading(false);
-    }
-    return;
-  }
-
-  // ── PAID LESSON — save card then charge ─────────────────────────────────
-  if (!stripeInstance || !cardElement) {
-    bkShowError('Payment not ready — please wait a moment and try again.');
-    return;
-  }
-
-  bkSetLoading(true, 'Saving card…');
-
+  // The public wizard only ever books a free trial/consultation — no
+  // payment, just send confirmation. Paid lessons are booked (and billed
+  // automatically on the family's own weekly/monthly cycle) through the
+  // Student Portal once they're enrolled, not here.
+  bkSetLoading(true, 'Confirming…');
   try {
-    // 1. Create Stripe Customer + SetupIntent
-    const setupRes = await fetch(`${BACKEND}/api/create-setup-intent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ parentName, parentEmail, parentPhone }),
-    });
-    const setupData = await setupRes.json();
-    if (!setupRes.ok) throw new Error(setupData.error || 'Could not set up payment');
-
-    // 2. Confirm the card with Stripe Elements
-    bkSetLoading(true, 'Verifying card…');
-    const { setupIntent, error: stripeError } = await stripeInstance.confirmCardSetup(
-      setupData.clientSecret,
-      { payment_method: { card: cardElement, billing_details: { name: parentName, email: parentEmail } } }
-    );
-    if (stripeError) throw new Error(stripeError.message);
-
-    bkState.customerId      = setupData.customerId;
-    bkState.paymentMethodId = setupIntent.payment_method;
-
-    // 3. Charge the saved card
-    bkSetLoading(true, 'Processing payment…');
-    const lessonLevel = bkState.type === 'group' ? null : (bkState.type === 'alevel' ? 'alevel' : 'gcse');
-    const payRes = await fetch(`${BACKEND}/api/create-payment-intent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customerId: bkState.customerId,
-        paymentMethodId: bkState.paymentMethodId,
-        lessonType: bkState.type,
-        studentLevel: lessonLevel,
-        studentName, tutorName: bkState.tutor,
-        subject: bkState.subject,
-        lessonDate: startTime.toISOString(),
-        parentEmail,
-      }),
-    });
-    const payData = await payRes.json();
-    if (!payRes.ok) throw new Error(payData.message || payData.error || 'Payment failed');
-
-    // 4. Send confirmation email + .ics
-    bkSetLoading(true, 'Sending confirmation…');
-    const confirmRes = await fetch(`${BACKEND}/api/bookings?action=confirm`, {
+    const res = await fetch(`${BACKEND}/api/bookings?action=confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         studentName, parentName, parentEmail, parentPhone,
         tutorName: bkState.tutor, subject: bkState.subject,
-        lessonType: bkState.type, studentLevel: lessonLevel,
-        startTime: startTime.toISOString(),
-        paymentIntentId: payData.paymentIntentId,
-        customerId: bkState.customerId,
+        lessonType: 'trial', studentLevel: null,
+        startTime: startTime.toISOString(), paymentIntentId: null,
       }),
     });
-    const confirmData = await confirmRes.json();
-    if (!confirmRes.ok) {
-      if (confirmRes.status === 409) {
-        // Conflict — go back to time selection
-        bkShowError(confirmData.error + ' Please go back and choose a different time.');
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 409) {
+        bkShowError(data.error + ' Please go back and choose a different time.');
         bkGoStep(2);
-      } else {
-        throw new Error(confirmData.error || 'Confirmation failed');
+        return;
       }
-      return;
+      throw new Error(data.error || 'Booking failed');
     }
-
     bkShowSuccess();
   } catch (err) {
     bkShowError(err.message);
@@ -5622,23 +5534,17 @@ async function spToggleHomework(id, markComplete, el) {
 }
 
 async function spCheckPendingPayments(email) {
-  // Check for bookings that are scheduled (awaiting payment) or had a
-  // declined charge — a paid lesson is no longer created "confirmed"
-  // until it's actually paid for (or free), so that's what "unpaid" means
-  // now. Previously this called the unauthenticated admin-only default
-  // analytics resource (always 401'd for a real student) AND checked for
-  // status 'confirmed' with no payment intent, which matched the old,
-  // buggy "every booking is confirmed regardless of payment" behaviour —
-  // this banner's own "Pay now" button never actually had anything to show.
+  // Billing is periodic (weekly/monthly), not per-lesson — what can be
+  // "due" is a billing_batches row (the family's saved card was declined,
+  // or they have no card on file so a Checkout link was emailed instead),
+  // not an individual booking. Bookings themselves no longer carry their
+  // own pending-payment state under this model.
   try {
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-bookings`, { headers: await seedsAuthHeaders() });
+    const r = await fetch(`${SP_BACKEND}/api/billing?resource=billing-history`, { headers: await seedsAuthHeaders() });
     const data = await r.json();
-    const unpaid = (data.recentBookings||[]).filter(b =>
-      (b.status === 'scheduled' || b.status === 'payment_failed') && b.feePence > 0
-    );
+    const unpaid = (data.batches||[]).filter(b => b.status === 'payment_link_sent' || b.status === 'failed');
     if (!unpaid.length) return;
 
-    // Check if any have a payment_link stored
     const homePanel = document.getElementById('p-home');
     if (!homePanel) return;
     const existing = document.getElementById('sp-pay-banner');
@@ -5648,46 +5554,17 @@ async function spCheckPendingPayments(email) {
     banner.id = 'sp-pay-banner';
     banner.style.cssText = 'background:#fff3cd;border:1.5px solid #C8A15A;border-radius:14px;padding:18px 20px;margin-bottom:16px';
     banner.innerHTML = `
-      <div style="font-weight:700;color:#0D1B2A;margin-bottom:6px">💳 Payment due for upcoming lesson${unpaid.length>1?'s':''}</div>
-      <div style="font-size:.82rem;color:#4A5568;margin-bottom:12px">Your tutor has scheduled ${unpaid.length} lesson${unpaid.length>1?'s':''} — please pay to confirm your place.</div>
+      <div style="font-weight:700;color:#0D1B2A;margin-bottom:6px">💳 Payment due</div>
+      <div style="font-size:.82rem;color:#4A5568;margin-bottom:12px">${unpaid.length > 1 ? 'You have ' + unpaid.length + ' outstanding bills' : 'You have an outstanding bill'} — please pay to keep your account up to date.</div>
       ${unpaid.map(b => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0e0b0">
         <div>
-          <div style="font-weight:600;font-size:.85rem">${b.subject} — £${(b.feePence/100).toFixed(2)}</div>
-          <div style="font-size:.75rem;color:#718096">${spFmt(b.startTime)} · ${b.tutorName}</div>
+          <div style="font-weight:600;font-size:.85rem">${b.cycle==='monthly'?'Monthly':'Weekly'} bill — £${(b.totalPence/100).toFixed(2)}</div>
+          <div style="font-size:.75rem;color:#718096">${spBatchPeriodLabel(b)}${b.status==='failed'?' · Payment failed':''}</div>
         </div>
-        <button onclick="spPayForLesson('${b.id}','${email}','${b.lessonType}','${b.studentName}','${b.tutorName}','${b.subject}','${b.startTime}',this)" style="padding:8px 16px;background:#0D1B2A;color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Pay now</button>
+        ${b.paymentLink ? `<a href="${b.paymentLink}" style="padding:8px 16px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:8px;font-size:.78rem;font-weight:700;font-family:Inter,sans-serif">Pay now</a>` : ''}
       </div>`).join('')}`;
     homePanel.insertBefore(banner, homePanel.firstChild.nextSibling || homePanel.firstChild);
   } catch(e) { console.error('spCheckPendingPayments:', e.message); }
-}
-
-async function spPayForLesson(bookingId, email, lessonType, studentName, tutorName, subject, startTime, btn) {
-  btn.disabled = true; btn.textContent = 'Processing…';
-  try {
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
-      method: 'POST', headers: await seedsAuthHeaders(),
-      body: JSON.stringify({
-        bookingId, studentEmail: email, lessonType,
-        studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
-        studentName, tutorName, subject, startTime,
-        portalUrl: window.location.origin + window.location.pathname,
-      }),
-    });
-    const data = await r.json();
-    if (data.status === 'charged') {
-      btn.textContent = '✓ Paid';
-      btn.style.background = '#2D7A4F';
-      seedsToast('Payment successful — your lesson is confirmed!', false);
-    } else if (data.status === 'payment_link') {
-      // Redirect to Stripe checkout
-      window.location.href = data.url;
-    } else {
-      throw new Error(data.error || 'Payment failed');
-    }
-  } catch(e) {
-    btn.disabled = false; btn.textContent = 'Pay now';
-    seedsToast('Payment failed: ' + e.message);
-  }
 }
 async function spCheckPendingSlots(email) {
   try {
@@ -6103,36 +5980,13 @@ async function spSubmitBooking() {
       throw new Error(data.error);
     }
 
-    // Trigger charge — the booking itself is created "scheduled" (awaiting
-    // payment) for any paid lesson type, not confirmed, so the outcome
-    // here genuinely matters rather than being a fire-and-forget side
-    // effect: it decides whether the lesson is actually paid for.
-    let successMsg = '✓ Lesson booked!';
-    if (lessonType !== 'trial' && data.bookings?.[0]) {
-      const chargeR = await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
-        method: 'POST', headers: _spLessonAuthH,
-        body: JSON.stringify({
-          bookingId: data.bookings[0].id, studentEmail, lessonType,
-          studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
-          studentName, tutorName, subject, startTime: new Date(startTime).toISOString(),
-          portalUrl: window.location.origin + window.location.pathname,
-        }),
-      });
-      const chargeData = await chargeR.json();
-      if (chargeData.status === 'charged') {
-        successMsg = '✓ Booked and paid — see you then!';
-      } else if (chargeData.status === 'payment_link') {
-        successMsg = '✓ Lesson requested — check your email to pay and confirm it.';
-      } else {
-        // Declined card or any other charge failure — the booking exists
-        // but is not paid; direct them to the fix rather than showing a
-        // fake success.
-        throw new Error(
-          (chargeData.message || 'Payment failed') +
-          ' Your lesson is booked but not yet paid — add or update a card in Payments to confirm it.'
-        );
-      }
-    }
+    // No per-lesson charge here — the lesson is billed automatically on
+    // the family's next billing date (see Payments settings), together
+    // with every other lesson completed since the last bill. Booking
+    // just books; nothing to pay right now.
+    const successMsg = lessonType === 'trial'
+      ? '✓ Lesson booked!'
+      : '✓ Lesson booked! It\'ll be included in your next billing cycle.';
     document.getElementById('sp-book-success').textContent = successMsg;
     document.getElementById('sp-book-success').style.display = 'block';
     btn.textContent = 'Done ✓';
@@ -6160,7 +6014,7 @@ window.showPortalPanel = function(id, navEl) {
       if (session) spLoadLifecycle(session.user.email);
     });
   }
-  if (id === 'p-payments') { spLoadPaymentHistory().then(spLoadSavedCards); }
+  if (id === 'p-payments') { spLoadPaymentHistory().then(spLoadSavedCards); spLoadBillingCycle(); }
   if (id === 'p-profile') { spRenderProfileView(); spLoadTutorContact(); }
 };
 </script>
@@ -6585,40 +6439,10 @@ async function tpCreateLesson() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error);
 
-    // Get student email from the dropdown label and charge them
-    const sel = document.getElementById('tp-al-student');
-    const selectedStudent = _tpAlStudents.find(s => s.id === studentId);
-    const studentEmail = selectedStudent?.parent_email || '';
-    const studentName = selectedStudent?.student_name || '';
-
-    let payMsg = '';
-    if (lessonType !== 'trial' && studentEmail && data.bookings && data.bookings[0]) {
-      btn.textContent = 'Charging…';
-      const chargeR = await fetch(SP_BACKEND + '/api/lifecycle?resource=charge-student', {
-        method: 'POST', headers: _tpAlAuthH,
-        body: JSON.stringify({
-          bookingId: data.bookings[0].id,
-          studentEmail, lessonType,
-          studentLevel: lessonType === 'alevel' ? 'alevel' : 'gcse',
-          studentName, tutorName: earnCurrentTutor, subject,
-          startTime: new Date(startTime).toISOString(),
-          portalUrl: window.location.origin + window.location.pathname,
-        }),
-      });
-      const chargeData = await chargeR.json();
-      if (chargeData.status === 'charged') {
-        payMsg = ` Card charged: £${(chargeData.amount/100).toFixed(2)}.`;
-      } else if (chargeData.status === 'payment_link') {
-        payMsg = ` No saved card — payment link sent to ${studentEmail}.`;
-      } else if (chargeData.status === 'free') {
-        payMsg = ' Free lesson.';
-      } else {
-        // Declined card or any other charge failure — the lesson is on the
-        // calendar but not paid; make that unmissable rather than silently
-        // showing a plain success message with no payment mentioned at all.
-        payMsg = ` ⚠ Payment failed (${chargeData.message || 'card declined'}) — lesson is booked but NOT yet paid.`;
-      }
-    }
+    // No per-lesson charge — this lesson is billed automatically on the
+    // family's next billing date, together with everything else they've
+    // had since their last bill.
+    const payMsg = lessonType === 'trial' ? ' Free lesson.' : ' It\'ll be included in the family\'s next billing cycle.';
 
     const succEl = document.getElementById('tp-al-success');
     succEl.textContent = '\u2713 ' + data.created + ' lesson(s) added.' + payMsg;
@@ -6971,6 +6795,7 @@ async function earnLoadFullHistory() {
         fee: b.fee_pence,
         paid: b.status === 'completed', // tutor payout status, not student payment — see earnLoadData
         status: b.status,
+        paymentStatus: b.payment_status,
         paymentIntentId: b.stripe_payment_intent_id || null,
       }));
       earnRenderLedger();
@@ -8113,6 +7938,18 @@ if (typeof earnRenderAll !== 'undefined') {
 // whoever's email happens to contain a shared first name.
 let _spCustomerId = null;
 
+function spBatchPeriodLabel(b) {
+  const start = new Date(b.periodStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const end = new Date(b.periodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${start} – ${end}`;
+}
+
+// Billing is now periodic (weekly/monthly) rather than per-lesson — a
+// billing_batches row, not an individual booking, is what's actually
+// charged or outstanding. spBillingCycle.js's stripeCustomerId is still
+// resolved from a booking (bookings don't carry their own charge anymore
+// under this model, but students.stripe_customer_id is unchanged), so
+// my-bookings is still fetched just for that.
 window.spLoadPaymentHistory = async function() {
   const el = document.getElementById('sp-payment-history');
   const outstandingEl = document.getElementById('sp-outstanding-payments');
@@ -8120,53 +7957,52 @@ window.spLoadPaymentHistory = async function() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const email = session.user.email.toLowerCase();
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=my-bookings', {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    const data = await r.json();
-    const mine = (data.recentBookings || []).filter(b =>
-      b.parentEmail && b.parentEmail.toLowerCase() === email
-    );
+    const authHeaders = { Authorization: `Bearer ${session.access_token}` };
+    const [bookingsR, historyR] = await Promise.all([
+      fetch(SP_BACKEND + '/api/analytics?resource=my-bookings', { headers: authHeaders }),
+      fetch(SP_BACKEND + '/api/billing?resource=billing-history', { headers: authHeaders }),
+    ]);
+    const bookingsData = await bookingsR.json();
+    const mine = bookingsData.recentBookings || [];
     if (mine[0]?.stripeCustomerId) _spCustomerId = mine[0].stripeCustomerId;
 
-    // Outstanding payments — scheduled (Calendly booked, awaiting Stripe
-    // Checkout) or payment_failed, with a link back to complete payment.
-    const outstanding = mine.filter(b => (b.status === 'scheduled' || b.status === 'payment_failed') && b.feePence > 0)
-      .sort((a,b) => new Date(a.startTime)-new Date(b.startTime));
+    const historyData = await historyR.json();
+    const batches = (historyData.batches || []);
+
+    // Outstanding — a batch with a payment link still to be paid, or one
+    // whose charge/link attempt failed outright.
+    const outstanding = batches.filter(b => b.status === 'payment_link_sent' || b.status === 'failed');
     if (outstandingEl) {
       outstandingEl.innerHTML = outstanding.length ? `<div class="p-card" style="margin-bottom:14px;border-left:3px solid #C8A15A">
         <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#C8A15A;letter-spacing:.08em;text-transform:uppercase">Payment needed</span></div>
         ${outstanding.map(b => `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F0EDE8">
             <div>
-              <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${b.subject} &mdash; ${b.tutorName}</div>
-              <div style="font-size:.75rem;color:#718096">${new Date(b.startTime).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}${b.status==='payment_failed'?' · Payment failed — please retry':''}</div>
+              <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${b.cycle==='monthly'?'Monthly':'Weekly'} bill — ${spBatchPeriodLabel(b)}</div>
+              <div style="font-size:.75rem;color:#718096">${b.status==='failed'?'Payment attempt failed — please pay directly' : 'Awaiting payment'}</div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-weight:700;color:#C8A15A">&pound;${(b.feePence/100).toFixed(2)}</span>
+              <span style="font-weight:700;color:#C8A15A">&pound;${(b.totalPence/100).toFixed(2)}</span>
               ${b.paymentLink ? `<a href="${b.paymentLink}" style="padding:6px 14px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:7px;font-size:.75rem;font-weight:700">Pay now</a>` : ''}
             </div>
           </div>`).join('')}
       </div>` : '';
     }
 
-    const myPaid = mine.filter(b => b.paymentIntentId && b.feePence > 0)
-      .sort((a,b) => new Date(b.startTime)-new Date(a.startTime));
-    if (!myPaid.length) {
+    const paidBatches = batches.filter(b => b.status === 'paid');
+    if (!paidBatches.length) {
       el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">No payments yet.</div>';
       return;
     }
-    const total = myPaid.reduce((s,b)=>s+b.feePence,0);
-    el.innerHTML = myPaid.map(b => `
+    const total = paidBatches.reduce((s,b)=>s+b.totalPence,0);
+    el.innerHTML = paidBatches.map(b => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F0EDE8">
         <div>
-          <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${b.subject} &mdash; ${b.tutorName}</div>
-          <div style="font-size:.75rem;color:#718096">${new Date(b.startTime).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+          <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${b.cycle==='monthly'?'Monthly':'Weekly'} bill</div>
+          <div style="font-size:.75rem;color:#718096">${spBatchPeriodLabel(b)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-weight:700;color:#2D7A4F">&pound;${(b.feePence/100).toFixed(2)}</span>
-          <button onclick="spDownloadInvoice('${b.id}')" style="padding:5px 10px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.7rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">Receipt</button>
+          <span style="font-weight:700;color:#2D7A4F">&pound;${(b.totalPence/100).toFixed(2)}</span>
         </div>
       </div>`).join('') +
       `<div style="text-align:right;padding-top:10px;font-size:.82rem;font-weight:700;color:#0D1B2A">
@@ -8174,6 +8010,41 @@ window.spLoadPaymentHistory = async function() {
       </div>`;
   } catch(e) { console.error('spLoadPaymentHistory:', e.message); }
 };
+
+function spRenderBillingCycleButtons(active) {
+  ['weekly', 'monthly'].forEach(cycle => {
+    const btn = document.getElementById('sp-cycle-' + cycle);
+    if (!btn) return;
+    const isActive = cycle === active;
+    btn.style.background = isActive ? '#0D1B2A' : '#fff';
+    btn.style.color = isActive ? '#fff' : '#0D1B2A';
+    btn.style.borderColor = isActive ? '#0D1B2A' : '#E8E8E8';
+  });
+}
+
+async function spLoadBillingCycle() {
+  try {
+    const r = await fetch(SP_BACKEND + '/api/billing?resource=billing-cycle', { headers: await seedsAuthHeaders() });
+    const data = await r.json();
+    spRenderBillingCycleButtons(data.billingCycle || 'weekly');
+  } catch(e) { console.error('spLoadBillingCycle:', e.message); }
+}
+
+async function spSetBillingCycle(cycle) {
+  spRenderBillingCycleButtons(cycle); // optimistic
+  try {
+    const r = await fetch(SP_BACKEND + '/api/billing', {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ resource: 'billing-cycle', billingCycle: cycle }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Could not update billing cycle');
+    seedsToast(`Billing cycle set to ${cycle} ✓`, false);
+  } catch(e) {
+    seedsToast('Failed to update billing cycle: ' + e.message);
+    spLoadBillingCycle(); // revert the optimistic state
+  }
+}
 
 async function spLoadSavedCards() {
   const el = document.getElementById('sp-saved-cards');
