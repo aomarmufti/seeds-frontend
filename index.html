@@ -2162,6 +2162,22 @@ function lgOpenPortalForSession(session, profile) {
 window.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await sbClient.auth.getSession();
   if (session) await lgHandleSession(session, false);
+  // Stripe redirects here after the emailed "no saved card" payment link is
+  // paid (or cancelled) — previously nothing read this, so the payer just
+  // landed back on the portal with no confirmation at all, even though the
+  // payment itself (and the booking's status) was already handled server-
+  // side by the checkout.session.completed webhook.
+  const paymentParam = new URLSearchParams(window.location.search).get('payment');
+  if (paymentParam === 'success') {
+    seedsToast('Payment successful — your lesson is confirmed!', false);
+  } else if (paymentParam === 'cancelled') {
+    seedsToast('Payment was cancelled — your lesson is still awaiting payment.');
+  }
+  if (paymentParam) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('payment');
+    window.history.replaceState({}, '', url);
+  }
   let _lgPasswordLogin = false; // guard: lgEnter handles its own session
   sbClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
