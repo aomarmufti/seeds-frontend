@@ -2558,7 +2558,7 @@ async function adUpdateLeadsBadge() {
     // Count new leads + pending student signups
     const authHeaders = await adAuthHeaders();
     const [leadsR, pendingR] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads?status=new`),
+      fetch(`${AD_BACKEND}/api/leads?status=new`, { headers: authHeaders }),
       fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: authHeaders }),
     ]);
     const newLeads = await leadsR.json();
@@ -2840,9 +2840,10 @@ async function adRenderAttention() {
   if (!el) return;
   try {
     // New leads + pending signups + unconfirmed assigned leads
+    const attnAuthHeaders = await adAuthHeaders();
     const [newR, pendR] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads?status=new`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: await adAuthHeaders() }),
+      fetch(`${AD_BACKEND}/api/leads?status=new`, { headers: attnAuthHeaders }),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: attnAuthHeaders }),
     ]);
     const newLeads = await newR.json();
     const pending = await pendR.json();
@@ -3253,9 +3254,10 @@ async function adRenderLeads() {
   tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr>';
   try {
     // Fetch journey form leads AND pending student signups in parallel
+    const leadsAuthHeaders = await adAuthHeaders();
     const [leadsRes, pendingRes] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads`),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: await adAuthHeaders() }),
+      fetch(`${AD_BACKEND}/api/leads`, { headers: leadsAuthHeaders }),
+      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: leadsAuthHeaders }),
     ]);
     adLeadsData = await leadsRes.json();
 
@@ -3375,7 +3377,7 @@ async function adAssignLead(id, tutorName, btn) {
   try {
     const r = await fetch(`${AD_BACKEND}/api/leads`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ id, status: 'assigned', assignedTutor: tutorName }),
     });
     const data = await r.json();
@@ -5629,7 +5631,9 @@ async function spPayForLesson(bookingId, email, lessonType, studentName, tutorNa
 }
 async function spCheckPendingSlots(email) {
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads?email=${encodeURIComponent(email)}`);
+    const r = await fetch(`${SP_BACKEND}/api/leads?email=${encodeURIComponent(email)}`, {
+      headers: await seedsAuthHeaders(),
+    });
     const leads = await r.json();
     const pending = (leads || []).filter(l => {
       if (l.status !== 'confirmed' || !l.notes) return false;
@@ -6223,7 +6227,10 @@ function tpRenderSchedulePanel() {
 
 async function tpRenderAssignedLeads() {
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads`);
+    // Backend now scopes GET (no email filter) to this tutor's own leads
+    // server-side — the client-side filter below is just an extra status
+    // check, not the access boundary.
+    const r = await fetch(`${SP_BACKEND}/api/leads`, { headers: await seedsAuthHeaders() });
     const leads = await r.json();
     const mine = leads.filter(l => l.assigned_tutor === earnCurrentTutor && l.status === 'assigned');
     const cards = document.querySelectorAll('#tp-home .tp-card');
@@ -6257,7 +6264,7 @@ async function tpConfirmLead(leadId, btn) {
   try {
     const r = await fetch(`${SP_BACKEND}/api/leads`, {
       method: 'PATCH',
-      headers: {'Content-Type':'application/json'},
+      headers: await seedsAuthHeaders(),
       body: JSON.stringify({id: leadId, status: 'confirmed'}),
     });
     if (!r.ok) throw new Error('Failed');
@@ -6337,7 +6344,7 @@ async function tpSubmitSlots() {
   try {
     var r = await fetch(SP_BACKEND + '/api/leads', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         id: _tpProposeLead.id,
         status: 'confirmed',
