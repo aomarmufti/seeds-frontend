@@ -6012,18 +6012,14 @@ async function spSubmitBooking() {
     const { data: profile } = await sbClient.from('profiles').select('full_name').eq('id', session.user.id).single();
     const studentName = profile?.full_name || studentEmail;
 
-    // Find student_id
-    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`);
-    const students = await sRes.json();
-    const me = students.find(s => (s.parent_email||'').toLowerCase() === studentEmail.toLowerCase());
-    if (!me) throw new Error('Could not find your student record — contact your tutor to add the lesson.');
-
-    // Create the booking via lifecycle
+    // No studentId sent here — the backend resolves (and self-heals, if this
+    // is this family's first-ever lesson) the caller's own student record
+    // from their verified session, rather than trusting a client-supplied id.
     const _spLessonAuthH = await seedsAuthHeaders();
     const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=lessons`, {
       method: 'POST', headers: _spLessonAuthH,
       body: JSON.stringify({
-        studentId: me.id, tutorName, subject,
+        studentName, tutorName, subject,
         lessonType, startTime: new Date(startTime).toISOString(), recurringWeeks: 1,
       }),
     });
