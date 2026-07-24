@@ -2153,7 +2153,10 @@ function lgOpenPortalForSession(session, profile) {
       const swEl = document.getElementById('tp-sw-' + t.key);
       if (swEl) switchTutor(swEl, t.name, t.subject, t.initials);
     }
-    adLoadAnalytics().then(() => tpUpdateHomeKPIs(tutorName));
+    // tpLoadSchedule() (triggered by _openTutorPortal's own wrapper) fetches
+    // this tutor's own bookings and calls tpUpdateHomeKPIs itself — no
+    // dependency on the admin-only analytics dashboard, which a real tutor
+    // account can never successfully call.
   } else {
     _openStudentPortal();
   }
@@ -2162,6 +2165,22 @@ function lgOpenPortalForSession(session, profile) {
 window.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await sbClient.auth.getSession();
   if (session) await lgHandleSession(session, false);
+  // Stripe redirects here after the emailed "no saved card" payment link is
+  // paid (or cancelled) — previously nothing read this, so the payer just
+  // landed back on the portal with no confirmation at all, even though the
+  // payment itself (and the booking's status) was already handled server-
+  // side by the checkout.session.completed webhook.
+  const paymentParam = new URLSearchParams(window.location.search).get('payment');
+  if (paymentParam === 'success') {
+    seedsToast('Payment successful — your lesson is confirmed!', false);
+  } else if (paymentParam === 'cancelled') {
+    seedsToast('Payment was cancelled — your lesson is still awaiting payment.');
+  }
+  if (paymentParam) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('payment');
+    window.history.replaceState({}, '', url);
+  }
   let _lgPasswordLogin = false; // guard: lgEnter handles its own session
   sbClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
@@ -3472,14 +3491,23 @@ async function adRenderStudents() {
 }
 
 // ── TUTOR HOME KPIs ──────────────────────────────────────────────────────
+// Computed from this tutor's own bookings (tpLiveBookings, populated by
+// tpLoadSchedule() via the authenticated resource=my-tutor-bookings) —
+// previously read from adData.tutors, the admin-only dashboard's aggregate,
+// which a real (non-admin) tutor can never successfully fetch. That 401
+// was the actual cause of "dashboard error loading" on the tutor side,
+// and meant these KPIs (and the toast complaining the whole dashboard
+// failed to load) never worked for any real tutor account.
 function tpUpdateHomeKPIs(tutorName) {
-  if (!adData?.tutors) return;
-  const t = adData.tutors[tutorName] || { lessons:0, revenue:0, unpaid:0 };
+  const active = (tpLiveBookings || []).filter(b => b.status !== 'cancelled');
+  const studentIds = new Set(active.map(b => b.studentId || b.studentName).filter(Boolean));
+  const paid = active.filter(b => b.status === 'confirmed' || b.status === 'completed');
+  const unpaidPence = Math.round(paid.reduce((s, b) => s + (b.feePence || 0), 0) * 0.78);
   const el = id => document.getElementById(id);
-  if (el('tp-kpi-students')) el('tp-kpi-students').textContent = t.lessons ? Math.ceil(t.lessons / 2) : '—';
-  if (el('tp-kpi-lessons')) el('tp-kpi-lessons').textContent = t.lessons || '—';
-  if (el('tp-kpi-lessons-trend')) el('tp-kpi-lessons-trend').textContent = t.lessons ? `${t.lessons} total` : '';
-  if (el('tp-kpi-unpaid')) el('tp-kpi-unpaid').textContent = (t.unpaid/100).toFixed(2);
+  if (el('tp-kpi-students')) el('tp-kpi-students').textContent = studentIds.size || '—';
+  if (el('tp-kpi-lessons')) el('tp-kpi-lessons').textContent = active.length || '—';
+  if (el('tp-kpi-lessons-trend')) el('tp-kpi-lessons-trend').textContent = active.length ? `${active.length} total` : '';
+  if (el('tp-kpi-unpaid')) el('tp-kpi-unpaid').textContent = (unpaidPence/100).toFixed(2);
 }
 async function adVerifyLessons(tutorName, btn) {
   const safeId = tutorName.replace(/[^a-zA-Z]/g,'');
@@ -5576,15 +5604,19 @@ async function spToggleHomework(id, markComplete, el) {
 }
 
 async function spCheckPendingPayments(email) {
-  // Check for bookings that have a payment link (student hasn't paid yet)
+  // Check for bookings that are scheduled (awaiting payment) or had a
+  // declined charge — a paid lesson is no longer created "confirmed"
+  // until it's actually paid for (or free), so that's what "unpaid" means
+  // now. Previously this called the unauthenticated admin-only default
+  // analytics resource (always 401'd for a real student) AND checked for
+  // status 'confirmed' with no payment intent, which matched the old,
+  // buggy "every booking is confirmed regardless of payment" behaviour —
+  // this banner's own "Pay now" button never actually had anything to show.
   try {
-    const r = await fetch(`${SP_BACKEND}/api/analytics`);
+    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-bookings`, { headers: await seedsAuthHeaders() });
     const data = await r.json();
-    // Find confirmed bookings for this student that have no payment intent yet
     const unpaid = (data.recentBookings||[]).filter(b =>
-      b.status === 'confirmed' && b.feePence > 0 &&
-      b.parentEmail && b.parentEmail.toLowerCase() === email.toLowerCase() &&
-      !b.paymentIntentId
+      (b.status === 'scheduled' || b.status === 'payment_failed') && b.feePence > 0
     );
     if (!unpaid.length) return;
 
@@ -6053,9 +6085,13 @@ async function spSubmitBooking() {
       throw new Error(data.error);
     }
 
-    // Trigger charge
+    // Trigger charge — the booking itself is created "scheduled" (awaiting
+    // payment) for any paid lesson type, not confirmed, so the outcome
+    // here genuinely matters rather than being a fire-and-forget side
+    // effect: it decides whether the lesson is actually paid for.
+    let successMsg = '✓ Lesson booked!';
     if (lessonType !== 'trial' && data.bookings?.[0]) {
-      await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
+      const chargeR = await fetch(`${SP_BACKEND}/api/lifecycle?resource=charge-student`, {
         method: 'POST', headers: _spLessonAuthH,
         body: JSON.stringify({
           bookingId: data.bookings[0].id, studentEmail, lessonType,
@@ -6064,13 +6100,28 @@ async function spSubmitBooking() {
           portalUrl: window.location.origin + window.location.pathname,
         }),
       });
+      const chargeData = await chargeR.json();
+      if (chargeData.status === 'charged') {
+        successMsg = '✓ Booked and paid — see you then!';
+      } else if (chargeData.status === 'payment_link') {
+        successMsg = '✓ Lesson requested — check your email to pay and confirm it.';
+      } else {
+        // Declined card or any other charge failure — the booking exists
+        // but is not paid; direct them to the fix rather than showing a
+        // fake success.
+        throw new Error(
+          (chargeData.message || 'Payment failed') +
+          ' Your lesson is booked but not yet paid — add or update a card in Payments to confirm it.'
+        );
+      }
     }
+    document.getElementById('sp-book-success').textContent = successMsg;
     document.getElementById('sp-book-success').style.display = 'block';
     btn.textContent = 'Done ✓';
     setTimeout(() => {
       document.getElementById('sp-book-modal').classList.remove('open');
       spLoadData(); // refresh calendar
-    }, 2000);
+    }, 2500);
   } catch(e) {
     errEl.textContent = e.message; errEl.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Request lesson →';
@@ -6113,6 +6164,7 @@ async function tpLoadSchedule() {
     const weekCount = tpLiveBookings.filter(b => { const d = new Date(b.startTime); return d >= weekStart && d < weekEnd; }).length;
     const weekEl = document.getElementById('tp-kpi-week');
     if (weekEl) weekEl.textContent = weekCount;
+    tpUpdateHomeKPIs(earnCurrentTutor);
     tpRenderHomeToday();
     // Note: tpRenderSchedulePanel() used to run here too, but it targeted
     // the SAME card element as the real calendar grid (tpCalRender below)
@@ -6542,6 +6594,11 @@ async function tpCreateLesson() {
         payMsg = ` No saved card — payment link sent to ${studentEmail}.`;
       } else if (chargeData.status === 'free') {
         payMsg = ' Free lesson.';
+      } else {
+        // Declined card or any other charge failure — the lesson is on the
+        // calendar but not paid; make that unmissable rather than silently
+        // showing a plain success message with no payment mentioned at all.
+        payMsg = ` ⚠ Payment failed (${chargeData.message || 'card declined'}) — lesson is booked but NOT yet paid.`;
       }
     }
 
