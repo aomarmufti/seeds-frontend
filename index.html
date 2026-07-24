@@ -2603,13 +2603,46 @@ async function adAuthHeaders() {
 }
 
 async function adOpenHealthCheck() {
+  const modal = document.getElementById('ad-health-modal');
+  const body = document.getElementById('ad-health-body');
+  body.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>';
+  modal.classList.add('open');
   try {
     const r = await fetch(AD_BACKEND + '/api/health', { headers: await adAuthHeaders() });
-    const text = await r.text();
-    const blob = new Blob([text], { type: 'application/json' });
-    window.open(URL.createObjectURL(blob), '_blank');
+    const report = await r.json();
+    if (!r.ok) throw new Error(report.error || 'Failed to load');
+
+    const row = (label, value, ok) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F8F6F2;font-size:.82rem">
+      <span style="color:#718096">${escapeHtml(label)}</span>
+      <span style="font-weight:600;color:${ok === false ? '#c0392b' : '#0D1B2A'}">${escapeHtml(String(value))}</span>
+    </div>`;
+
+    const stats = report.stats || {};
+    let html = `<div style="background:${String(report.summary).startsWith('✓') ? '#f0faf4' : '#fef2f2'};border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;font-weight:600;color:${String(report.summary).startsWith('✓') ? '#2D7A4F' : '#c0392b'}">${escapeHtml(report.summary || '')}</div>`;
+
+    html += `<div class="tp-card-hdr" style="margin-bottom:8px"><span class="tp-card-title">Business activity</span></div>`;
+    if (stats.error) {
+      html += `<div style="color:#c0392b;font-size:.82rem">${escapeHtml(stats.error)}</div>`;
+    } else {
+      html += row('Bookings today', stats.bookingsToday);
+      html += row('Payment failures (7 days)', stats.paymentFailuresLast7Days, stats.paymentFailuresLast7Days === 0);
+      html += row('Pending payouts', `${stats.pendingPayoutsCount} · £${((stats.pendingPayoutsPence||0)/100).toFixed(2)}`);
+      html += row('Stripe webhooks (7 days)', stats.stripeWebhooksReceivedLast7Days, !String(stats.stripeWebhooksReceivedLast7Days).startsWith('⚠'));
+    }
+
+    html += `<div class="tp-card-hdr" style="margin:16px 0 8px"><span class="tp-card-title">Environment</span></div>`;
+    Object.entries(report.env || {}).forEach(([k,v]) => html += row(k, v, !String(v).startsWith('✗')));
+
+    html += `<div class="tp-card-hdr" style="margin:16px 0 8px"><span class="tp-card-title">Database</span></div>`;
+    Object.entries(report.database || {}).forEach(([k,v]) => html += row(k, v, !String(v).startsWith('✗')));
+
+    html += `<div class="tp-card-hdr" style="margin:16px 0 8px"><span class="tp-card-title">Stripe</span></div>`;
+    Object.entries(report.stripe || {}).forEach(([k,v]) => html += row(k, v, !String(v).startsWith('✗')));
+
+    html += `<div style="font-size:.72rem;color:#A7A7A7;margin-top:14px">${escapeHtml(report.email?.note || '')}</div>`;
+    body.innerHTML = html;
   } catch (e) {
-    seedsToast('Failed to load system status: ' + e.message);
+    body.innerHTML = `<div style="color:#c0392b;font-size:.85rem;padding:20px;text-align:center">Failed to load: ${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -7671,6 +7704,17 @@ window._openStudentPortal = function() {
   </div>
 </div>
 
+<!-- SYSTEM HEALTH MODAL (SCRUM-46) -->
+<div class="ad-modal-overlay" id="ad-health-modal">
+  <div class="ad-modal" style="max-width:560px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <h3>System health</h3>
+      <button type="button" onclick="document.getElementById('ad-health-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
+    </div>
+    <div id="ad-health-body"><div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div></div>
+  </div>
+</div>
+
 <!-- BULK CANCEL MODAL -->
 <div class="ad-modal-overlay" id="ad-bulk-cancel-modal">
   <div class="ad-modal">
@@ -8760,5 +8804,78 @@ function tpCalRenderListItems(bookings, headerText) {
     </div>`;
   }).join('');
 }
+</script>
+
+<script>
+// ══ ACCESSIBILITY PASS (SCRUM-36) ══════════════════════════════════════════
+// Applied generically across every modal/overlay rather than touching each
+// of the several dozen open/close call sites individually — lower risk,
+// and covers all of them at once instead of a handful.
+(function() {
+  // (containerSelector, openClass) for every overlay pattern in this file.
+  const OVERLAY_TYPES = [
+    ['.ad-modal-overlay', 'open'],
+    ['.lg-overlay', 'lg-open'],
+    ['.legal-overlay', 'open'],
+    ['.bk-overlay', 'bk-open'],
+    ['.tp-overlay', 'tp-open'],
+    ['.ad-overlay', 'ad-open'],
+  ];
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  let lastFocused = null;
+
+  function allOverlays() {
+    const els = [];
+    OVERLAY_TYPES.forEach(([sel, cls]) => document.querySelectorAll(sel).forEach(el => els.push([el, cls])));
+    return els;
+  }
+
+  // Mark every overlay as a dialog for screen readers, once at load.
+  allOverlays().forEach(([el]) => {
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+  });
+
+  // Move focus into a modal the moment it opens (its open class is added),
+  // and restore focus to whatever triggered it once closed — a MutationObserver
+  // works regardless of which of the many inline onclick handlers did the
+  // opening/closing, so nothing else in this file needs to change.
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      const el = m.target;
+      const match = OVERLAY_TYPES.find(([sel, cls]) => el.matches(sel) && el.classList.contains(cls));
+      if (match) {
+        lastFocused = document.activeElement;
+        const target = el.querySelector(FOCUSABLE) || el;
+        setTimeout(() => target.focus(), 50);
+      } else if (lastFocused && !OVERLAY_TYPES.some(([sel, cls]) => el.matches(sel) && el.classList.contains(cls))) {
+        // This overlay just closed (class removed) — only refocus if no
+        // other overlay is now open, so closing one modal from within
+        // another doesn't steal focus back too early.
+        const anyOpen = allOverlays().some(([o, cls]) => o.classList.contains(cls));
+        if (!anyOpen && lastFocused.isConnected) { lastFocused.focus(); lastFocused = null; }
+      }
+    });
+  });
+  allOverlays().forEach(([el]) => observer.observe(el, { attributes: true, attributeFilter: ['class'] }));
+
+  // Escape closes whichever overlay is currently open. Prefers triggering
+  // the modal's own close button (some, like the profile-setup modal, run
+  // extra logic on dismiss beyond hiding the overlay — reusing the real
+  // button means that logic still runs), then a click-outside handler some
+  // overlays wire directly on the container, falling back to just removing
+  // the open class for the few overlay types with neither.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    for (const [el, cls] of allOverlays()) {
+      if (!el.classList.contains(cls)) continue;
+      const closeBtn = el.querySelector('[aria-label="Close" i]');
+      if (closeBtn) { closeBtn.click(); return; }
+      el.click(); // satisfies onclick="if(event.target===this)close...()" where present
+      if (el.classList.contains(cls)) el.classList.remove(cls); // last-resort fallback
+      return;
+    }
+  });
+})();
 </script>
 </body></html>
