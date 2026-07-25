@@ -1,19 +1,28 @@
 const { test, expect } = require('@playwright/test');
 
-// Errors that only occur in a network-isolated dev sandbox (outbound calls
-// to the real Supabase CDN / backend genuinely can't succeed there — this
-// sandbox's HTTPS proxy returns some blocked cross-origin requests as a
-// connection failure and others as a bare 404, so both shapes show up) —
-// not present in CI or production, both of which have real internet
-// access. Filtered so the assertion stays meaningful without needing that
-// access itself; confirmed via a full response-status audit against the
-// local static server that no *local* asset ever 404s. "supabase is not
-// defined" is the downstream symptom of the Supabase JS client's own CDN
-// script failing to load for the same reason.
-const KNOWN_OFFLINE_SANDBOX_NOISE = [
+// Known console noise this assertion must not flag as a regression:
+//
+// 1. Network-isolated dev sandbox artifacts — outbound calls to the real
+//    Supabase CDN/backend genuinely can't succeed in a sandbox with no
+//    internet access (this sandbox's HTTPS proxy returns some blocked
+//    cross-origin requests as a connection failure, others as a bare
+//    404). Not present in CI or production, both of which have real
+//    internet access; confirmed via a full response-status audit against
+//    the local static server that no *local* asset ever 404s.
+//    "supabase is not defined" is the downstream symptom of the Supabase
+//    JS client's own CDN script failing to load for the same reason.
+// 2. Calendly's widget.js itself — confirmed via a real CI run's full
+//    stack trace (assets.calendly.com/assets/external/widget.js
+//    parseOptions) that it throws internally during its own auto-init on
+//    a page load where no Calendly embed is actively open yet (the
+//    wizard's #bk-calendly-embed only gets used once step 2 is reached).
+//    This is inside Calendly's own script, not ours — it fires in
+//    production too, just unnoticed since no one has devtools open.
+const KNOWN_THIRD_PARTY_NOISE = [
   /net::ERR_/,
   /the server responded with a status of 404/,
   /supabase is not defined/,
+  /assets\.calendly\.com/,
 ];
 
 test.describe('Public homepage', () => {
@@ -39,7 +48,7 @@ test.describe('Public homepage', () => {
     // here any more).
     await expect(page.getByRole('link', { name: /Book a Free Consultation/i }).first()).toBeVisible();
 
-    const realErrors = consoleErrors.filter((e) => !KNOWN_OFFLINE_SANDBOX_NOISE.some((re) => re.test(e)));
+    const realErrors = consoleErrors.filter((e) => !KNOWN_THIRD_PARTY_NOISE.some((re) => re.test(e)));
     expect(realErrors, `Unexpected console errors:\n${realErrors.join('\n')}`).toEqual([]);
   });
 
