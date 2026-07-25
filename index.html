@@ -1260,7 +1260,7 @@ async function submitJourney() {
   btn.disabled = true;
   btn.textContent = 'Sending…';
   try {
-    await fetch(`${BACKEND}/api/leads`, {
+    await fetchWithTimeout(`${BACKEND}/api/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -2063,7 +2063,7 @@ async function lgSignup() {
         role: 'pending', subject, level,
       });
     }
-    await fetch(BACKEND + '/api/leads', {
+    await fetchWithTimeout(BACKEND + '/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, subject, level, goal: 'Student signup', availability: [] }),
@@ -2566,8 +2566,8 @@ async function adUpdateLeadsBadge() {
     // Count new leads + pending student signups
     const authHeaders = await adAuthHeaders();
     const [leadsR, pendingR] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads?status=new`, { headers: authHeaders }),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: authHeaders }),
+      fetchWithTimeout(`${AD_BACKEND}/api/leads?status=new`, { headers: authHeaders }),
+      fetchWithTimeout(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: authHeaders }),
     ]);
     const newLeads = await leadsR.json();
     const pendingData = await pendingR.json();
@@ -2624,7 +2624,7 @@ async function adOpenHealthCheck() {
   body.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>';
   modal.classList.add('open');
   try {
-    const r = await fetch(AD_BACKEND + '/api/health', { headers: await adAuthHeaders() });
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/health', { headers: await adAuthHeaders() });
     const report = await r.json();
     if (!r.ok) throw new Error(report.error || 'Failed to load');
 
@@ -2664,7 +2664,7 @@ async function adOpenHealthCheck() {
 
 async function adLoadAnalytics() {
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics`, { headers: await adAuthHeaders() });
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics`, { headers: await adAuthHeaders() });
     adData = await r.json();
     adRenderDashboard();
     adRenderBookings();
@@ -2850,8 +2850,8 @@ async function adRenderAttention() {
     // New leads + pending signups + unconfirmed assigned leads
     const attnAuthHeaders = await adAuthHeaders();
     const [newR, pendR] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads?status=new`, { headers: attnAuthHeaders }),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: attnAuthHeaders }),
+      fetchWithTimeout(`${AD_BACKEND}/api/leads?status=new`, { headers: attnAuthHeaders }),
+      fetchWithTimeout(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: attnAuthHeaders }),
     ]);
     const newLeads = await newR.json();
     const pending = await pendR.json();
@@ -2955,7 +2955,7 @@ async function adCancelBooking(bookingId, btn) {
   if (!confirm('Cancel this booking?\n\nIf the student paid, a Stripe refund will be issued automatically.')) return;
   btn.disabled = true; btn.textContent = 'Cancelling…';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'cancel-booking', bookingId }),
     });
@@ -2988,7 +2988,7 @@ async function adConfirmReschedule() {
   if (!newTime) { errEl.textContent='Please pick a new date and time'; errEl.style.display='block'; return; }
   btn.disabled=true; btn.textContent='Saving…'; errEl.style.display='none';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'reschedule-booking', bookingId, newStartTime: new Date(newTime).toISOString() }),
     });
@@ -3175,7 +3175,7 @@ async function adRefundBooking(bookingId, feePence, btnEl) {
   if (!confirm(`Refund ${amountStr} for this booking? This cannot be undone.`)) return;
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Refunding…'; }
   try {
-    const r = await fetch(AD_BACKEND + '/api/analytics', {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/analytics', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ action: 'refund-booking', bookingId }),
     });
@@ -3274,8 +3274,8 @@ async function adRenderLeads() {
     // Fetch journey form leads AND pending student signups in parallel
     const leadsAuthHeaders = await adAuthHeaders();
     const [leadsRes, pendingRes] = await Promise.all([
-      fetch(`${AD_BACKEND}/api/leads`, { headers: leadsAuthHeaders }),
-      fetch(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: leadsAuthHeaders }),
+      fetchWithTimeout(`${AD_BACKEND}/api/leads`, { headers: leadsAuthHeaders }),
+      fetchWithTimeout(`${AD_BACKEND}/api/analytics?resource=pending-profiles`, { headers: leadsAuthHeaders }),
     ]);
     adLeadsData = await leadsRes.json();
 
@@ -3393,7 +3393,7 @@ async function adAssignLead(id, tutorName, btn) {
   btn.disabled = true;
   btn.textContent = 'Assigning…';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/leads`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/leads`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ id, status: 'assigned', assignedTutor: tutorName }),
@@ -3455,7 +3455,7 @@ async function adRenderStudents() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr>';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/analytics?resource=students`, { headers: await adAuthHeaders() });
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics?resource=students`, { headers: await adAuthHeaders() });
     const students = await r.json();
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
@@ -3514,7 +3514,7 @@ async function adVerifyLessons(tutorName, btn) {
   container.style.display = 'block';
   container.innerHTML = '<div style="padding:12px;color:#A7A7A7;font-size:.8rem">Loading lesson records…</div>';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/payouts?resource=verify&tutor=${encodeURIComponent(tutorName)}`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/payouts?resource=verify&tutor=${encodeURIComponent(tutorName)}`, {
       headers: await adAuthHeaders(),
     });
     const lessons = await r.json();
@@ -3566,7 +3566,7 @@ async function adVerifyLessons(tutorName, btn) {
 async function adApprovePayout(tutorName, amountPence) {
   if (!confirm(`Approve and pay ${adFmt(amountPence)} to ${tutorName}?\n\nIf their Stripe account is connected and your platform has sufficient test balance, this sends a real Stripe transfer.`)) return;
   try {
-    const r = await fetch(`${AD_BACKEND}/api/payouts`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/payouts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'approve-and-transfer', tutorName, amountPence }),
@@ -4060,7 +4060,7 @@ async function tpRenderStudentsList() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#A7A7A7;padding:20px">Loading students…</td></tr>';
   try {
     // Get this tutor's bookings to derive their student list
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
     // Filter to students who have a booking with this tutor
     const mine = students.filter(s =>
@@ -4109,7 +4109,7 @@ async function tpLoadStudentContact(studentId) {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=contact-info&for=parent&studentId=${studentId}`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=contact-info&for=parent&studentId=${studentId}`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
     const data = await r.json();
@@ -4136,9 +4136,9 @@ async function tpLoadStudentLifecycle(studentId) {
   try {
     const _tpAuthH = await seedsAuthHeaders();
     const [notesR, hwR, progR] = await Promise.all([
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=notes&studentId=${studentId}`, { headers: _tpAuthH }),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${studentId}`, { headers: _tpAuthH }),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=notes&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${studentId}`, { headers: _tpAuthH }),
+      fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=progress&studentId=${studentId}`, { headers: _tpAuthH }),
     ]);
     const notes = await notesR.json();
     const homework = await hwR.json();
@@ -4213,7 +4213,7 @@ async function tpSaveNote() {
   const val = textarea.value.trim();
   if (!val) return;
   try {
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=notes`, {
+    await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=notes`, {
       method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, tutorName:earnCurrentTutor, note:val }),
     });
@@ -4229,7 +4229,7 @@ async function tpAssignHomework() {
   const desc = document.getElementById('tp-hw-desc').value.trim();
   const due = document.getElementById('tp-hw-due').value;
   try {
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
+    await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
       method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, tutorName:earnCurrentTutor, title, description:desc, dueDate:due||null }),
     });
@@ -4247,7 +4247,7 @@ async function tpSaveProgress() {
   const target = document.getElementById('tp-prog-target').value.trim();
   if (!subject || isNaN(percent)) { alert('Enter subject and percent'); return; }
   try {
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=progress`, {
+    await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=progress`, {
       method:'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ studentId:_tpCurrentStudent.id, subject, percent, targetGrade:target||null }),
     });
@@ -4281,8 +4281,8 @@ async function earnLoadData() {
     // authenticated resource directly now — no flash of empty data, and
     // no dependency on an endpoint a real tutor can never call.
     const [analyticsR, payoutsR] = await Promise.all([
-      fetch(`${BACKEND}/api/analytics?resource=my-tutor-bookings`, { headers: await seedsAuthHeaders() }),
-      fetch(`${BACKEND}/api/payouts?tutor=${encodeURIComponent(tutor)}`, { headers: await seedsAuthHeaders() }),
+      fetchWithTimeout(`${BACKEND}/api/analytics?resource=my-tutor-bookings`, { headers: await seedsAuthHeaders() }),
+      fetchWithTimeout(`${BACKEND}/api/payouts?tutor=${encodeURIComponent(tutor)}`, { headers: await seedsAuthHeaders() }),
     ]);
     const data = await analyticsR.json();
     const payoutHistory = await payoutsR.json();
@@ -4354,7 +4354,7 @@ async function earnCheckConnect() {
   const el = document.getElementById('earn-connect-status');
   if (!el || !earnCurrentTutor) return;
   try {
-    const r = await fetch(`${SP_BACKEND}/api/payouts?resource=connect-status&tutor=${encodeURIComponent(earnCurrentTutor)}`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/payouts?resource=connect-status&tutor=${encodeURIComponent(earnCurrentTutor)}`, {
       headers: await seedsAuthHeaders(),
     });
     const s = await r.json();
@@ -4375,7 +4375,7 @@ async function earnCheckConnect() {
 async function earnStartConnect(btn) {
   btn.disabled = true; btn.textContent = 'Opening…';
   try {
-    const r = await fetch(`${SP_BACKEND}/api/payouts`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/payouts`, {
       method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({
         action: 'create-connect-account',
@@ -4505,7 +4505,7 @@ async function earnRequestPayout(){
   if(amt<50) return;
   const tutor = earnCurrentTutor || 'Azeem Omar-Mufti';
   try {
-    const r = await fetch(`${BACKEND}/api/payouts`, {
+    const r = await fetchWithTimeout(`${BACKEND}/api/payouts`, {
       method:'POST',
       headers: await seedsAuthHeaders(),
       body:JSON.stringify({ tutorName: tutor, amountPence: Math.round(amt*100) }),
@@ -4897,7 +4897,7 @@ async function loadCalendlyWidget() {
     // context=consultation — this wizard only ever books the free 15-min
     // Initial Consultation, never the (longer) free trial lesson itself,
     // which is booked separately from the portal afterwards.
-    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}&context=consultation`);
+    const r = await fetchWithTimeout(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}&context=consultation`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load availability');
     // widget.js is loaded as a regular (non-async) <script>, but guard
@@ -5050,7 +5050,7 @@ async function completeBooking() {
   // Student Portal once they're enrolled, not here.
   bkSetLoading(true, 'Confirming…');
   try {
-    const res = await fetch(`${BACKEND}/api/bookings?action=confirm`, {
+    const res = await fetchWithTimeout(`${BACKEND}/api/bookings?action=confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -5139,7 +5139,7 @@ async function adSendTutorInvite() {
   const subjects = document.getElementById('ad-it-subjects').value.trim();
   btn.disabled = true; btn.textContent = 'Sending…'; errEl.style.display = 'none';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/auth`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'invite-tutor', fullName: name, email, subjects }),
@@ -5177,7 +5177,7 @@ async function adCreateTutor() {
   const subjects   = document.getElementById('ad-ct-subjects').value.trim();
   btn.disabled = true; btn.textContent = 'Creating…'; errEl.style.display = 'none';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/auth`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'create-tutor', fullName, email, tutorName, subjects }),
@@ -5252,7 +5252,7 @@ async function adCreateStudent() {
   btn.disabled = true; btn.textContent = 'Creating…';
   errEl.style.display = 'none';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/auth`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({
@@ -5279,7 +5279,7 @@ async function adCreateStudent() {
 async function adApproveStudent(userId, tutorName, btn) {
   btn.disabled = true; btn.textContent = 'Approving…';
   try {
-    const r = await fetch(`${AD_BACKEND}/api/auth`, {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({ action: 'approve-student', userId, assignedTutor: tutorName }),
@@ -5320,7 +5320,7 @@ async function spLoadData() {
     const studentName = profile?.full_name || '';
     const studentEmail = session.user.email;
 
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-bookings`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=my-bookings`, { headers: await seedsAuthHeaders() });
     const analytics = await r.json();
     spBookings = (analytics.recentBookings || []).filter(b => b.status !== 'cancelled');
     spRenderHome(studentName);
@@ -5339,8 +5339,8 @@ async function spLoadLifecycle(email) {
   try {
     const _spAuthH = await seedsAuthHeaders();
     const [progR, hwR] = await Promise.all([
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=progress&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
-      fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
+      fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=progress&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
+      fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=homework&studentEmail=${encodeURIComponent(email)}`, { headers: _spAuthH }),
     ]);
     const progress = await progR.json();
     const homework = await hwR.json();
@@ -5458,7 +5458,7 @@ function spRenderHomework(homework) {
 
 async function spToggleHomework(id, markComplete, el) {
   try {
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
+    await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=homework`, {
       method: 'PATCH',
       headers: await seedsAuthHeaders(),
       body: JSON.stringify({ id, completed: markComplete }),
@@ -5476,7 +5476,7 @@ async function spCheckPendingPayments(email) {
   // not an individual booking. Bookings themselves no longer carry their
   // own pending-payment state under this model.
   try {
-    const r = await fetch(`${SP_BACKEND}/api/billing?resource=billing-history`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/billing?resource=billing-history`, { headers: await seedsAuthHeaders() });
     const data = await r.json();
     const unpaid = (data.batches||[]).filter(b => b.status === 'payment_link_sent' || b.status === 'failed');
     if (!unpaid.length) return;
@@ -5504,7 +5504,7 @@ async function spCheckPendingPayments(email) {
 }
 async function spCheckPendingSlots(email) {
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads?email=${encodeURIComponent(email)}`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/leads?email=${encodeURIComponent(email)}`, {
       headers: await seedsAuthHeaders(),
     });
     const leads = await r.json();
@@ -5556,7 +5556,7 @@ async function spSelectSlot(leadId, slot, btn) {
   parent.querySelectorAll('button').forEach(b => b.disabled = true);
   btn.textContent = 'Booking…';
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'select-slot', leadId, chosenSlot: slot }),
@@ -5837,7 +5837,7 @@ async function spLoadBookCalendly() {
   wrapEl.style.display = 'none';
   embedEl.innerHTML = '';
   try {
-    const r = await fetch(`${SP_BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(tutorName)}&lessonType=${encodeURIComponent(lessonType)}`);
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(tutorName)}&lessonType=${encodeURIComponent(lessonType)}`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load availability');
     let attempts = 0;
@@ -5903,7 +5903,7 @@ async function spSubmitBooking() {
     // is this family's first-ever lesson) the caller's own student record
     // from their verified session, rather than trusting a client-supplied id.
     const _spLessonAuthH = await seedsAuthHeaders();
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=lessons`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=lessons`, {
       method: 'POST', headers: _spLessonAuthH,
       body: JSON.stringify({
         studentName, tutorName, subject,
@@ -5962,7 +5962,7 @@ let tpLiveBookings = [];
 async function tpLoadSchedule() {
   if (!earnCurrentTutor) return;
   try {
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=my-tutor-bookings`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=my-tutor-bookings`, { headers: await seedsAuthHeaders() });
     const data = await r.json();
     tpLiveBookings = (data.recentBookings||[]).filter(b => b.status !== 'cancelled');
     // This week's lessons count
@@ -5993,14 +5993,14 @@ async function tpRenderRecentHomework() {
   if (!el) return;
   try {
     // Get this tutor's students, then their recently-completed homework
-    const r = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     let items = [];
     const _tpHwAuthH = await seedsAuthHeaders();
     for (const s of mine.slice(0, 8)) {
       try {
-        const hr = await fetch(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${s.id}`, { headers: _tpHwAuthH });
+        const hr = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=homework&studentId=${s.id}`, { headers: _tpHwAuthH });
         const hw = await hr.json();
         hw.filter(h => h.completed).forEach(h => items.push({ student: s.student_name, ...h }));
       } catch(e) {}
@@ -6081,7 +6081,7 @@ async function tpRenderAssignedLeads() {
     // Backend now scopes GET (no email filter) to this tutor's own leads
     // server-side — the client-side filter below is just an extra status
     // check, not the access boundary.
-    const r = await fetch(`${SP_BACKEND}/api/leads`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/leads`, { headers: await seedsAuthHeaders() });
     const leads = await r.json();
     const mine = leads.filter(l => l.assigned_tutor === earnCurrentTutor && l.status === 'assigned');
     const cards = document.querySelectorAll('#tp-home .tp-card');
@@ -6113,7 +6113,7 @@ async function tpRenderAssignedLeads() {
 async function tpConfirmLead(leadId, btn) {
   btn.disabled = true; btn.textContent = 'Confirming…';
   try {
-    const r = await fetch(`${SP_BACKEND}/api/leads`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/leads`, {
       method: 'PATCH',
       headers: await seedsAuthHeaders(),
       body: JSON.stringify({id: leadId, status: 'confirmed'}),
@@ -6193,7 +6193,7 @@ async function tpSubmitSlots() {
   btn.disabled = true; btn.textContent = 'Sending...';
   errEl.style.display = 'none';
   try {
-    var r = await fetch(SP_BACKEND + '/api/leads', {
+    var r = await fetchWithTimeout(SP_BACKEND + '/api/leads', {
       method: 'PATCH',
       headers: await seedsAuthHeaders(),
       body: JSON.stringify({
@@ -6270,7 +6270,7 @@ async function tpOpenAddLesson() {
   const sel = document.getElementById('tp-al-student');
   sel.innerHTML = '<option value="">Loading...</option>';
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
     _tpAlStudents = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     if (!_tpAlStudents.length) {
@@ -6303,7 +6303,7 @@ async function tpLoadAlCalendly() {
   wrapEl.style.display = 'none';
   embedEl.innerHTML = '';
   try {
-    const r = await fetch(SP_BACKEND + '/api/bookings?action=calendly-link&tutorName=' + encodeURIComponent(earnCurrentTutor) + '&lessonType=' + encodeURIComponent(lessonType));
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/bookings?action=calendly-link&tutorName=' + encodeURIComponent(earnCurrentTutor) + '&lessonType=' + encodeURIComponent(lessonType));
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load your availability');
     let attempts = 0;
@@ -6365,7 +6365,7 @@ async function tpCreateLesson() {
   btn.disabled = true; btn.textContent = 'Adding...'; errEl.style.display = 'none';
   try {
     const _tpAlAuthH = await seedsAuthHeaders();
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=lessons', {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=lessons', {
       method: 'POST', headers: _tpAlAuthH,
       body: JSON.stringify({
         studentId, tutorName: earnCurrentTutor, subject,
@@ -6398,7 +6398,7 @@ async function tpLoadResourceStudents() {
   const sel = document.getElementById('tp-res-student');
   if (!sel || sel.dataset.loaded) return;
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
     const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
     mine.forEach(s => {
@@ -6415,7 +6415,7 @@ async function tpLoadResources() {
   await tpLoadResourceStudents();
   grid.innerHTML = '<div style="color:#A7A7A7;font-size:.85rem;padding:20px;text-align:center">Loading…</div>';
   try {
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&tutorName=${encodeURIComponent(earnCurrentTutor)}`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=materials&tutorName=${encodeURIComponent(earnCurrentTutor)}`, { headers: await seedsAuthHeaders() });
     const items = await r.json();
     if (!r.ok) throw new Error(items.error || 'Failed to load');
     if (!items.length) {
@@ -6447,7 +6447,7 @@ async function tpAddResource() {
     return;
   }
   try {
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=materials`, {
       method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ tutorName: earnCurrentTutor, studentId: studentId || undefined, subject: subject || undefined, title, url }),
     });
@@ -6467,7 +6467,7 @@ async function tpAddResource() {
 async function tpDeleteResource(id) {
   if (!confirm('Remove this resource?')) return;
   try {
-    await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&id=${id}&tutorName=${encodeURIComponent(earnCurrentTutor)}`, {
+    await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=materials&id=${id}&tutorName=${encodeURIComponent(earnCurrentTutor)}`, {
       method: 'DELETE', headers: await seedsAuthHeaders(),
     });
     tpLoadResources();
@@ -6481,7 +6481,7 @@ async function adChargeStudent(bookingId, btn) {
   btn.disabled = true; btn.textContent = 'Looking up…';
   try {
     // Fetch booking details to get student email
-    const r = await fetch(`${AD_BACKEND}/api/analytics`, { headers: await adAuthHeaders() });
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics`, { headers: await adAuthHeaders() });
     const data = await r.json();
     const booking = (data.recentBookings||[]).find(b => b.id === bookingId);
     if (!booking) { btn.textContent = 'Not found'; return; }
@@ -6490,7 +6490,7 @@ async function adChargeStudent(bookingId, btn) {
     if (!email) { alert('No email on file for this student — cannot charge.'); btn.disabled=false; btn.textContent='💳 Charge'; return; }
 
     btn.textContent = 'Charging…';
-    const chargeR = await fetch(`${AD_BACKEND}/api/lifecycle?resource=charge-student`, {
+    const chargeR = await fetchWithTimeout(`${AD_BACKEND}/api/lifecycle?resource=charge-student`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
       body: JSON.stringify({
         bookingId,
@@ -6631,7 +6631,7 @@ async function tpSubmitLessonLog() {
   const _tpLogAuthH = await seedsAuthHeaders();
   const calls = [];
   if (notes) {
-    calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=notes', {
+    calls.push(fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=notes', {
       method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         bookingId: _tpLogLesson.bookingId,
@@ -6643,7 +6643,7 @@ async function tpSubmitLessonLog() {
     }));
   }
   if (hwTitle) {
-    calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=homework', {
+    calls.push(fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=homework', {
       method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         studentId: _tpLogLesson.studentId,
@@ -6655,7 +6655,7 @@ async function tpSubmitLessonLog() {
     }));
   }
   if (subject && progress !== null) {
-    calls.push(fetch(SP_BACKEND + '/api/lifecycle?resource=progress', {
+    calls.push(fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=progress', {
       method: 'POST', headers: _tpLogAuthH,
       body: JSON.stringify({
         studentId: _tpLogLesson.studentId,
@@ -6685,7 +6685,7 @@ async function spLoadPaymentHistory() {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
     const email = session.user.email;
-    const r = await fetch(SP_BACKEND + '/api/analytics');
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics');
     const data = await r.json();
     const myPaid = (data.recentBookings || []).filter(b =>
       b.parentEmail && b.parentEmail.toLowerCase() === email.toLowerCase() &&
@@ -6716,7 +6716,7 @@ async function earnLoadFullHistory() {
   // Fetch from a dedicated resource that returns all bookings for this tutor
   const tutor = earnCurrentTutor || 'Azeem Omar-Mufti';
   try {
-    const r = await fetch(SP_BACKEND + '/api/payouts?resource=verify&tutor=' + encodeURIComponent(tutor), {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/payouts?resource=verify&tutor=' + encodeURIComponent(tutor), {
       headers: await seedsAuthHeaders(),
     });
     const allLessons = await r.json();
@@ -6832,9 +6832,9 @@ async function tpOpenPrepMode(btn) {
   try {
     const _tpPrepAuthH = await seedsAuthHeaders();
     const [notesR, hwR, progR] = await Promise.all([
-      fetch(SP_BACKEND + '/api/lifecycle?resource=notes&studentId=' + sid, { headers: _tpPrepAuthH }),
-      fetch(SP_BACKEND + '/api/lifecycle?resource=homework&studentId=' + sid, { headers: _tpPrepAuthH }),
-      fetch(SP_BACKEND + '/api/lifecycle?resource=progress&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=notes&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=homework&studentId=' + sid, { headers: _tpPrepAuthH }),
+      fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=progress&studentId=' + sid, { headers: _tpPrepAuthH }),
     ]);
     const notes = await notesR.json();
     const hw = await hwR.json();
@@ -6961,7 +6961,7 @@ async function spRenderProgressWithTrend(progress) {
     // Fetch history for trend
     let trendHTML = '';
     try {
-      const hr = await fetch(SP_BACKEND + '/api/lifecycle?resource=progress-history&subject=' + encodeURIComponent(p.subject), { headers: await seedsAuthHeaders() });
+      const hr = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=progress-history&subject=' + encodeURIComponent(p.subject), { headers: await seedsAuthHeaders() });
       const history = await hr.json();
       if (history.length >= 2) {
         const maxP = Math.max(...history.map(h => h.percent || 0), 1);
@@ -7012,7 +7012,7 @@ async function adSaveLeadNote(leadId) {
   const note = document.getElementById('lead-note-' + leadId)?.value?.trim();
   if (!note) return;
   try {
-    await fetch(AD_BACKEND + '/api/lifecycle?resource=lead-notes', {
+    await fetchWithTimeout(AD_BACKEND + '/api/lifecycle?resource=lead-notes', {
       method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ leadId, adminNotes: note }),
     });
@@ -7253,14 +7253,14 @@ async function spLoadRecordings() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const sRes = await fetch(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
+    const sRes = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await sRes.json();
     const me = students.find(s => (s.parent_email||'').toLowerCase() === (session.user.email||'').toLowerCase());
     if (!me) {
       grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:#A7A7A7">No student record found yet.</div>';
       return;
     }
-    const r = await fetch(`${SP_BACKEND}/api/lifecycle?resource=materials&studentId=${me.id}&type=recording`, { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=materials&studentId=${me.id}&type=recording`, { headers: await seedsAuthHeaders() });
     const items = await r.json();
     if (!r.ok) throw new Error(items.error || 'Failed to load');
     if (!items.length) {
@@ -7336,7 +7336,7 @@ async function tpSelfReschedule() {
   if (!newTime || !_tpSrBookingId) return;
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics', {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ action: 'reschedule-booking', bookingId: _tpSrBookingId, newStartTime: new Date(newTime).toISOString() }),
     });
@@ -7353,7 +7353,7 @@ async function tpSelfReschedule() {
 async function tpSelfCancel() {
   if (!_tpSrBookingId || !confirm('Cancel this lesson? If the student paid, a refund will be issued.')) return;
   try {
-    const r = await fetch(SP_BACKEND + '/api/analytics', {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ action: 'cancel-booking', bookingId: _tpSrBookingId }),
     });
@@ -7577,7 +7577,7 @@ async function adSaveEditTutor() {
   const errEl = document.getElementById('ad-et-error');
   btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
   try {
-    const r = await fetch(AD_BACKEND + '/api/auth', {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/auth', {
       method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({
         action: 'edit-tutor',
@@ -7603,7 +7603,7 @@ async function adDeactivateTutor() {
   const name = document.getElementById('ad-et-name').value;
   if (!confirm(`Deactivate ${name}? They will no longer be able to log in. This can be reversed by contacting Supabase support.`)) return;
   try {
-    const r = await fetch(AD_BACKEND + '/api/auth', {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/auth', {
       method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ action: 'deactivate-tutor', userId }),
     });
@@ -7636,7 +7636,7 @@ async function adSaveEditStudent() {
   const errEl = document.getElementById('ad-es-error');
   btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
   try {
-    const r = await fetch(AD_BACKEND + '/api/auth', {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/auth', {
       method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({
         action: 'edit-student',
@@ -7669,7 +7669,7 @@ async function adConfirmBulkCancel() {
   if (!confirm(`Cancel all ${tutorName||'confirmed'} lessons on ${new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}? Paid lessons will be refunded.`)) return;
   btn.disabled = true; btn.textContent = 'Cancelling…'; errEl.style.display = 'none';
   try {
-    const r = await fetch(AD_BACKEND + '/api/lifecycle?resource=bulk-cancel', {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/lifecycle?resource=bulk-cancel', {
       method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ date, tutorName: tutorName || null }),
     });
@@ -7697,7 +7697,7 @@ async function adSendAnnouncement() {
   if (!subject || !body) { errEl.textContent = 'Subject and message are required'; errEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Sending…'; errEl.style.display = 'none';
   try {
-    const r = await fetch(AD_BACKEND + '/api/auth', {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/auth', {
       method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
       body: JSON.stringify({ action: 'bulk-email', subject, body, to }),
     });
@@ -7847,8 +7847,8 @@ window.spLoadPaymentHistory = async function() {
     if (!session) return;
     const authHeaders = { Authorization: `Bearer ${session.access_token}` };
     const [bookingsR, historyR] = await Promise.all([
-      fetch(SP_BACKEND + '/api/analytics?resource=my-bookings', { headers: authHeaders }),
-      fetch(SP_BACKEND + '/api/billing?resource=billing-history', { headers: authHeaders }),
+      fetchWithTimeout(SP_BACKEND + '/api/analytics?resource=my-bookings', { headers: authHeaders }),
+      fetchWithTimeout(SP_BACKEND + '/api/billing?resource=billing-history', { headers: authHeaders }),
     ]);
     const bookingsData = await bookingsR.json();
     const mine = bookingsData.recentBookings || [];
@@ -7912,7 +7912,7 @@ function spRenderBillingCycleButtons(active) {
 
 async function spLoadBillingCycle() {
   try {
-    const r = await fetch(SP_BACKEND + '/api/billing?resource=billing-cycle', { headers: await seedsAuthHeaders() });
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/billing?resource=billing-cycle', { headers: await seedsAuthHeaders() });
     const data = await r.json();
     spRenderBillingCycleButtons(data.billingCycle || 'weekly');
   } catch(e) { console.error('spLoadBillingCycle:', e.message); }
@@ -7921,7 +7921,7 @@ async function spLoadBillingCycle() {
 async function spSetBillingCycle(cycle) {
   spRenderBillingCycleButtons(cycle); // optimistic
   try {
-    const r = await fetch(SP_BACKEND + '/api/billing', {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/billing', {
       method: 'POST', headers: await seedsAuthHeaders(),
       body: JSON.stringify({ resource: 'billing-cycle', billingCycle: cycle }),
     });
@@ -7947,7 +7947,7 @@ async function spLoadSavedCards() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) return;
-    const r = await fetch(SP_BACKEND + '/api/billing?resource=payment-methods&customerId=' + encodeURIComponent(_spCustomerId), {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/billing?resource=payment-methods&customerId=' + encodeURIComponent(_spCustomerId), {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
     const cards = await r.json();
@@ -7998,7 +7998,7 @@ async function spSubmitAddCard() {
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     const authH = await seedsAuthHeaders();
-    const r = await fetch(`${SP_BACKEND}/api/billing`, {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/billing`, {
       method: 'POST', headers: authH,
       body: JSON.stringify({ resource: 'setup-intent' }),
     });
@@ -8026,7 +8026,7 @@ async function spRemoveCard(paymentMethodId, btnEl) {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) throw new Error('Not logged in — please refresh and try again.');
-    const r = await fetch(SP_BACKEND + '/api/billing', {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/billing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ resource: 'payment-methods', action: 'detach', paymentMethodId, customerId: _spCustomerId }),
@@ -8049,7 +8049,7 @@ async function spOpenBillingPortal() {
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) { seedsToast('Not logged in — please refresh and try again.'); return; }
-    const r = await fetch(SP_BACKEND + '/api/billing', {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/billing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ resource: 'customer-portal', customerId: _spCustomerId, returnUrl: window.location.href }),
@@ -8082,7 +8082,7 @@ window.adRenderStudents = async function() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px;font-size:.82rem">Loading...</td></tr>';
   try {
-    const r = await fetch(AD_BACKEND + '/api/analytics?resource=students', { headers: await adAuthHeaders() });
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/analytics?resource=students', { headers: await adAuthHeaders() });
     const students = await r.json();
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
@@ -8264,7 +8264,7 @@ async function adLogSafeguarding(studentId, studentName) {
 (This will be timestamped and stored securely)`);
   if (!note || !note.trim()) return;
   // Store as a lead note or lifecycle note
-  fetch(AD_BACKEND + '/api/lifecycle?resource=notes', {
+  fetchWithTimeout(AD_BACKEND + '/api/lifecycle?resource=notes', {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
     body: JSON.stringify({
       studentId, tutorName: 'Admin (Safeguarding)', subject: 'SAFEGUARDING',
@@ -8527,7 +8527,7 @@ async function spLoadTutorContact() {
       el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;padding:10px 0">No tutor assigned yet.</div>';
       return;
     }
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=contact-info&for=tutor&tutorName=' + encodeURIComponent(tutorName), {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=contact-info&for=tutor&tutorName=' + encodeURIComponent(tutorName), {
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
     const data = await r.json();
