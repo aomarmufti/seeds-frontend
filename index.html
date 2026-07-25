@@ -2694,7 +2694,7 @@ function adFmt(pence) {
 function adDateFmt(iso) {
   return new Date(iso).toLocaleDateString('en-GB', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
 }
-const TYPE_LABEL = {gcse:'GCSE 1:1', alevel:'A-Level 1:1', group:'Group', trial:'Free trial'};
+const TYPE_LABEL = {gcse:'GCSE 1:1', alevel:'A-Level 1:1', group:'Group', trial:'Free trial',consultation:'Initial Consultation'};
 
 // ── DASHBOARD KPIs & CHART ───────────────────────────────────────────────
 function adRenderDashboard() {
@@ -4262,7 +4262,7 @@ async function tpSaveProgress() {
 // In a real system this comes from your database.
 // Format: { date:'YYYY-MM-DD', student, type:'gcse'|'alevel'|'group'|'trial', fee, paid:bool }
 const TUTOR_CUT = 0.78;
-const LABEL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group session',trial:'Free trial'};
+const LABEL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group session',trial:'Free trial',consultation:'Initial Consultation'};
 let EARN_LESSONS = []; // populated from API
 let earnCurrentTutor = null; // set when tutor logs in
 
@@ -5059,7 +5059,7 @@ async function completeBooking() {
       body: JSON.stringify({
         studentName, parentName, parentEmail, parentPhone,
         tutorName: bkState.tutor, subject: bkState.subject,
-        lessonType: 'trial', studentLevel: null,
+        lessonType: 'consultation', studentLevel: null,
         startTime: startTime.toISOString(), paymentIntentId: null,
       }),
     });
@@ -5645,7 +5645,7 @@ function spRenderHome(studentName) {
     return;
   }
   const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
-  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial'};
+  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial',consultation:'Initial Consultation'};
   card.innerHTML = (hdr?.outerHTML||'') + upcoming.map(b => {
     const lbl = spTimeLabel(b.startTime);
     const isLive = lbl === '🔴 Live';
@@ -5747,7 +5747,7 @@ function calShowDay(day, month, year) {
   const listEl = document.getElementById('cal-ev-list');
   if (!listEl) return;
   const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
-  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial'};
+  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial',consultation:'Initial Consultation'};
   const header = `<div style="font-size:.79rem;font-weight:700;color:#0D1B2A;margin-bottom:8px">${dayStart.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}</div>`;
   listEl.innerHTML = header + dayBookings.map(b => {
     const icsUrl = `${SP_BACKEND}/api/bookings?action=ics&tutorName=${encodeURIComponent(b.tutorName)}&subject=${encodeURIComponent(b.subject||'')}&lessonType=${encodeURIComponent(b.lessonType||'')}&startTime=${encodeURIComponent(b.startTime)}`;
@@ -5773,7 +5773,7 @@ function spRenderCalendar() {
   const listEl = document.getElementById('cal-ev-list');
   if (!listEl) return;
   const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
-  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial'};
+  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial',consultation:'Initial Consultation'};
   const upcoming = spBookings
     .filter(b => new Date(b.startTime) > Date.now() - 86400000)
     .sort((a,b) => new Date(a.startTime)-new Date(b.startTime))
@@ -6028,7 +6028,7 @@ async function tpRenderRecentHomework() {
 }
 
 const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
-const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial'};
+const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial',consultation:'Initial Consultation'};
 
 function tpTimeBtn(iso) {
   const diff = new Date(iso) - Date.now();
@@ -8673,7 +8673,7 @@ function tpCalRenderListItems(bookings, headerText) {
   if (!el) return;
   if (hdr) hdr.textContent = headerText;
   const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
-  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial'};
+  const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial',consultation:'Initial Consultation'};
   if (!bookings.length) {
     el.innerHTML = '<div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">No lessons.</div>';
     return;
