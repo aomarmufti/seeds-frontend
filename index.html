@@ -7336,9 +7336,13 @@ async function tpSelfReschedule() {
   if (!newTime || !_tpSrBookingId) return;
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: 'reschedule-booking', bookingId: _tpSrBookingId, newStartTime: new Date(newTime).toISOString() }),
+    // SCRUM-57: this used to call the admin-only analytics?action=
+    // reschedule-booking endpoint, which would 403 for a real tutor caller
+    // — self-reschedule-booking verifies the caller actually owns this
+    // lesson instead of requiring admin.
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=self-reschedule-booking', {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ bookingId: _tpSrBookingId, newStartTime: new Date(newTime).toISOString() }),
     });
     if (!r.ok) throw new Error((await r.json()).error);
     document.getElementById('tp-self-reschedule-modal').classList.remove('open');
@@ -7353,9 +7357,11 @@ async function tpSelfReschedule() {
 async function tpSelfCancel() {
   if (!_tpSrBookingId || !confirm('Cancel this lesson? If the student paid, a refund will be issued.')) return;
   try {
-    const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: 'cancel-booking', bookingId: _tpSrBookingId }),
+    // SCRUM-57: see tpSelfReschedule — self-cancel-booking verifies
+    // ownership instead of requiring admin.
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=self-cancel-booking', {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ bookingId: _tpSrBookingId }),
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
@@ -8684,13 +8690,18 @@ function tpCalRenderListItems(bookings, headerText) {
       ? `<button onclick="window.open('${b.meetLink}','_blank')" style="padding:6px 13px;background:${isLive?'#2D7A4F':'#0D1B2A'};color:#fff;border:none;border-radius:7px;font-size:.71rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">${isLive?'🔴 Join now':'Join'}</button>`
       : '';
     const prepBtn = `<button onclick="tpOpenPrepMode(Object.assign(document.createElement('button'),{dataset:{bid:'${b.id||''}',sid:'${b.studentId||''}',sname:'${(b.studentName||'').replace(/'/g,'')}',subj:'${(b.subject||'').replace(/'/g,'')}',meet:'${b.meetLink||''}',start:'${b.startTime||''}'}}))" style="padding:6px 10px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.71rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">📋 Prep</button>`;
+    // SCRUM-57: only offer to manage a lesson that hasn't happened yet —
+    // the backend rejects cancelling/rescheduling a past lesson anyway.
+    const manageBtn = diff > 0
+      ? `<button onclick="tpOpenSelfManage('${b.id||''}','${(b.studentName||'').replace(/'/g,'')}','${(b.subject||'').replace(/'/g,'')}','${b.startTime||''}')" style="padding:6px 10px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.71rem;font-weight:600;color:#718096;cursor:pointer;background:#fff;font-family:Inter,sans-serif">⚙ Manage</button>`
+      : '';
     return `<div class="cal-ev">
       <div class="cal-ev-stripe" style="background:${colour}"></div>
       <div class="cal-ev-info">
         <div class="cal-ev-subj">${b.studentName} — ${b.subject} (${TYPE_LBL[b.lessonType]||b.lessonType})</div>
         <div class="cal-ev-meta">${tpFmt(b.startTime)}${b.meetLink?' · <a href="'+b.meetLink+'" target="_blank" style="color:#4A90D9;text-decoration:none">Meeting link ↗</a>':''}</div>
       </div>
-      <div style="display:flex;gap:6px">${joinBtn}${prepBtn}</div>
+      <div style="display:flex;gap:6px">${joinBtn}${prepBtn}${manageBtn}</div>
     </div>`;
   }).join('');
 }
