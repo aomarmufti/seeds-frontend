@@ -1866,6 +1866,16 @@ function seedsToast(msg, isError = true) {
   t._timer = setTimeout(() => { t.style.display = 'none'; }, 6000);
 }
 
+// A plain fetch() has no built-in timeout — if the backend (or a downstream
+// call it makes, e.g. to Calendly's API) hangs, the caller waits forever
+// with no way to recover. Used anywhere a frozen "Confirming…" state would
+// otherwise be possible, so callers always get an outcome one way or another.
+function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 // Handle return from Stripe Connect onboarding
 (function() {
   const params = new URLSearchParams(window.location.search);
@@ -4961,7 +4971,10 @@ async function loadCalendlyWidget() {
   wrapEl.style.display = 'none';
   embedEl.innerHTML = '';
   try {
-    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}`);
+    // context=consultation — this wizard only ever books the free 15-min
+    // Initial Consultation, never the (longer) free trial lesson itself,
+    // which is booked separately from the portal afterwards.
+    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}&context=consultation`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load availability');
     // widget.js is loaded as a regular (non-async) <script>, but guard
@@ -5001,7 +5014,7 @@ window.addEventListener('message', async (e) => {
   statusEl.style.display = 'block';
   statusEl.textContent = 'Confirming your slot…';
   try {
-    const r = await fetch(`${BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
+    const r = await fetchWithTimeout(`${BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not confirm your chosen time');
     bkState.startTimeISO = data.startTime;
@@ -5932,7 +5945,7 @@ window.addEventListener('message', async (e) => {
   statusEl.style.display = 'block';
   statusEl.textContent = 'Confirming your slot…';
   try {
-    const r = await fetch(`${SP_BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not confirm your chosen time');
     _spBookStartTimeISO = data.startTime;
@@ -6396,7 +6409,7 @@ window.addEventListener('message', async (e) => {
   statusEl.style.display = 'block';
   statusEl.textContent = 'Confirming your slot…';
   try {
-    const r = await fetch(SP_BACKEND + '/api/bookings?action=calendly-event&eventUri=' + encodeURIComponent(eventUri));
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/bookings?action=calendly-event&eventUri=' + encodeURIComponent(eventUri));
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not confirm this time');
     _tpAlStartTimeISO = data.startTime;
