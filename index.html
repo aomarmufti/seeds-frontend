@@ -2527,55 +2527,6 @@ function togglePHW(el){
     <div id="ad-tutors" class="ad-panel">
       <div style="text-align:center;padding:40px;color:#A7A7A7;font-size:.82rem">Loading tutors…</div>
     </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="font-family:'DM Serif Display',serif;font-size:1.45rem;color:#0D1B2A">Tutors</h2>
-        <button class="ad-btn-xs ad-btn-assign" style="padding:8px 16px">+ Add tutor</button>
-      </div>
-      <div class="ad-tutor-grid">
-        <div class="ad-tutor-card">
-          <div class="ad-tutor-top">
-            <div class="ad-tutor-av-lg"><img src="images/azeem.jpg" loading="lazy" decoding="async" alt="Azeem"></div>
-            <div><div class="ad-tutor-name">Azeem Omar-Mufti</div><div class="ad-tutor-subj">Mathematics</div></div>
-          </div>
-          <div class="ad-tutor-stats">
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">14</div><div class="ad-tutor-stat-lbl">Students</div></div>
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">4.9★</div><div class="ad-tutor-stat-lbl">Rating</div></div>
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">98%</div><div class="ad-tutor-stat-lbl">Grade lift</div></div>
-          </div>
-          <div class="ad-load-text" style="margin-bottom:4px">17 / 20 weekly hours booked</div>
-          <div class="ad-load-bar"><div class="ad-load-fill" style="width:85%;background:#C8A15A"></div></div>
-          <div style="margin-top:10px;text-align:right"><button class="ad-btn-xs ad-btn-ghost" onclick="adOpenEditTutor('','Azeem Omar-Mufti','Azeem Omar-Mufti','')">Edit tutor</button></div>
-        </div>
-        <div class="ad-tutor-card">
-          <div class="ad-tutor-top">
-            <div class="ad-tutor-av-lg"><img src="images/suleiman.jpg" loading="lazy" decoding="async" alt="Suleiman"></div>
-            <div><div class="ad-tutor-name">Suleiman</div><div class="ad-tutor-subj">History &amp; Arabic</div></div>
-          </div>
-          <div class="ad-tutor-stats">
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">9</div><div class="ad-tutor-stat-lbl">Students</div></div>
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">4.9★</div><div class="ad-tutor-stat-lbl">Rating</div></div>
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">—</div><div class="ad-tutor-stat-lbl">Grade lift</div></div>
-          </div>
-          <div class="ad-load-text" style="margin-bottom:4px">9 / 20 weekly hours booked</div>
-          <div class="ad-load-bar"><div class="ad-load-fill" style="width:45%;background:#4A90D9"></div></div>
-          <div style="margin-top:10px;text-align:right"><button class="ad-btn-xs ad-btn-ghost" onclick="adOpenEditTutor('','Suleiman','Suleiman','')">Edit tutor</button></div>
-        </div>
-        <div class="ad-tutor-card">
-          <div class="ad-tutor-top">
-            <div class="ad-tutor-av-lg"><img src="images/abdulmoez.jpg" loading="lazy" decoding="async" alt="Abdul-Moez"></div>
-            <div><div class="ad-tutor-name">Abdul-Moez</div><div class="ad-tutor-subj">Chemistry &amp; Biology</div></div>
-          </div>
-          <div class="ad-tutor-stats">
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">12</div><div class="ad-tutor-stat-lbl">Students</div></div>
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">4.9★</div><div class="ad-tutor-stat-lbl">Rating</div></div>
-            <div class="ad-tutor-stat"><div class="ad-tutor-stat-num">—</div><div class="ad-tutor-stat-lbl">Grade lift</div></div>
-          </div>
-          <div class="ad-load-text" style="margin-bottom:4px">12 / 20 weekly hours booked</div>
-          <div class="ad-load-bar"><div class="ad-load-fill" style="width:60%;background:#2D7A4F"></div></div>
-          <div style="margin-top:10px;text-align:right"><button class="ad-btn-xs ad-btn-ghost" onclick="adOpenEditTutor('','Abdul-Moez','Abdul-Moez','')">Edit tutor</button></div>
-        </div>
-      </div>
-    </div>
 
     <!-- STUDENTS -->
     <div id="ad-students" class="ad-panel">
@@ -3720,14 +3671,6 @@ window.addEventListener('DOMContentLoaded', function() {
 .tp-l-btn-live{background:#2D7A4F;color:#fff}
 .tp-l-btn-soon{background:#F5F0E8;color:#718096;border:1px solid #E8E8E8}
 
-/* Availability toggle grid */
-.tp-avail-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.tp-avail-day{text-align:center}
-.tp-avail-dow{font-size:.66rem;font-weight:700;color:#718096;margin-bottom:6px;text-transform:uppercase}
-.tp-avail-slot{padding:7px 0;border-radius:7px;font-size:.66rem;font-weight:600;margin-bottom:4px;cursor:pointer;transition:all .2s;border:1.5px solid #E8E8E8;color:#A7A7A7}
-.tp-avail-slot.tp-avail-on{background:rgba(45,122,79,0.1);border-color:#2D7A4F;color:#2D7A4F}
-.tp-avail-slot:hover{border-color:#C8A15A}
-
 /* Student roster */
 .tp-table{width:100%;border-collapse:collapse}
 .tp-table th{text-align:left;font-size:.65rem;font-weight:700;color:#718096;letter-spacing:.06em;text-transform:uppercase;padding:0 12px 10px;border-bottom:1.5px solid #E8E8E8}
@@ -3780,7 +3723,6 @@ window.addEventListener('DOMContentLoaded', function() {
   .tp-sidebar{transform:translateX(-100%)}
   .tp-main{margin-left:0}
   .tp-kpi-row{grid-template-columns:1fr 1fr}
-  .tp-avail-grid{grid-template-columns:repeat(4,1fr)}
   .tp-resource-grid{grid-template-columns:1fr 1fr}
 }
 </style>
@@ -3895,19 +3837,6 @@ window.addEventListener('DOMContentLoaded', function() {
         <div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">Loading…</div>
       </div>
 
-      <!-- Weekly availability (below calendar) -->
-      <div class="tp-card" style="margin-top:16px">
-        <div class="tp-card-hdr"><span class="tp-card-title">Weekly availability</span><span class="tp-card-link" onclick="tpSaveAvailability()">Save</span></div>
-        <div class="tp-avail-grid">
-          <div class="tp-avail-day"><div class="tp-avail-dow">Mon</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot" onclick="toggleAvail(this)">6–8pm</div></div>
-          <div class="tp-avail-day"><div class="tp-avail-dow">Tue</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">6–8pm</div></div>
-          <div class="tp-avail-day"><div class="tp-avail-dow">Wed</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot" onclick="toggleAvail(this)">6–8pm</div></div>
-          <div class="tp-avail-day"><div class="tp-avail-dow">Thu</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">6–8pm</div></div>
-          <div class="tp-avail-day"><div class="tp-avail-dow">Fri</div><div class="tp-avail-slot" onclick="toggleAvail(this)">4–6pm</div><div class="tp-avail-slot" onclick="toggleAvail(this)">6–8pm</div></div>
-          <div class="tp-avail-day"><div class="tp-avail-dow">Sat</div><div class="tp-avail-slot tp-avail-on" onclick="toggleAvail(this)">9–12pm</div><div class="tp-avail-slot" onclick="toggleAvail(this)">2–4pm</div></div>
-          <div class="tp-avail-day"><div class="tp-avail-dow">Sun</div><div class="tp-avail-slot" onclick="toggleAvail(this)">9–12pm</div><div class="tp-avail-slot" onclick="toggleAvail(this)">2–4pm</div></div>
-        </div>
-      </div>
     </div>
 
     <!-- MY STUDENTS -->
@@ -4122,9 +4051,6 @@ function switchTutor(el, name, subject, initials){
   const tod = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
   document.getElementById('tp-greeting-name').textContent = 'Good ' + tod + ', ' + name;
   document.getElementById('tp-topbar-av').textContent = initials;
-}
-function toggleAvail(el){
-  el.classList.toggle('tp-avail-on');
 }
 let _tpCurrentStudent = null; // {id, name, subject}
 
@@ -6954,47 +6880,6 @@ async function tpOpenPrepMode(btn) {
   }
 }
 
-// ══ AVAILABILITY PERSISTENCE ═════════════════════════════════════════════
-let _availDirty = false;
-function toggleAvail(el) {
-  el.classList.toggle('tp-avail-on');
-  _availDirty = true;
-  clearTimeout(window._availTimer);
-  window._availTimer = setTimeout(tpSaveAvailability, 1500); // auto-save after 1.5s
-}
-
-async function tpSaveAvailability() {
-  if (!earnCurrentTutor) return;
-  const slots = [];
-  document.querySelectorAll('.tp-avail-slot.tp-avail-on').forEach(el => {
-    const day = el.closest('.tp-avail-day')?.querySelector('.tp-avail-dow')?.textContent?.toLowerCase();
-    const time = el.textContent.trim();
-    if (day && time) slots.push(day + ':' + time);
-  });
-  try {
-    await fetch(SP_BACKEND + '/api/lifecycle?resource=availability', {
-      method: 'POST', headers: await seedsAuthHeaders(),
-      body: JSON.stringify({ tutorName: earnCurrentTutor, slots }),
-    });
-    seedsToast('✓ Availability saved', false);
-    _availDirty = false;
-  } catch(e) { seedsToast('Failed to save availability: ' + e.message); }
-}
-
-async function tpLoadAvailability() {
-  if (!earnCurrentTutor) return;
-  try {
-    const r = await fetch(SP_BACKEND + '/api/lifecycle?resource=availability&tutorName=' + encodeURIComponent(earnCurrentTutor), { headers: await seedsAuthHeaders() });
-    const data = await r.json();
-    const slots = data.slots || [];
-    document.querySelectorAll('.tp-avail-slot').forEach(el => {
-      const day = el.closest('.tp-avail-day')?.querySelector('.tp-avail-dow')?.textContent?.toLowerCase();
-      const time = el.textContent.trim();
-      el.classList.toggle('tp-avail-on', slots.includes(day + ':' + time));
-    });
-  } catch(e) { console.warn('Load availability:', e.message); }
-}
-
 // ══ STUDENT ONBOARDING WELCOME ═══════════════════════════════════════════
 async function spCheckOnboarding() {
   try {
@@ -7201,13 +7086,6 @@ const _origSPOpenFinal = window._openStudentPortal;
 window._openStudentPortal = function() {
   _origSPOpenFinal();
   setTimeout(spCheckOnboarding, 500);
-};
-
-// Hook availability load into schedule panel
-const _origTPPanelFinal = window.showTpPanel;
-window.showTpPanel = function(id, navEl) {
-  _origTPPanelFinal(id, navEl);
-  if (id==='tp-schedule') setTimeout(tpLoadAvailability, 300);
 };
 
 // Add today reminder on home load
