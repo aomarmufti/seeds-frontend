@@ -13,14 +13,18 @@ const { test, expect } = require('@playwright/test');
 const KNOWN_OFFLINE_SANDBOX_NOISE = [
   /net::ERR_/,
   /the server responded with a status of 404/,
-  /^supabase is not defined$/,
+  /supabase is not defined/,
 ];
 
 test.describe('Public homepage', () => {
   test('loads with no console errors and key marketing sections present', async ({ page }) => {
     const consoleErrors = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
-    page.on('pageerror', (err) => consoleErrors.push(err.message));
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      const loc = msg.location();
+      consoleErrors.push(`${msg.text()} (at ${loc.url}:${loc.lineNumber}:${loc.columnNumber})`);
+    });
+    page.on('pageerror', (err) => consoleErrors.push(`${err.message}\n${err.stack || ''}`));
 
     await page.goto('/');
     await expect(page).toHaveTitle(/Seeds/i);
