@@ -5887,6 +5887,25 @@ function spOpenInPortalBooking() {
   _spBookStartTimeISO = null;
   _spBookCalendlyLoadedFor = null;
   document.getElementById('sp-book-time-chosen').style.display = 'none';
+
+  // SCRUM-69: offer a free trial lesson only when eligible — had their
+  // Initial Consultation, and don't already have one (the DB enforces at
+  // most one non-cancelled trial per student via
+  // bookings_one_trial_per_student; spBookings already excludes cancelled
+  // rows, see spLoadData).
+  const typeSel = document.getElementById('sp-book-type');
+  const existingTrialOpt = typeSel.querySelector('option[value="trial"]');
+  const eligibleForTrial = spBookings.some(b => b.lessonType === 'consultation')
+    && !spBookings.some(b => b.lessonType === 'trial');
+  if (eligibleForTrial && !existingTrialOpt) {
+    const opt = document.createElement('option');
+    opt.value = 'trial';
+    opt.textContent = 'Free trial lesson';
+    typeSel.insertBefore(opt, typeSel.firstChild);
+  } else if (!eligibleForTrial && existingTrialOpt) {
+    existingTrialOpt.remove();
+  }
+
   document.getElementById('sp-book-modal').classList.add('open');
   spLoadBookCalendly();
 }
