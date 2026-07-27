@@ -63,4 +63,20 @@ test.describe('Public homepage', () => {
     await expect(page.locator('.bk-type-card')).toContainText('Initial Consultation');
     await expect(page.locator('.bk-type-card')).toContainText('Free');
   });
+
+  test('SCRUM-70: tutor cards stack vertically on a mobile viewport, no page overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 900 });
+    await page.goto('/#tutors');
+    await page.locator('#tutors').scrollIntoViewIfNeeded();
+
+    // Regression guard: this grid used to be a bare inline
+    // grid-template-columns:repeat(3,1fr) with no mobile override, so
+    // tutor photos got squeezed three-across even at phone widths.
+    const columns = await page.locator('.tutors-grid').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+    expect(columns).toBe(1);
+
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  });
 });

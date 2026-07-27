@@ -333,6 +333,9 @@ footer{background:#07111C;padding:56px 48px 30px}
 .footer-copy{font-size:.76rem;color:rgba(255,255,255,.2)}
 .footer-gold{font-size:.74rem;color:var(--gold);opacity:.5;font-family:'Cormorant Garamond',serif;font-style:italic}
 
+/* ── TUTORS ───────────────────────────── */
+.tutors-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+
 /* ── RESPONSIVE ───────────────────────── */
 @media(max-width:1000px){
   nav{padding:0 24px}
@@ -351,6 +354,7 @@ footer{background:#07111C;padding:56px 48px 30px}
   .steps-grid{grid-template-columns:1fr 1fr}
   .parents-grid{grid-template-columns:1fr}
   .t-grid{grid-template-columns:1fr}
+  .tutors-grid{grid-template-columns:1fr}
   .journey-section{padding:64px 24px}
   .journey-inner{grid-template-columns:1fr;gap:44px}
   .cta-section{padding:72px 24px}
@@ -655,7 +659,7 @@ footer{background:#07111C;padding:56px 48px 30px}
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:22px">
+    <div class="tutors-grid">
 
       <!-- AZEEM — real tutor with photo -->
       <div style="border:1.5px solid var(--grey-light);border-radius:20px;overflow:hidden;background:var(--beige-pale);transition:box-shadow .28s,transform .28s"
@@ -2324,6 +2328,7 @@ function togglePHW(el){
 .ad-table tr:last-child td{border-bottom:none}
 .ad-table tr:hover{background:#FAF8F4}
 .ad-mini-av{width:28px;height:28px;border-radius:50%;background:#243650;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.62rem;flex-shrink:0}
+.ad-reconciliation-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;font-size:.8rem}
 
 /* Tutor cards */
 .ad-tutor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -2372,6 +2377,7 @@ function togglePHW(el){
   .ad-main{margin-left:0;margin-top:56px}
   .ad-kpi-row{grid-template-columns:1fr 1fr}
   .ad-tutor-grid{grid-template-columns:1fr}
+  .ad-reconciliation-grid{grid-template-columns:1fr 1fr}
   .ad-dash-grid{grid-template-columns:1fr !important}
 }
 </style>
@@ -3128,7 +3134,7 @@ function adRenderPayments() {
     <!-- Payment reconciliation -->
     ${adData.reconciliation ? `<div class="ad-card" style="margin-bottom:14px">
       <div class="ad-card-hdr" style="margin-bottom:14px"><span class="ad-card-title">Payment reconciliation</span></div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;font-size:.8rem">
+      <div class="ad-reconciliation-grid">
         <div><div style="color:#718096">Confirmed</div><div style="font-weight:700;color:#0D1B2A">${adData.reconciliation.confirmed}</div></div>
         <div><div style="color:#718096">Awaiting payment</div><div style="font-weight:700;color:#C8A15A">${adData.reconciliation.scheduled}</div></div>
         <div><div style="color:#718096">Failed</div><div style="font-weight:700;color:#c0392b">${adData.reconciliation.paymentFailed}</div></div>
