@@ -92,6 +92,32 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
     await expect(page.locator('#sp-stat-upcoming')).toHaveText('1');
   });
 
+  test('SCRUM-68: upcoming bookings show distinct payment-status badges', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({
+      json: { recentBookings: [
+        { id: 'b1', tutorName: 'Suleiman', subject: 'Physics', startTime: new Date(Date.now() + 86400000).toISOString(), status: 'confirmed', paymentStatus: 'paid' },
+        { id: 'b2', tutorName: 'Azeem Omar-Mufti', subject: 'Maths', startTime: new Date(Date.now() + 2 * 86400000).toISOString(), status: 'confirmed', paymentStatus: 'failed' },
+        { id: 'b3', tutorName: 'Suleiman', subject: 'History', startTime: new Date(Date.now() + 3 * 86400000).toISOString(), status: 'confirmed', paymentStatus: null },
+      ] },
+    }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    // Same paymentStatus field and badge meaning as the admin panel's
+    // adRenderBookings — just surfaced to the student for the first time.
+    await expect(page.locator('.p-lesson .sp-pay-badge')).toHaveText(['Paid', 'Failed', 'Unbilled']);
+  });
+
   test('shows a friendly error on a wrong password, without opening the portal', async ({ page }) => {
     await page.route('**/auth/v1/token*', (route) => route.fulfill({
       status: 400,
