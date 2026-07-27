@@ -85,6 +85,31 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     });
   });
 
+  // SCRUM-62: exercises the fetchWithTimeout 15s guard (index.html) added
+  // this session for the exact "Confirming your slot…"-style hang this
+  // wizard used to be vulnerable to — a slow/hung backend call must
+  // recover with a friendly message, never leave the wizard stuck on
+  // "Loading…" forever.
+  test('recovers with a friendly message instead of hanging if the availability call is slow', async ({ page }) => {
+    test.setTimeout(45000);
+    await page.route('**/api/bookings?action=calendly-link*', async (route) => {
+      // Longer than fetchWithTimeout's 15s abort threshold.
+      await new Promise((r) => setTimeout(r, 16000));
+      await route.fulfill({ json: { url: 'https://calendly.com/seeds-tuition/fake-consultation' } });
+    });
+
+    await page.goto('/');
+    await page.getByRole('link', { name: /Book a Free Consultation/i }).first().click();
+    await page.locator('.bk-tutor-opt', { hasText: 'Suleiman' }).click();
+    await page.locator('#bk-step-1').getByRole('button', { name: /Continue/i }).click();
+
+    await expect(page.locator('#bk-calendly-status')).toContainText(/Loading Suleiman.s availability/);
+    // Once fetchWithTimeout aborts (~15s in), the status text must change
+    // away from "Loading…" — the wizard recovered instead of hanging.
+    await expect(page.locator('#bk-calendly-status')).not.toContainText(/Loading Suleiman.s availability/, { timeout: 25000 });
+    await expect(page.locator('#bk-calendly-wrap')).toBeHidden();
+  });
+
   test('rejects step 3 without required fields and never calls the backend', async ({ page }) => {
     let confirmCalled = false;
     await page.route('**/api/bookings?action=calendly-link*', (route) =>
