@@ -50,8 +50,16 @@ async function mockSupabaseAuth(page, { role = 'student', fullName = 'Test Stude
   });
   // profiles select(...).eq('id', ...).single() — PostgREST returns a bare
   // object (not an array) for .single().
+  //
+  // onboarding_complete: true avoids a real race — spCheckOnboarding() (see
+  // index.html) fires after login and, on a falsy value, opens a full-screen
+  // welcome modal (#sp-welcome-modal) that intercepts clicks anywhere on the
+  // page until dismissed. Every test in this file used to be exposed to that
+  // race depending on exact timing; surfaced as a flaky failure on the
+  // Payments test and a consistent one on the trial-booking test once
+  // those started clicking through the portal shortly after login.
   await page.route('**/rest/v1/profiles*', async (route) => {
-    await route.fulfill({ json: { role, full_name: fullName, tutor_name: null } });
+    await route.fulfill({ json: { role, full_name: fullName, tutor_name: null, onboarding_complete: true } });
   });
 }
 
