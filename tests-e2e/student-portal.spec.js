@@ -176,4 +176,33 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
     // Saved card, resolved via the stripeCustomerId on the student's own booking.
     await expect(page.locator('#sp-saved-cards')).toContainText('4242');
   });
+
+  test('logs out automatically after 30 minutes of inactivity', async ({ page }) => {
+    // Regression guard: the inactivity monitor's isPortalOpen check looked
+    // for '#p-overlay.p-open', which never exists for the student portal —
+    // its real container is '#portal-overlay', toggled via an inline
+    // display style rather than a class. So the 30-minute timeout silently
+    // never fired for students, even though it already worked correctly
+    // for the tutor and admin portals. Fixed alongside this test.
+    await page.clock.install();
+    await mockSupabaseAuth(page);
+    await page.route('**/auth/v1/logout*', (route) => route.fulfill({ status: 204, body: '' }));
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({ json: { recentBookings: [] } }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    // No simulated activity for 30+ minutes — the last real event was the
+    // login click above, which reset the inactivity timer.
+    await page.clock.fastForward('30:01');
+    await expect(page.locator('#seeds-toast')).toContainText('Session expired');
+  });
 });

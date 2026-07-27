@@ -7431,7 +7431,7 @@ async function tpSelfCancel() {
     _timer = setTimeout(() => {
       // Only log out if a portal is open
       const isPortalOpen = document.getElementById('ad-overlay')?.classList.contains('ad-open') ||
-                           document.getElementById('p-overlay')?.classList.contains('p-open') ||
+                           document.getElementById('portal-overlay')?.style.display === 'block' ||
                            document.getElementById('tp-overlay')?.classList.contains('tp-open');
       if (isPortalOpen) {
         seedsToast("Session expired — please sign in again.");
