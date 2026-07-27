@@ -63,4 +63,38 @@ test.describe('Public homepage', () => {
     await expect(page.locator('.bk-type-card')).toContainText('Initial Consultation');
     await expect(page.locator('.bk-type-card')).toContainText('Free');
   });
+
+  test('SCRUM-70: tutor cards stack vertically on a mobile viewport, no page overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 900 });
+    await page.goto('/#tutors');
+    await page.locator('#tutors').scrollIntoViewIfNeeded();
+
+    // Regression guard: this grid used to be a bare inline
+    // grid-template-columns:repeat(3,1fr) with no mobile override, so
+    // tutor photos got squeezed three-across even at phone widths.
+    const columns = await page.locator('.tutors-grid').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+    expect(columns).toBe(1);
+
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  });
+
+  test('SCRUM-71: the single login modal offers Google as well as email', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+
+    // One button covers student/tutor/admin alike — routing is role-driven
+    // post-session, not per-button. Deliberately not asserting on the
+    // actual OAuth redirect here: this sandbox has no outbound network, so
+    // the real Supabase SDK (loaded from a CDN) never initializes and
+    // sbClient stays undefined regardless of mocks — same limitation as
+    // every other SDK-dependent test in this suite. What IS verifiable
+    // without the SDK: the button exists, is visible, and is wired to the
+    // right handler.
+    const googleBtn = page.locator('#lg-google-btn');
+    await expect(googleBtn).toBeVisible();
+    await expect(googleBtn).toContainText('Continue with Google');
+    await expect(googleBtn).toHaveAttribute('onclick', 'lgGoogleSignIn()');
+  });
 });
