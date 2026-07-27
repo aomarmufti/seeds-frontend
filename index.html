@@ -5649,6 +5649,24 @@ function spJoinLesson(meetLink) {
   }
 }
 
+// SCRUM-68: per-booking payment-status badge for the student's own
+// bookings, matching the admin panel's payment_status-driven badge
+// (adRenderBookings) — periodic billing already resolves down to a
+// per-booking payment_status server-side (see spCheckPendingPayments'
+// comment on the billing model), so this is a straight read, not a new
+// computation.
+const SP_PAY_BADGE = {
+  paid: { bg: '#eaf5ee', color: '#2D7A4F', label: 'Paid' },
+  free: { bg: '#eaf5ee', color: '#2D7A4F', label: 'Free' },
+  failed: { bg: '#fdeaea', color: '#c0392b', label: 'Failed' },
+  invoiced: { bg: '#fff3cd', color: '#8a6d00', label: 'Invoiced' },
+};
+function spPayBadge(b) {
+  if (b.status === 'cancelled') return '';
+  const cfg = SP_PAY_BADGE[b.paymentStatus] || { bg: '#f0f0f0', color: '#8a8a8a', label: 'Unbilled' };
+  return `<span class="sp-pay-badge" style="padding:2px 9px;border-radius:20px;font-size:.66rem;font-weight:700;background:${cfg.bg};color:${cfg.color};margin-left:6px;white-space:nowrap">${cfg.label}</span>`;
+}
+
 function spRenderHome(studentName) {
   const greet = document.getElementById('p-greeting-name');
   if (greet && studentName) greet.textContent = studentName.split(' ')[0] ? studentName : 'Welcome';
@@ -5700,7 +5718,7 @@ function spRenderHome(studentName) {
     return `<div class="p-lesson">
       <div class="p-l-stripe" style="background:${COLOURS[b.lessonType]||'#C8A15A'}"></div>
       <div class="p-l-info">
-        <div class="p-l-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}</div>
+        <div class="p-l-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}${spPayBadge(b)}</div>
         <div class="p-l-meta">${spFmt(b.startTime)} · ${b.tutorName} · 55 min</div>
       </div>
       <button class="p-join-btn ${isLive?'p-join-live':'p-join-soon'}"${isLive?` onclick="spJoinLesson('${b.meetLink||''}')"`:''}>${lbl||'Soon'}</button>
@@ -5807,7 +5825,7 @@ function calShowDay(day, month, year) {
     return `<div class="cal-ev">
       <div class="cal-ev-stripe" style="background:${COLOURS[b.lessonType]||'#C8A15A'}"></div>
       <div class="cal-ev-info">
-        <div class="cal-ev-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}</div>
+        <div class="cal-ev-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}${spPayBadge(b)}</div>
         <div class="cal-ev-meta">${spFmt(b.startTime)} · ${b.tutorName} · 55 min${b.meetLink?' · <a href="'+b.meetLink+'" target="_blank" style="color:#4A90D9;text-decoration:none">Meeting link ↗</a>':''}</div>
       </div>
       <div style="display:flex;gap:7px">${joinBtn}
@@ -5840,7 +5858,7 @@ function spRenderCalendar() {
     return `<div class="cal-ev">
     <div class="cal-ev-stripe" style="background:${COLOURS[b.lessonType]||'#C8A15A'}"></div>
     <div class="cal-ev-info">
-      <div class="cal-ev-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}</div>
+      <div class="cal-ev-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}${spPayBadge(b)}</div>
       <div class="cal-ev-meta">${spFmt(b.startTime)} · ${b.tutorName}${b.meetLink?' · <a href="'+b.meetLink+'" target="_blank" style="color:#4A90D9;text-decoration:none">Meeting link ↗</a>':''}</div>
     </div>
     <div style="display:flex;gap:7px">${joinBtn}
@@ -5869,6 +5887,25 @@ function spOpenInPortalBooking() {
   _spBookStartTimeISO = null;
   _spBookCalendlyLoadedFor = null;
   document.getElementById('sp-book-time-chosen').style.display = 'none';
+
+  // SCRUM-69: offer a free trial lesson only when eligible — had their
+  // Initial Consultation, and don't already have one (the DB enforces at
+  // most one non-cancelled trial per student via
+  // bookings_one_trial_per_student; spBookings already excludes cancelled
+  // rows, see spLoadData).
+  const typeSel = document.getElementById('sp-book-type');
+  const existingTrialOpt = typeSel.querySelector('option[value="trial"]');
+  const eligibleForTrial = spBookings.some(b => b.lessonType === 'consultation')
+    && !spBookings.some(b => b.lessonType === 'trial');
+  if (eligibleForTrial && !existingTrialOpt) {
+    const opt = document.createElement('option');
+    opt.value = 'trial';
+    opt.textContent = 'Free trial lesson';
+    typeSel.insertBefore(opt, typeSel.firstChild);
+  } else if (!eligibleForTrial && existingTrialOpt) {
+    existingTrialOpt.remove();
+  }
+
   document.getElementById('sp-book-modal').classList.add('open');
   spLoadBookCalendly();
 }
@@ -7431,7 +7468,7 @@ async function tpSelfCancel() {
     _timer = setTimeout(() => {
       // Only log out if a portal is open
       const isPortalOpen = document.getElementById('ad-overlay')?.classList.contains('ad-open') ||
-                           document.getElementById('p-overlay')?.classList.contains('p-open') ||
+                           document.getElementById('portal-overlay')?.style.display === 'block' ||
                            document.getElementById('tp-overlay')?.classList.contains('tp-open');
       if (isPortalOpen) {
         seedsToast("Session expired — please sign in again.");

@@ -17,19 +17,15 @@
 // network) is what actually exercises this against the genuine SDK for the
 // first time. Watch its first run.
 //
-// Coverage gap, not a test gap: two items in SCRUM-63's acceptance criteria
-// describe UI that doesn't exist in index.html yet, so no test below
-// exercises them —
-//   1. Per-booking payment-status badges on the student portal's own
-//      bookings list. spRenderHome/spRenderCalendar/calRender never read
-//      booking.paymentStatus — only the admin and tutor portals render a
-//      payment-status badge today. Student billing is per-billing-batch
-//      (Payments tab below), not per-lesson.
-//   2. Booking a follow-up trial lesson from the portal. The in-portal
-//      booking modal (#sp-book-type) only offers gcse/alevel/group — there
-//      is no 'trial' option wired in, even though spSubmitBooking has dead
-//      handling for it.
-// Filed as SCRUM-68/69 rather than silently treated as covered.
+// SCRUM-68/69 (payment-status badges, follow-up trial lesson booking) were
+// filed from gaps found while writing this file, then closed below/in
+// index.html. Note SCRUM-69's original second acceptance criterion — that
+// booking a trial resolves calendly_trial_lesson_event_type_uri rather than
+// the consultation link — is now moot: SCRUM-67 (this session) consolidated
+// every booking context to a single shared calendly_event_type_uri per
+// tutor, so there's no separate trial-vs-consultation link left to
+// distinguish. The trial-booking test below covers what's left of the
+// acceptance criteria: the option is offered only when eligible.
 const { test, expect } = require('@playwright/test');
 
 const FAKE_USER_ID = '11111111-1111-1111-1111-111111111111';
@@ -54,8 +50,16 @@ async function mockSupabaseAuth(page, { role = 'student', fullName = 'Test Stude
   });
   // profiles select(...).eq('id', ...).single() — PostgREST returns a bare
   // object (not an array) for .single().
+  //
+  // onboarding_complete: true avoids a real race — spCheckOnboarding() (see
+  // index.html) fires after login and, on a falsy value, opens a full-screen
+  // welcome modal (#sp-welcome-modal) that intercepts clicks anywhere on the
+  // page until dismissed. Every test in this file used to be exposed to that
+  // race depending on exact timing; surfaced as a flaky failure on the
+  // Payments test and a consistent one on the trial-booking test once
+  // those started clicking through the portal shortly after login.
   await page.route('**/rest/v1/profiles*', async (route) => {
-    await route.fulfill({ json: { role, full_name: fullName, tutor_name: null } });
+    await route.fulfill({ json: { role, full_name: fullName, tutor_name: null, onboarding_complete: true } });
   });
 }
 
@@ -90,6 +94,32 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
     await expect(page.locator('#p-greeting-name')).toHaveText('Test Student');
     await expect(page.locator('#sp-stat-lessons')).toHaveText('1');
     await expect(page.locator('#sp-stat-upcoming')).toHaveText('1');
+  });
+
+  test('SCRUM-68: upcoming bookings show distinct payment-status badges', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({
+      json: { recentBookings: [
+        { id: 'b1', tutorName: 'Suleiman', subject: 'Physics', startTime: new Date(Date.now() + 86400000).toISOString(), status: 'confirmed', paymentStatus: 'paid' },
+        { id: 'b2', tutorName: 'Azeem Omar-Mufti', subject: 'Maths', startTime: new Date(Date.now() + 2 * 86400000).toISOString(), status: 'confirmed', paymentStatus: 'failed' },
+        { id: 'b3', tutorName: 'Suleiman', subject: 'History', startTime: new Date(Date.now() + 3 * 86400000).toISOString(), status: 'confirmed', paymentStatus: null },
+      ] },
+    }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    // Same paymentStatus field and badge meaning as the admin panel's
+    // adRenderBookings — just surfaced to the student for the first time.
+    await expect(page.locator('.p-lesson .sp-pay-badge')).toHaveText(['Paid', 'Failed', 'Unbilled']);
   });
 
   test('shows a friendly error on a wrong password, without opening the portal', async ({ page }) => {
@@ -175,5 +205,85 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
 
     // Saved card, resolved via the stripeCustomerId on the student's own booking.
     await expect(page.locator('#sp-saved-cards')).toContainText('4242');
+  });
+
+  test('logs out automatically after 30 minutes of inactivity', async ({ page }) => {
+    // Regression guard: the inactivity monitor's isPortalOpen check looked
+    // for '#p-overlay.p-open', which never exists for the student portal —
+    // its real container is '#portal-overlay', toggled via an inline
+    // display style rather than a class. So the 30-minute timeout silently
+    // never fired for students, even though it already worked correctly
+    // for the tutor and admin portals. Fixed alongside this test.
+    await page.clock.install();
+    await mockSupabaseAuth(page);
+    await page.route('**/auth/v1/logout*', (route) => route.fulfill({ status: 204, body: '' }));
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({ json: { recentBookings: [] } }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    // No simulated activity for 30+ minutes — the last real event was the
+    // login click above, which reset the inactivity timer.
+    await page.clock.fastForward('30:01');
+    await expect(page.locator('#seeds-toast')).toContainText('Session expired');
+  });
+
+  test('SCRUM-69: offers a free trial lesson only once eligible (had consultation, no trial yet)', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({
+      json: { recentBookings: [
+        { id: 'c1', tutorName: 'Suleiman', subject: 'History', lessonType: 'consultation', startTime: new Date(Date.now() - 7 * 86400000).toISOString(), status: 'completed', paymentStatus: 'free' },
+      ] },
+    }));
+    await page.route('**/api/bookings?action=calendly-link*', (route) => route.fulfill({ status: 404, json: { error: 'not needed for this test' } }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    await page.locator('.p-nav-item', { hasText: 'Calendar' }).click();
+    await page.locator('button', { hasText: '+ Book lesson' }).click();
+    await expect(page.locator('#sp-book-type option[value="trial"]')).toHaveText('Free trial lesson');
+  });
+
+  test('SCRUM-69: does not offer a trial lesson once the student already has one', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({
+      json: { recentBookings: [
+        { id: 'c1', tutorName: 'Suleiman', subject: 'History', lessonType: 'consultation', startTime: new Date(Date.now() - 14 * 86400000).toISOString(), status: 'completed', paymentStatus: 'free' },
+        { id: 't1', tutorName: 'Suleiman', subject: 'History', lessonType: 'trial', startTime: new Date(Date.now() - 7 * 86400000).toISOString(), status: 'completed', paymentStatus: 'free' },
+      ] },
+    }));
+    await page.route('**/api/bookings?action=calendly-link*', (route) => route.fulfill({ status: 404, json: { error: 'not needed for this test' } }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    await page.locator('.p-nav-item', { hasText: 'Calendar' }).click();
+    await page.locator('button', { hasText: '+ Book lesson' }).click();
+    await expect(page.locator('#sp-book-type option[value="trial"]')).toHaveCount(0);
   });
 });
