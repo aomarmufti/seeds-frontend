@@ -1317,6 +1317,10 @@ function switchAud(e, panel) {
 .lg-tab.lg-tab-active{background:var(--navy);color:#fff}
 .lg-error{font-size:.78rem;color:#c0392b;margin-bottom:10px;display:none;padding:8px 12px;background:#fef2f2;border-radius:8px}
 .lg-success{font-size:.82rem;color:#2D7A4F;margin-top:12px;display:none;padding:10px 12px;background:#f0faf4;border-radius:8px;text-align:center}
+.lg-google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0;background:#fff;color:#3c4043;border:1.5px solid #E8E8E8;border-radius:12px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:box-shadow .2s,border-color .2s;margin-bottom:18px}
+.lg-google-btn:hover{border-color:#c8c8c8;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.lg-divider{display:flex;align-items:center;gap:12px;margin:2px 0 18px;font-size:.72rem;color:#A7A7A7;text-transform:uppercase;letter-spacing:.06em}
+.lg-divider::before,.lg-divider::after{content:'';flex:1;height:1px;background:#E8E8E8}
 .lg-close{position:absolute;top:20px;right:24px;font-size:1.5rem;color:#fff;cursor:pointer;opacity:.7;transition:opacity .2s}
 .lg-close:hover{opacity:1}
 </style>
@@ -1329,6 +1333,11 @@ function switchAud(e, panel) {
     <div id="lg-screen-signin">
       <div class="lg-brand">Seeds</div>
       <div class="lg-sub">Welcome back</div>
+      <button type="button" class="lg-google-btn" id="lg-google-btn" onclick="lgGoogleSignIn()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+        Continue with Google
+      </button>
+      <div class="lg-divider">or</div>
       <div class="lg-tab-row">
         <button class="lg-tab lg-tab-active" id="lg-tab-pw" onclick="lgShowTab('password')">Sign in</button>
         <button class="lg-tab" id="lg-tab-magic" onclick="lgShowTab('magic')">Sign up</button>
@@ -2015,6 +2024,36 @@ async function lgEnter() {
   }
 }
 
+// SCRUM-71: one button covers sign-in AND sign-up for all three roles —
+// role-based routing already happens post-session in
+// lgOpenPortalForSession(), driven by profiles.role, not by which button
+// was clicked. A brand-new Google account gets profiles.role='student'
+// from the handle_new_user() trigger (same default as today's email
+// self-signup) — there is no way for a Google sign-in to provision a
+// tutor/admin role; that still only happens via an admin's invite-tutor/
+// create-tutor flow (api/auth.js), which creates the auth user directly.
+// A tutor/admin whose email an admin already provisioned just signs in
+// with the SAME email via Google — Supabase Auth links it to their
+// existing (already role='tutor'/'admin') account automatically, it does
+// not create a second one.
+//
+// This whole button does nothing until Google OAuth is actually enabled
+// for this Supabase project (Dashboard -> Authentication -> Providers ->
+// Google, with a Client ID/Secret from Google Cloud Console, and the
+// site's URL added to Redirect URLs) — an external setup step no code
+// change can perform.
+async function lgGoogleSignIn() {
+  lgClearError();
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname },
+  });
+  // signInWithOAuth navigates the whole page away to Google on success —
+  // this only returns here if it failed before that redirect even started
+  // (e.g. the provider isn't enabled yet).
+  if (error) lgShowError(error.message || 'Google sign-in failed — please try again.');
+}
+
 async function lgSendMagic() {
   const email = document.getElementById('lg-magic-email').value.trim();
   lgClearError();
@@ -2218,7 +2257,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     if (event === 'SIGNED_IN' && session) {
       if (_lgPasswordLogin) { _lgPasswordLogin = false; return; } // handled by lgEnter
-      const isMagic = !session.user?.user_metadata?.hasPassword;
+      // SCRUM-71: a Google sign-in also has no password (same as a magic
+      // link), but must NOT be routed to the "set password" screen — Google
+      // IS their auth method, there's nothing to set. app_metadata.provider
+      // is set by Supabase Auth itself based on how this session was
+      // established, so it reliably distinguishes the two.
+      const isGoogle = session.user?.app_metadata?.provider === 'google';
+      const isMagic = !isGoogle && !session.user?.user_metadata?.hasPassword;
       await lgHandleSession(session, isMagic);
     }
   });

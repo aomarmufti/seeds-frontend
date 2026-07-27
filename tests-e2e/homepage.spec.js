@@ -79,4 +79,22 @@ test.describe('Public homepage', () => {
     const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
   });
+
+  test('SCRUM-71: the single login modal offers Google as well as email', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+
+    // One button covers student/tutor/admin alike — routing is role-driven
+    // post-session, not per-button. Deliberately not asserting on the
+    // actual OAuth redirect here: this sandbox has no outbound network, so
+    // the real Supabase SDK (loaded from a CDN) never initializes and
+    // sbClient stays undefined regardless of mocks — same limitation as
+    // every other SDK-dependent test in this suite. What IS verifiable
+    // without the SDK: the button exists, is visible, and is wired to the
+    // right handler.
+    const googleBtn = page.locator('#lg-google-btn');
+    await expect(googleBtn).toBeVisible();
+    await expect(googleBtn).toContainText('Continue with Google');
+    await expect(googleBtn).toHaveAttribute('onclick', 'lgGoogleSignIn()');
+  });
 });
