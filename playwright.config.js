@@ -17,6 +17,15 @@ module.exports = defineConfig({
   use: {
     baseURL: BASE_URL || 'http://localhost:4173',
     trace: 'retain-on-failure',
+    // Vercel Deployment Protection guards preview deployments by default —
+    // without this, every request (including the page navigation itself)
+    // gets a 401 before any of the app's own code ever runs.
+    ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? {
+      extraHTTPHeaders: {
+        'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+        'x-vercel-set-bypass-cookie': 'true',
+      },
+    } : {}),
   },
   projects: [
     {

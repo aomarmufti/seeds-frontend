@@ -54,11 +54,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           max_timeout: 300
+          vercel_protection_bypass_header: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       - name: Run against the live preview
         if: steps.wait.outputs.url
         run: npm run test:e2e
         env:
           BASE_URL: ${{ steps.wait.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       - if: always()
         uses: actions/upload-artifact@v4
         with:
