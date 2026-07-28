@@ -28,6 +28,15 @@ async function mockSupabaseAuth(page) {
   });
 }
 
+// SCRUM-84: mirrors what analytics?resource=accounts returns for the two
+// tutors these Tutors-panel tests exercise.
+const MOCK_TUTOR_ACCOUNTS = [
+  { id: 'tutor-azeem', email: 'azeem@example.com', fullName: 'Azeem Omar-Mufti', role: 'tutor',
+    tutorName: 'Azeem Omar-Mufti', subjects: 'Mathematics', lessonCount: 0 },
+  { id: 'tutor-suleiman', email: 'suleiman@example.com', fullName: 'Suleiman', role: 'tutor',
+    tutorName: 'Suleiman', subjects: 'History & Arabic', lessonCount: 0 },
+];
+
 test.describe('Admin portal (mocked Supabase + backend)', () => {
   test('logs in, shows real dashboard data, and never shows the old hardcoded fake tutor stats', async ({ page }) => {
     await mockSupabaseAuth(page);
@@ -94,6 +103,9 @@ test.describe('Admin portal (mocked Supabase + backend)', () => {
   test('edits a tutor\'s Cal.com scheduling links from the Tutors panel', async ({ page }) => {
     await mockSupabaseAuth(page);
     await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
+    // SCRUM-84: the Tutors panel now renders from the real account roster
+    // rather than a hardcoded trio, so these tests have to supply one.
+    await page.route('**/api/analytics?resource=accounts*', (route) => route.fulfill({ json: MOCK_TUTOR_ACCOUNTS }));
     await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
     await page.route('**/api/analytics', (route) => route.fulfill({
       json: {
@@ -148,6 +160,9 @@ test.describe('Admin portal (mocked Supabase + backend)', () => {
   test('sets a tutor\'s payout cycle from the Tutors panel', async ({ page }) => {
     await mockSupabaseAuth(page);
     await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
+    // SCRUM-84: the Tutors panel now renders from the real account roster
+    // rather than a hardcoded trio, so these tests have to supply one.
+    await page.route('**/api/analytics?resource=accounts*', (route) => route.fulfill({ json: MOCK_TUTOR_ACCOUNTS }));
     await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
     await page.route('**/api/analytics', (route) => route.fulfill({
       json: {
