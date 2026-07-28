@@ -173,6 +173,9 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
       json: { batches: [
         { status: 'paid', cycle: 'monthly', totalPence: 12000 },
         { status: 'payment_link_sent', cycle: 'monthly', totalPence: 4500, paymentLink: 'https://pay.example/x' },
+      ], lessons: [
+        { id: 'b1', subject: 'Physics', tutorName: 'Suleiman', startTime: '2026-07-14T14:00:00Z', feePence: 4500, paymentStatus: 'paid' },
+        { id: 'b2', subject: 'Physics', tutorName: 'Suleiman', startTime: '2026-07-21T14:00:00Z', feePence: 4500, paymentStatus: 'unbilled' },
       ] },
     }));
     await page.route('**/api/billing?resource=payment-methods*', (route) => route.fulfill({
@@ -204,6 +207,12 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
 
     // Saved card, resolved via the stripeCustomerId on the student's own booking.
     await expect(page.locator('#sp-saved-cards')).toContainText('4242');
+
+    // SCRUM-75: per-lesson breakdown alongside the batch totals — lets a
+    // family see which specific lesson a bill covered, not just the total.
+    await expect(page.locator('#sp-lesson-history')).toContainText('Paid');
+    await expect(page.locator('#sp-lesson-history')).toContainText('Unbilled');
+    await expect(page.locator('#sp-lesson-history')).toContainText('£45.00');
   });
 
   test('logs out automatically after 30 minutes of inactivity', async ({ page }) => {
