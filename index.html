@@ -3443,7 +3443,14 @@ function adLeadsRenderTable() {
         if (t==='Suleiman') return subj.includes('history')||subj.includes('arabic');
         return subj.includes('chem')||subj.includes('bio');
       }) || '';
-      actionBtn = `<button class="ad-btn-xs ad-btn-assign" onclick="adApproveStudent('${lead._supabase_id}','${suggested}',this)">Approve</button>`;
+      // SCRUM-81: a pending signup could be either a family or a tutor who
+      // signed up through the same magic-link/Google form — nothing about
+      // the account itself says which, so admin needs to pick, not have it
+      // forced to 'student' as this used to.
+      actionBtn = `<div style="display:flex;gap:6px">
+        <button class="ad-btn-xs ad-btn-assign" onclick="adApproveStudent('${lead._supabase_id}','${suggested}',this)">Approve as student</button>
+        <button class="ad-btn-xs ad-btn-view" onclick="adOpenApproveTutor('${lead._supabase_id}','${lead.name.replace(/'/g,"\\'")}')">Approve as tutor</button>
+      </div>`;
     } else if (lead.status === 'new') {
       statusPill = `<span class="ad-status-pill ad-status-new">New</span>`;
       const tutors = ['Azeem Omar-Mufti','Suleiman','Abdul-Moez'];
@@ -5174,6 +5181,62 @@ async function completeBooking() {
   </div>
 </div>
 
+<div class="ad-modal-overlay" id="ad-approve-tutor-modal">
+  <div class="ad-modal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div><h3>Approve as tutor</h3><p>Turns this pending signup into a tutor account instead of a student.</p></div>
+      <button type="button" onclick="document.getElementById('ad-approve-tutor-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">✕</button>
+    </div>
+    <div id="ad-at-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
+    <span class="lg-label">Portal display name (used in bookings)</span>
+    <input class="lg-input" type="text" id="ad-at-tutorname" placeholder="e.g. Abdul-Moez">
+    <span class="lg-label">Subjects</span>
+    <input class="lg-input" type="text" id="ad-at-subjects" placeholder="e.g. Chemistry, Biology">
+    <button class="lg-enter" id="ad-at-btn" onclick="adSubmitApproveTutor()" style="margin-top:8px">Approve as tutor →</button>
+    <div id="ad-at-success" style="display:none;font-size:.82rem;color:#2D7A4F;padding:10px 12px;background:#f0faf4;border-radius:8px;text-align:center;margin-top:10px">✓ Approved as tutor.</div>
+  </div>
+</div>
+
+<script>
+// ── ADMIN: APPROVE PENDING SIGNUP AS TUTOR ────────────────────────────────
+let _adApproveTutorUserId = null;
+function adOpenApproveTutor(userId, suggestedName) {
+  _adApproveTutorUserId = userId;
+  document.getElementById('ad-at-tutorname').value = suggestedName || '';
+  document.getElementById('ad-at-subjects').value = '';
+  document.getElementById('ad-at-error').style.display = 'none';
+  document.getElementById('ad-at-success').style.display = 'none';
+  document.getElementById('ad-at-btn').disabled = false;
+  document.getElementById('ad-at-btn').textContent = 'Approve as tutor →';
+  document.getElementById('ad-approve-tutor-modal').classList.add('open');
+}
+async function adSubmitApproveTutor() {
+  const tutorName = document.getElementById('ad-at-tutorname').value.trim();
+  const subjects = document.getElementById('ad-at-subjects').value.trim();
+  const errEl = document.getElementById('ad-at-error');
+  if (!tutorName) { errEl.textContent = 'Please enter a display name.'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('ad-at-btn');
+  btn.disabled = true; btn.textContent = 'Approving…'; errEl.style.display = 'none';
+  try {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
+      body: JSON.stringify({ action: 'approve-student', userId: _adApproveTutorUserId, role: 'tutor', tutorName, subjects }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Approval failed');
+    document.getElementById('ad-at-success').style.display = 'block';
+    btn.textContent = 'Approved ✓';
+    await adLoadAnalytics();
+    adRenderLeads();
+    setTimeout(() => document.getElementById('ad-approve-tutor-modal').classList.remove('open'), 1200);
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Approve as tutor →';
+  }
+}
+</script>
+
 <script>
 // ── ADMIN: TUTOR INVITE ───────────────────────────────────────────────────
 function adShowInviteTutor() {
@@ -6174,14 +6237,30 @@ async function tpRenderAssignedLeads() {
     trialCard.innerHTML = (hdr?.outerHTML||'') + mine.map((l,i)=>{
       const last = i===mine.length-1 ? 'border-bottom:none' : '';
       const isConfirmed = l.status === 'confirmed';
-      const actionBtn = isConfirmed
-        ? `<button class="tp-btn-xs tp-btn-ghost" style="color:#2D7A4F">Confirmed ✓</button>`
-        : `<button class="tp-btn-xs tp-btn-primary" onclick="tpOpenProposeSlots('${l.id}','${l.name}','${l.subject||''}',this)">Propose times</button>`;
+      // SCRUM-81: if this tutor has a Cal.com consultation link on file, the
+      // family already got a real scheduling link by email the moment admin
+      // assigned this lead (see api/leads.js) — the backend flags that on
+      // the lead itself (notes.calLinkSent) so this button doesn't also
+      // invite the tutor into the legacy manual-slots flow on top of it,
+      // which used to happen unconditionally regardless of Cal.com status.
+      let calLinkSent = false;
+      try { calLinkSent = !!JSON.parse(l.notes || '{}').calLinkSent; } catch(e) {}
+      let actionBtn;
+      if (isConfirmed) {
+        actionBtn = `<button class="tp-btn-xs tp-btn-ghost" style="color:#2D7A4F">Confirmed ✓</button>`;
+      } else if (calLinkSent) {
+        actionBtn = `<button class="tp-btn-xs tp-btn-ghost" style="color:#718096">Sent via Cal.com</button>`;
+      } else {
+        actionBtn = `<button class="tp-btn-xs tp-btn-primary" onclick="tpOpenProposeSlots('${l.id}','${l.name}','${l.subject||''}',this)">Propose times</button>`;
+      }
+      const meta = isConfirmed ? 'Times proposed — awaiting student choice'
+        : calLinkSent ? 'Family received a Cal.com scheduling link — awaiting their booking'
+        : 'Assigned by admin · propose available times';
       return `<div class="tp-lesson-row" style="${last}">
         <div class="tp-l-stripe" style="background:#2D7A4F"></div>
         <div class="tp-l-info">
           <div class="tp-l-subj">${l.name} — ${l.subject||''} (${l.level||''})</div>
-          <div class="tp-l-meta">${isConfirmed ? 'Times proposed — awaiting student choice' : 'Assigned by admin · propose available times'}</div>
+          <div class="tp-l-meta">${meta}</div>
         </div>
         ${actionBtn}
       </div>`;
