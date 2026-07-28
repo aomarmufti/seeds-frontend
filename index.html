@@ -2236,13 +2236,9 @@ function lgOpenPortalForSession(session, profile) {
     // dashboard — nothing in tpLoadSchedule() etc. runs without
     // earnCurrentTutor set.
     earnCurrentTutor = tutorName;
-    const t = lgTutorMap[tutorName];
-    if (t) {
-      const switcher = document.querySelector('.tp-switcher');
-      if (switcher) switcher.style.display = 'none';
-      const swEl = document.getElementById('tp-sw-' + t.key);
-      if (swEl) switchTutor(swEl, t.name, t.subject, t.initials);
-    }
+    // SCRUM-83: identity comes from this session only. lgTutorMap is now
+    // purely cosmetic (which photo, if any) and no longer gates anything.
+    tpSetIdentity(tutorName, session?.user?.email, lgTutorMap[tutorName]?.key);
     // tpLoadSchedule() (triggered by _openTutorPortal's own wrapper) fetches
     // this tutor's own bookings and calls tpUpdateHomeKPIs itself — no
     // dependency on the admin-only analytics dashboard, which a real tutor
@@ -2614,7 +2610,7 @@ function togglePHW(el){
       </div>
       <div class="ad-card">
         <table class="ad-table">
-          <thead><tr><th>Student</th><th>Parent</th><th>Email</th><th>Tutors</th><th>Lessons</th><th>Joined</th><th></th></tr></thead>
+          <thead><tr><th>Student</th><th>Parent</th><th>Email</th><th>Assigned tutor</th><th>Lessons</th><th>Joined</th><th></th></tr></thead>
           <tbody id="ad-students-tbody"><tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr></tbody>
         </table>
       </div>
@@ -3267,21 +3263,55 @@ async function adRefundBooking(bookingId, feePence, btnEl) {
   }
 }
 
+// SCRUM-84/86: single source of truth for "who is actually on the platform".
+// Cached per panel-render so the Tutors and Students views don't each refetch.
+let _adAccounts = null;
+async function adLoadAccounts(force) {
+  if (_adAccounts && !force) return _adAccounts;
+  const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics?resource=accounts`, { headers: await adAuthHeaders() });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Failed to load accounts');
+  _adAccounts = Array.isArray(data) ? data : [];
+  return _adAccounts;
+}
+function adTutorAccounts(accounts) {
+  return accounts.filter(a => a.role === 'tutor' && a.tutorName);
+}
+
 // ── TUTOR PAYOUTS PANEL (inside Tutors section) ──────────────────────────
-function adRenderTutorPayouts() {
-  if (!adData?.tutors) return;
+// SCRUM-84: tutorDefs used to be a hardcoded array of the original three
+// tutors, so every tutor created since (Invite / Create / Approve as tutor)
+// was invisible here — no payout card, no scheduling links, no cadence
+// control. Now driven by the canonical tutors/profiles data.
+async function adRenderTutorPayouts() {
   const panel = document.getElementById('ad-tutors');
   if (!panel) return;
 
   const TUTOR_CUT = 0.78;
-  const tutorDefs = [
-    { key:'Azeem Omar-Mufti', label:'Azeem Omar-Mufti', subj:'Mathematics',       colour:'#C8A15A' },
-    { key:'Suleiman',         label:'Suleiman',          subj:'History & Arabic',   colour:'#4A90D9' },
-    { key:'Abdul-Moez',       label:'Abdul-Moez',        subj:'Chemistry & Biology',colour:'#2D7A4F' },
-  ];
+  let tutorDefs;
+  try {
+    const accounts = await adLoadAccounts();
+    const palette = ['#C8A15A', '#4A90D9', '#2D7A4F', '#7B5EA7', '#C05621'];
+    tutorDefs = adTutorAccounts(accounts).map((t, i) => ({
+      key: t.tutorName,
+      label: t.tutorName,
+      subj: t.subjects || '—',
+      colour: palette[i % palette.length],
+      userId: t.id,
+      email: t.email,
+      noLogin: t.noLogin,
+    }));
+  } catch (e) {
+    panel.innerHTML = `<div style="padding:20px;color:#c0392b">Failed to load tutors: ${e.message}</div>`;
+    return;
+  }
+  if (!tutorDefs.length) {
+    panel.innerHTML = `<div style="padding:20px;color:#A7A7A7">No tutors yet — use “Create tutor” to add one.</div>`;
+    return;
+  }
 
   const payoutCards = tutorDefs.map(t => {
-    const d = adData.tutors[t.key] || { lessons:0, revenue:0, unpaid:0 };
+    const d = (adData?.tutors && adData.tutors[t.key]) || { lessons:0, revenue:0, unpaid:0 };
     const unpaid = d.unpaid;
     const totalEarned = Math.round(d.revenue * TUTOR_CUT);
     return `
@@ -3290,7 +3320,9 @@ function adRenderTutorPayouts() {
           <div>
             <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#0D1B2A">${t.label}</div>
             <div style="font-size:.78rem;color:#718096">${t.subj}</div>
+            <div style="font-size:.72rem;color:#A7A7A7;margin-top:2px">${t.email || 'No email on file'}${t.noLogin ? ' · no login yet' : ''}</div>
             <button onclick="adOpenEditCalLinks('${t.key}')" style="margin-top:6px;padding:5px 10px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.71rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🔗 Scheduling links</button>
+            ${t.userId ? `<button onclick="adDeactivateAccount('${t.userId}','${t.label.replace(/'/g,"\\'")}')" style="margin-top:6px;margin-left:6px;padding:5px 10px;background:#fff;color:#c0392b;border:1.5px solid #f5d0cd;border-radius:8px;font-size:.71rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">Deactivate</button>` : ''}
             <!-- SCRUM-76: payouts are automatic — admin picks each tutor's own cadence here. -->
             <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
               <span style="font-size:.7rem;color:#A7A7A7">💷 Payout:</span>
@@ -3385,12 +3417,17 @@ async function adRenderLeads() {
       adLeadsData = [...pendingLeads, ...adLeadsData];
     }
 
+    // SCRUM-84: real tutor names for the assign dropdown below.
+    try { _adLeadTutorNames = adTutorAccounts(await adLoadAccounts()).map(t => t.tutorName); }
+    catch(e) { _adLeadTutorNames = []; }
+
     adLeadsRenderTable();
     adLeadsUpdateTabs();
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#c0392b;padding:20px">Failed to load: ${e.message}</td></tr>`;
   }
 }
+let _adLeadTutorNames = [];
 
 function adLeadsFilter(status, el) {
   adLeadsCurrentFilter = status;
@@ -3436,13 +3473,10 @@ function adLeadsRenderTable() {
     let statusPill, actionBtn;
     if (lead.status === 'pending_signup') {
       statusPill = `<span class="ad-status-pill" style="background:#EBF4FF;color:#2B6CB0;font-weight:600;font-size:.72rem;padding:3px 9px;border-radius:20px">Pending signup</span>`;
-      const tutors = ['Azeem Omar-Mufti','Suleiman','Abdul-Moez'];
-      const suggested = tutors.find(t => {
-        const subj = (lead.subject||'').toLowerCase();
-        if (t==='Azeem Omar-Mufti') return subj.includes('math');
-        if (t==='Suleiman') return subj.includes('history')||subj.includes('arabic');
-        return subj.includes('chem')||subj.includes('bio');
-      }) || '';
+      // SCRUM-84: no longer guesses a tutor from a hardcoded trio — approve
+      // first, then assign from the Students table, where the dropdown is
+      // driven by the real tutor roster.
+      const suggested = '';
       // SCRUM-81: a pending signup could be either a family or a tutor who
       // signed up through the same magic-link/Google form — nothing about
       // the account itself says which, so admin needs to pick, not have it
@@ -3453,15 +3487,14 @@ function adLeadsRenderTable() {
       </div>`;
     } else if (lead.status === 'new') {
       statusPill = `<span class="ad-status-pill ad-status-new">New</span>`;
-      const tutors = ['Azeem Omar-Mufti','Suleiman','Abdul-Moez'];
-      const suggested = tutors.find(t => {
-        const subj = (lead.subject||'').toLowerCase();
-        if (t==='Azeem Omar-Mufti') return subj.includes('math');
-        if (t==='Suleiman') return subj.includes('history')||subj.includes('arabic');
-        return subj.includes('chem')||subj.includes('bio');
-      }) || tutors[0];
-      const shortName = suggested.split(' ')[0];
-      actionBtn = `<button class="ad-btn-xs ad-btn-assign" onclick="adAssignLead('${lead.id}','${suggested}',this)">Assign ${shortName}</button>`;
+      // SCRUM-84: pick from the real tutor roster, not a hardcoded trio, so a
+      // newly created tutor can actually be assigned a lead. Rendered as a
+      // dropdown rather than a one-shot "Assign <first tutor>" button, which
+      // gave admin no say in who got the lead.
+      const opts = _adLeadTutorNames.map(t => `<option value="${t}">${t}</option>`).join('');
+      actionBtn = _adLeadTutorNames.length
+        ? `<select onchange="if(this.value)adAssignLead('${lead.id}',this.value,this)" style="padding:4px 6px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.74rem;font-family:'Inter',sans-serif;cursor:pointer"><option value="">Assign to…</option>${opts}</select>`
+        : `<span style="font-size:.72rem;color:#A7A7A7">No tutors yet</span>`;
     } else if (lead.status === 'assigned') {
       statusPill = `<span class="ad-status-pill ad-status-assigned">Assigned — ${lead.assigned_tutor?.split(' ')[0]||''}</span>`;
       actionBtn = `<button class="ad-btn-xs ad-btn-view" onclick="adViewLead('${lead.id}')">View</button>`;
@@ -3845,20 +3878,21 @@ window.addEventListener('DOMContentLoaded', function() {
 
 <div class="tp-layout">
   <div class="tp-sidebar">
+    <!-- SCRUM-83: this was a hardcoded three-tutor switcher left over from
+    the pre-auth demo build. It was hidden only for tutors whose name matched
+    lgTutorMap, so any tutor created since (dynamic tutors table) fell through
+    and could click straight into another tutor's roster, students, leads and
+    earnings — every tutor-portal fetch keys off earnCurrentTutor, which the
+    switcher reassigned. Replaced with a read-only identity panel populated
+    from the signed-in tutor's own profile; there is no longer any way to
+    change who you are from the UI. -->
     <div class="tp-switcher">
       <div class="tp-switcher-label">Logged in as</div>
-      <div class="tp-switcher-opt tp-switcher-active" onclick="switchTutor(this,'Azeem','Mathematics','AZ')">
-        <div class="tp-switcher-av" id="tp-sw-azeem"><img src="images/azeem.jpg" loading="lazy" decoding="async" alt="Azeem"></div>
-        <span class="tp-switcher-name">Azeem</span>
+      <div class="tp-switcher-opt tp-switcher-active" style="cursor:default">
+        <div class="tp-switcher-av" id="tp-identity-av"></div>
+        <span class="tp-switcher-name" id="tp-identity-name">—</span>
       </div>
-      <div class="tp-switcher-opt" onclick="switchTutor(this,'Suleiman','History & Arabic','SU')">
-        <div class="tp-switcher-av" id="tp-sw-suleiman"><img src="images/suleiman.jpg" loading="lazy" decoding="async" alt="Suleiman"></div>
-        <span class="tp-switcher-name">Suleiman</span>
-      </div>
-      <div class="tp-switcher-opt" onclick="switchTutor(this,'Abdul-Moez','Chemistry & Biology','AM')">
-        <div class="tp-switcher-av" id="tp-sw-abdulmoez"><img src="images/abdulmoez.jpg" loading="lazy" decoding="async" alt="Abdul-Moez"></div>
-        <span class="tp-switcher-name">Abdul-Moez</span>
-      </div>
+      <div id="tp-identity-email" style="font-size:.62rem;color:rgba(255,255,255,.35);padding:0 10px 4px;overflow:hidden;text-overflow:ellipsis"></div>
     </div>
     <div style="padding:0 10px;flex:1">
       <div style="font-size:.59rem;font-weight:700;color:rgba(255,255,255,.2);letter-spacing:.12em;text-transform:uppercase;padding:11px 10px 5px">Teaching</div>
@@ -4129,13 +4163,29 @@ function showTpPanel(id, navEl){
   if(navEl) navEl.classList.add('tp-active-nav');
   closeStudentDetail();
 }
-function switchTutor(el, name, subject, initials){
-  document.querySelectorAll('.tp-switcher-opt').forEach(o=>o.classList.remove('tp-switcher-active'));
-  el.classList.add('tp-switcher-active');
+// SCRUM-83: replaces the old switchTutor(). Identity is set once from the
+// authenticated session and is not selectable — see the sidebar comment.
+function tpSetIdentity(name, email, avatarKey){
+  const initials = (name || '?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const h = new Date().getHours();
   const tod = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
-  document.getElementById('tp-greeting-name').textContent = 'Good ' + tod + ', ' + name;
+  const firstName = (name || '').split(' ')[0] || name || '';
+  document.getElementById('tp-greeting-name').textContent = 'Good ' + tod + ', ' + firstName;
   document.getElementById('tp-topbar-av').textContent = initials;
+  document.getElementById('tp-identity-name').textContent = name || '—';
+  document.getElementById('tp-identity-email').textContent = email || '';
+  // Only the three original tutors have a photo asset; everyone else gets
+  // their initials rather than a broken image.
+  const av = document.getElementById('tp-identity-av');
+  if (av) {
+    av.innerHTML = avatarKey
+      ? `<img src="images/${avatarKey}.jpg" loading="lazy" decoding="async" alt="">`
+      : '';
+    if (!avatarKey) {
+      av.textContent = initials;
+      av.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;background:rgba(255,255,255,.15)';
+    }
+  }
 }
 let _tpCurrentStudent = null; // {id, name, subject}
 
@@ -8384,28 +8434,39 @@ window.adRenderStudents = async function() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px;font-size:.82rem">Loading...</td></tr>';
   try {
-    const r = await fetchWithTimeout(AD_BACKEND + '/api/analytics?resource=students', { headers: await adAuthHeaders() });
-    const students = await r.json();
+    // SCRUM-85/86: reads the accounts roster (every profile with a student
+    // role), not the students table — an approved account that has never
+    // booked has no students row yet and used to be completely invisible
+    // here, which is why this page read "No students yet" straight after an
+    // approval. Also adds assign-tutor and deactivate, neither of which
+    // existed anywhere in the admin UI.
+    const accounts = await adLoadAccounts(true);
+    const students = accounts.filter(a => a.role === 'student');
+    const tutorNames = adTutorAccounts(accounts).map(t => t.tutorName);
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
       return;
     }
     tbody.innerHTML = students.map(s => {
-      const initials = s.student_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const bookings = s.bookings || [];
-      const tutors = [...new Set(bookings.map(b=>b.tutor_name))].join(', ') || '—';
-      const joined = new Date(s.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-      const eid = s.profile_id || s.id;
+      const name = s.studentName || s.fullName || s.email || '—';
+      const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const joined = s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      const escName = name.replace(/'/g, "\\'");
+      const opts = ['<option value="">— Unassigned —</option>']
+        .concat(tutorNames.map(t =>
+          `<option value="${t}"${t === s.assignedTutor ? ' selected' : ''}>${t}</option>`
+        )).join('');
       return `<tr>
-        <td><div style="display:flex;align-items:center;gap:9px"><div class="ad-mini-av">${initials}</div>${s.student_name}</div></td>
-        <td>${s.parent_name||'—'}</td>
-        <td style="font-size:.78rem;color:#718096">${s.parent_email||'—'}</td>
-        <td>${tutors}</td>
-        <td>${bookings.length}</td>
+        <td><div style="display:flex;align-items:center;gap:9px"><div class="ad-mini-av">${initials}</div>${name}</div></td>
+        <td>${s.parentName||'—'}</td>
+        <td style="font-size:.78rem;color:#718096">${s.email||'—'}</td>
+        <td><select onchange="adAssignTutor('${s.id}',this.value,this)" style="padding:4px 6px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.74rem;font-family:'Inter',sans-serif;cursor:pointer;max-width:150px">${opts}</select></td>
+        <td>${s.lessonCount}</td>
         <td style="color:#718096">${joined}</td>
         <td style="white-space:nowrap">
-          <button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adOpenEditStudent('${eid}','${s.student_name}','','','')">Edit</button>
-          <button class="ad-btn-xs ad-btn-ghost" onclick="adLogSafeguarding('${s.id}','${s.student_name}')" title="Safeguarding log">🛡</button>
+          <button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adOpenEditStudent('${s.id}','${escName}','','','')">Edit</button>
+          ${s.studentId ? `<button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adLogSafeguarding('${s.studentId}','${escName}')" title="Safeguarding log">🛡</button>` : ''}
+          <button class="ad-btn-xs ad-btn-ghost" style="color:#c0392b" onclick="adDeactivateAccount('${s.id}','${escName}')">Deactivate</button>
         </td>
       </tr>`;
     }).join('');
@@ -8413,6 +8474,46 @@ window.adRenderStudents = async function() {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#c0392b;padding:20px">Failed: ${e.message}</td></tr>`;
   }
 };
+
+// SCRUM-86: assign or move a student to a tutor. profiles.assigned_tutor
+// already existed but nothing in the UI ever wrote to it.
+async function adAssignTutor(userId, tutorName, sel) {
+  const prev = sel.dataset.prev || '';
+  sel.disabled = true;
+  try {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
+      body: JSON.stringify({ action: 'assign-tutor', userId, tutorName }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    sel.dataset.prev = tutorName;
+    seedsToast(tutorName ? `Assigned to ${tutorName}` : 'Tutor unassigned', false);
+  } catch(e) {
+    sel.value = prev;
+    seedsToast('Could not assign tutor: ' + e.message);
+  } finally { sel.disabled = false; }
+}
+
+async function adDeactivateAccount(userId, name) {
+  if (!confirm(`Deactivate ${name}?\n\nThey will no longer be able to sign in. Past bookings, payouts and records are kept.`)) return;
+  try {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
+      body: JSON.stringify({ action: 'deactivate-account', userId }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    seedsToast(`${name} deactivated`, false);
+    _adAccounts = null;
+    adRenderStudents();
+    adRenderTutorPayouts();
+  } catch(e) {
+    seedsToast('Could not deactivate: ' + e.message);
+  }
+}
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════════════
