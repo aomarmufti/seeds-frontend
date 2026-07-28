@@ -2589,7 +2589,7 @@ function togglePHW(el){
       </div>
       <div class="ad-card">
         <table class="ad-table">
-          <thead><tr><th>Student</th><th>Tutor</th><th>Subject</th><th>Date &amp; time</th><th>Type</th><th>Payment</th><th>Actions</th><th>Charge</th></tr></thead>
+          <thead><tr><th>Student</th><th>Tutor</th><th>Subject</th><th>Date &amp; time</th><th>Type</th><th>Outcome</th><th>Payment</th><th>Actions</th><th>Charge</th></tr></thead>
           <tbody id="ad-bookings-tbody">
             <tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px;font-size:.82rem">Loading…</td></tr>
           </tbody>
@@ -3012,12 +3012,13 @@ function adRenderBookings(filterTutor='', filterStatus='', filterDate='', filter
     const actions = isCancelled ? '' : `
       <button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adRescheduleBooking('${b.id}','${b.startTime}')">Reschedule</button>
       <button class="ad-btn-xs" style="color:#c0392b;border:1px solid #f0d0d0;background:#fff" onclick="adCancelBooking('${b.id}',this)">Cancel</button>`;
-    return `<tr${isCancelled?' style="opacity:0.5"':''}>
+    return `<tr${isCancelled && b.deliveryStatus !== 'late_cancelled' ?' style="opacity:0.5"':''}>
       <td><div style="display:flex;align-items:center;gap:9px"><div class="ad-mini-av">${initials}</div>${b.studentName}</div></td>
       <td>${b.tutorName}</td>
       <td>${b.subject}</td>
       <td>${adDateFmt(b.startTime)}</td>
       <td>${TYPE_LABEL[b.lessonType]||b.lessonType}</td>
+      <td>${adDeliveryBadge(b)}</td>
       <td>${payBadge}</td>
       <td style="white-space:nowrap">${actions}</td>
       <td>${b.paymentStatus === 'unbilled' && b.feePence > 0 && b.status !== 'cancelled' ? `<button class="ad-btn-xs" style="color:#2D7A4F;border:1px solid #c3e6cb;background:#fff" onclick="adChargeStudent('${b.id}',this)">💳 Charge now</button>` : ''} ${b.paymentIntentId ? `<button class="ad-btn-xs ad-btn-ghost" onclick="adDownloadInvoice('${b.id}')">Receipt</button>` : ''}</td>
@@ -3025,17 +3026,56 @@ function adRenderBookings(filterTutor='', filterStatus='', filterDate='', filter
   }).join('');
 }
 
+// SCRUM-88: what actually happened in the lesson, which is now what decides
+// whether it gets billed and paid out. "Awaiting" is the state that matters
+// most to an admin — those lessons are stuck, invisible to both sweeps until
+// the tutor answers.
+function adDeliveryBadge(b) {
+  const S = {
+    delivered:      ['Taught',            '#2D7A4F', '#EAF5EE'],
+    no_show:        ['No-show',           '#C0632F', '#FDF0E8'],
+    late_cancelled: ['Late cancellation', '#C0632F', '#FDF0E8'],
+    waived:         ['Waived',            '#8A8A8A', '#F4F4F4'],
+  };
+  if (b.deliveryStatus) {
+    const [label, fg, bg] = S[b.deliveryStatus] || [b.deliveryStatus, '#8A8A8A', '#F4F4F4'];
+    const by = b.deliveryMarkedBy ? ' — marked by ' + b.deliveryMarkedBy : '';
+    const note = b.deliveryNote ? '\n' + b.deliveryNote : '';
+    return `<span class="ad-pay-status" title="${(label + by + note).replace(/"/g,'&quot;')}" style="background:${bg};color:${fg}">${label}</span>`;
+  }
+  if (b.status === 'requested') return '<span class="ad-pay-status" style="background:#f5f5f5;color:#999">Not confirmed</span>';
+  const finished = b.endTime && new Date(b.endTime) < new Date();
+  if (!finished) return '<span style="color:#C7C7C7">—</span>';
+  return '<span class="ad-pay-status" title="Nobody has confirmed whether this lesson happened. It will not be billed or paid out until they do." style="background:#FFF3CD;color:#8a6d00">Awaiting</span>';
+}
+
 async function adCancelBooking(bookingId, btn) {
-  if (!confirm('Cancel this booking?\n\nIf the student paid, a Stripe refund will be issued automatically.')) return;
+  // SCRUM-88: who cancelled decides whether the family pays. A family
+  // cancelling inside 18 hours is charged in full and the tutor is paid for
+  // the slot they held; anyone else cancelling is free. The admin has to say
+  // which it was, because the backend can't know — and defaulting silently
+  // to "family" would charge people for lessons Seeds itself called off.
+  const who = prompt(
+    'Who cancelled this lesson?\n\n' +
+    '  1 — Seeds/admin (not charged)\n' +
+    '  2 — The tutor (not charged)\n' +
+    '  3 — The family (charged in full if inside 18 hours\' notice)\n\n' +
+    'Enter 1, 2 or 3:', '1');
+  if (who === null) return;
+  const cancelledBy = { '1': 'seeds', '2': 'tutor', '3': 'family' }[who.trim()];
+  if (!cancelledBy) { alert('Please enter 1, 2 or 3.'); return; }
+  if (!confirm('Cancel this booking?\n\nAny refund due will be issued automatically. A late family cancellation is charged in full and is not refunded.')) return;
   btn.disabled = true; btn.textContent = 'Cancelling…';
   try {
     const r = await fetchWithTimeout(`${AD_BACKEND}/api/analytics`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
-      body: JSON.stringify({ action: 'cancel-booking', bookingId }),
+      body: JSON.stringify({ action: 'cancel-booking', bookingId, cancelledBy }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Failed');
-    if (data.refunded) {
+    if (data.chargeable) {
+      seedsToast('✓ Cancelled — charged in full. ' + (data.policyReason || ''), false);
+    } else if (data.refunded) {
       seedsToast('✓ Booking cancelled — Stripe refund issued (' + data.refundId + ')', false);
     } else {
       seedsToast('✓ Booking cancelled (no payment on file)', false);
@@ -6340,8 +6380,42 @@ async function tpConfirmRequest(bookingId, btn) {
   }
 }
 
+// SCRUM-88: finished lessons nobody has said anything about yet. These are
+// invisible to billing and to payouts until the tutor answers, so this is
+// the tutor's own money sitting unclaimed — it belongs at the top of their
+// home screen, not buried in the calendar.
+function tpRenderAwaitingDelivery() {
+  const host = document.getElementById('tp-home');
+  if (!host) return;
+  const existing = document.getElementById('tp-delivery-card');
+  const now = Date.now();
+  const awaiting = tpLiveBookings
+    .filter(b => !b.deliveryStatus && b.status === 'confirmed' && b.endTime && new Date(b.endTime) < now)
+    .sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
+  if (!awaiting.length) { if (existing) existing.remove(); return; }
+
+  const card = existing || document.createElement('div');
+  card.id = 'tp-delivery-card';
+  // Same reasoning as tp-requests-card: not class "tp-card", or
+  // tpRenderHomeToday() would grab this instead of the today-lessons card.
+  card.style.cssText = 'margin-bottom:16px;border:1.5px solid #CFE3F5;background:#F7FBFF;border-radius:14px;padding:16px 18px';
+  card.innerHTML = `<div class="tp-card-hdr"><span class="tp-card-title">📋 Confirm what happened (${awaiting.length})</span></div>`
+    + `<div style="font-size:.75rem;color:#718096;margin:-4px 0 10px">Families aren't charged and you aren't paid until these are confirmed.</div>`
+    + awaiting.slice(0, 8).map((b,i) => `<div class="tp-lesson-row"${i===Math.min(awaiting.length,8)-1?' style="border-bottom:none"':''}>
+        <div class="tp-l-stripe" style="background:#4A90D9"></div>
+        <div class="tp-l-info">
+          <div class="tp-l-subj">${b.studentName||'A student'} — ${b.subject||TYPE_LBL[b.lessonType]||b.lessonType}</div>
+          <div class="tp-l-meta">${tpFmt(b.startTime)}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${tpDeliveryControl(b)}</div>
+      </div>`).join('')
+    + (awaiting.length > 8 ? `<div style="font-size:.72rem;color:#A7A7A7;padding-top:8px">…and ${awaiting.length - 8} more in your calendar.</div>` : '');
+  if (!existing) host.insertBefore(card, host.firstChild);
+}
+
 function tpRenderHomeToday() {
   tpRenderPendingRequests();
+  tpRenderAwaitingDelivery();
   const card = document.querySelector('#tp-home > .tp-card');
   if (!card) return;
   const hdr = card.querySelector('.tp-card-hdr');
@@ -7672,6 +7746,59 @@ async function tpSelfCancel() {
   } catch(e) { seedsToast('Failed: ' + e.message); }
 }
 
+// ══ LESSON DELIVERY ATTESTATION (SCRUM-88) ═══════════════════════════════
+// Nothing is billed to a family or paid to a tutor until the tutor says what
+// actually happened. Before this, a lesson was charged simply because its
+// start time had passed — a no-show or a lesson that never ran was billed
+// exactly like one that was taught.
+async function tpMarkDelivered(bookingId, outcome, studentName) {
+  const LABEL = {
+    delivered: 'Confirm this lesson went ahead?',
+    no_show: 'Mark as a no-show? ' + (studentName || 'The student') + ' will still be charged for the slot, and you\'ll still be paid for it.',
+    waived: 'Waive this lesson? Nobody is charged and you won\'t be paid for it.',
+  };
+  if (!confirm(LABEL[outcome])) return;
+  let note = null;
+  if (outcome !== 'delivered') {
+    // A charge the family didn't expect needs a reason attached to it —
+    // "you were charged for a lesson you say didn't happen" is not a
+    // conversation anyone should have to reconstruct from memory later.
+    note = prompt('Add a short note for our records (optional):', '') || null;
+  }
+  try {
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=mark-delivered', {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ bookingId, outcome, note }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    seedsToast('✓ Lesson marked', false);
+    if (typeof tpLoadSchedule === 'function') tpLoadSchedule();
+  } catch(e) { seedsToast('Could not save: ' + e.message); }
+}
+
+// Renders either the outcome already recorded, or the buttons to record one.
+// Returns '' for anything that isn't a finished, confirmed lesson, so the
+// control never appears on a lesson that hasn't happened yet.
+function tpDeliveryControl(b) {
+  const OUTCOME_LBL = {
+    delivered: '✓ Taught', no_show: '⚠ No-show',
+    late_cancelled: '⚠ Late cancellation', waived: '— Waived',
+  };
+  if (b.deliveryStatus) {
+    const chargeable = b.deliveryStatus !== 'waived';
+    return `<span title="${chargeable ? 'Chargeable' : 'Not charged'}" style="padding:5px 9px;border-radius:7px;font-size:.68rem;font-weight:700;color:${chargeable?'#2D7A4F':'#A7A7A7'};background:${chargeable?'#EAF5EE':'#F4F4F4'};white-space:nowrap">${OUTCOME_LBL[b.deliveryStatus]||b.deliveryStatus}</span>`;
+  }
+  // end_time, not start_time: a lesson in progress is not yet a lesson that
+  // happened, and the backend rejects attesting one either way.
+  const finished = b.endTime && new Date(b.endTime) < new Date();
+  if (!finished || b.status === 'requested' || b.status === 'cancelled') return '';
+  const sn = (b.studentName || '').replace(/'/g, '');
+  const btn = (outcome, label, bg) =>
+    `<button onclick="tpMarkDelivered('${b.id||''}','${outcome}','${sn}')" style="padding:6px 10px;border:1.5px solid ${bg};border-radius:7px;font-size:.71rem;font-weight:700;color:${bg};cursor:pointer;background:#fff;font-family:Inter,sans-serif">${label}</button>`;
+  return btn('delivered', '✓ Taught', '#2D7A4F') + btn('no_show', 'No-show', '#C0632F');
+}
+
 // ══ SESSION TIMEOUT (30 min inactivity) ══════════════════════════════════
 (function() {
   let _timer;
@@ -8346,11 +8473,21 @@ function spRenderLessonHistory(lessons) {
   }
   el.innerHTML = lessons.map(l => {
     const st = SP_PAYMENT_STATUS_LABEL[l.paymentStatus] || { text: l.paymentStatus, colour: '#718096' };
+    // SCRUM-88: a charge for a lesson the family cancelled, or one nobody
+    // turned up to, reads as a billing error unless it says why it's there.
+    const NOTE = {
+      late_cancelled: 'Cancelled with less than 18 hours’ notice — charged in full',
+      no_show: 'Marked as a no-show by your tutor',
+      waived: 'Not charged',
+    };
+    const outcomeNote = NOTE[l.deliveryStatus]
+      ? `<div style="font-size:.72rem;color:#C0632F;margin-top:2px">${NOTE[l.deliveryStatus]}</div>` : '';
     return `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F0EDE8">
         <div>
           <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${l.subject || 'Lesson'} &mdash; ${l.tutorName}</div>
           <div style="font-size:.75rem;color:#718096">${new Date(l.startTime).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+          ${outcomeNote}
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:.72rem;font-weight:700;color:${st.colour}">${st.text}</span>
@@ -9207,7 +9344,7 @@ function tpCalRenderListItems(bookings, headerText) {
         <div class="cal-ev-subj">${b.studentName} — ${b.subject} (${TYPE_LBL[b.lessonType]||b.lessonType})</div>
         <div class="cal-ev-meta">${tpFmt(b.startTime)}${b.meetLink?' · <a href="'+b.meetLink+'" target="_blank" style="color:#4A90D9;text-decoration:none">Meeting link ↗</a>':''}</div>
       </div>
-      <div style="display:flex;gap:6px">${joinBtn}${prepBtn}${manageBtn}</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${joinBtn}${prepBtn}${manageBtn}${tpDeliveryControl(b)}</div>
     </div>`;
   }).join('');
 }

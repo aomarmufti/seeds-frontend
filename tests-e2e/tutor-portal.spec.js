@@ -89,6 +89,69 @@ test.describe('Tutor portal (mocked Supabase + backend)', () => {
     await expect(page.getByRole('button', { name: /Request payout/i })).toHaveCount(0);
   });
 
+  // SCRUM-88: a finished lesson is billed to nobody and paid to nobody until
+  // the tutor says what happened, so the prompt to say so has to be
+  // impossible to miss — it's the tutor's own money waiting on it.
+  test('SCRUM-88: finished lessons awaiting an outcome are surfaced, and marking one calls the backend', async ({ page }) => {
+    await mockSupabaseAuth(page, { role: 'tutor', fullName: 'Suleiman', tutorName: 'Suleiman' });
+
+    const now = Date.now();
+    const finishedStart = new Date(now - 2 * 86400000).toISOString();
+    const finishedEnd = new Date(now - 2 * 86400000 + 55 * 60000).toISOString();
+    const futureStart = new Date(now + 2 * 86400000).toISOString();
+    const futureEnd = new Date(now + 2 * 86400000 + 55 * 60000).toISOString();
+
+    await page.route('**/api/analytics?resource=my-tutor-bookings*', (route) => route.fulfill({
+      json: {
+        recentBookings: [
+          // Finished, nobody has said what happened — this is the one that
+          // must be surfaced.
+          { id: 'b-await', studentId: 's1', studentName: 'Student One', tutorName: 'Suleiman', subject: 'History',
+            startTime: finishedStart, endTime: finishedEnd, status: 'confirmed', feePence: 4000,
+            paymentStatus: 'unbilled', deliveryStatus: null },
+          // Finished and already attested — settled, must not be asked about again.
+          { id: 'b-done', studentId: 's2', studentName: 'Student Two', tutorName: 'Suleiman', subject: 'Arabic',
+            startTime: finishedStart, endTime: finishedEnd, status: 'completed', feePence: 4000,
+            paymentStatus: 'paid', deliveryStatus: 'delivered' },
+          // Hasn't happened yet — must never be markable, or the endpoint
+          // would just recreate the bug it exists to fix.
+          { id: 'b-future', studentId: 's3', studentName: 'Student Three', tutorName: 'Suleiman', subject: 'Maths',
+            startTime: futureStart, endTime: futureEnd, status: 'confirmed', feePence: 4000,
+            paymentStatus: 'unbilled', deliveryStatus: null },
+        ],
+      },
+    }));
+    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/analytics?resource=students*', (route) => route.fulfill({ json: [] }));
+
+    let markCall = null;
+    await page.route('**/api/lifecycle?resource=mark-delivered*', async (route) => {
+      markCall = JSON.parse(route.request().postData() || '{}');
+      await route.fulfill({ json: { success: true } });
+    });
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('tutor@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#tp-overlay')).toHaveClass(/tp-open/);
+
+    const card = page.locator('#tp-delivery-card');
+    await expect(card).toBeVisible();
+    // Exactly one lesson is awaiting an answer: not the settled one, and
+    // not the one that hasn't happened.
+    await expect(card).toContainText('Confirm what happened (1)');
+    await expect(card).toContainText('Student One');
+    await expect(card).not.toContainText('Student Two');
+    await expect(card).not.toContainText('Student Three');
+
+    page.on('dialog', (d) => d.accept());
+    await card.getByRole('button', { name: /Taught/ }).click();
+    await expect.poll(() => markCall).not.toBeNull();
+    expect(markCall).toMatchObject({ bookingId: 'b-await', outcome: 'delivered' });
+  });
+
   test('shows a friendly error on a wrong password, without opening the tutor portal', async ({ page }) => {
     await page.route('**/auth/v1/token*', (route) => route.fulfill({
       status: 400,
