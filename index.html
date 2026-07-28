@@ -3262,6 +3262,7 @@ function adRenderTutorPayouts() {
           <div>
             <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#0D1B2A">${t.label}</div>
             <div style="font-size:.78rem;color:#718096">${t.subj}</div>
+            <button onclick="adOpenEditCalLinks('${t.key}')" style="margin-top:6px;padding:5px 10px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.71rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🔗 Scheduling links</button>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div style="text-align:right">
@@ -7539,6 +7540,26 @@ window._openStudentPortal = function() {
   </div>
 </div>
 
+<!-- EDIT TUTOR SCHEDULING LINKS MODAL (SCRUM-74) -->
+<div class="ad-modal-overlay" id="ad-edit-cal-links-modal">
+  <div class="ad-modal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <h3>Scheduling links</h3>
+      <button type="button" onclick="document.getElementById('ad-edit-cal-links-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
+    </div>
+    <p style="margin-bottom:14px">Each tutor's own Cal.com account's public booking links. Leave a field blank to clear it — a tutor with no link for a lesson type falls back to the manual propose-slots flow.</p>
+    <input type="hidden" id="ad-ecl-tutor-name">
+    <div id="ad-ecl-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
+    <span class="lg-label">Lesson (GCSE/A-Level/Group)</span>
+    <input class="lg-input" type="url" id="ad-ecl-lesson" placeholder="https://cal.com/username/lesson" style="margin-bottom:8px">
+    <span class="lg-label">Initial Consultation (15 min, free)</span>
+    <input class="lg-input" type="url" id="ad-ecl-consultation" placeholder="https://cal.com/username/15min" style="margin-bottom:8px">
+    <span class="lg-label">Free trial lesson</span>
+    <input class="lg-input" type="url" id="ad-ecl-trial" placeholder="https://cal.com/username/60min" style="margin-bottom:14px">
+    <button class="lg-enter" id="ad-ecl-save-btn" onclick="adSaveCalLinks()" style="padding:11px 0;font-size:.85rem;margin:0">Save changes &rarr;</button>
+  </div>
+</div>
+
 <!-- EDIT STUDENT MODAL -->
 <div class="ad-modal-overlay" id="ad-edit-student-modal">
   <div class="ad-modal">
@@ -7682,6 +7703,61 @@ async function adDeactivateTutor() {
     seedsToast('✓ Tutor deactivated', false);
     adData = null; await adLoadAnalytics();
   } catch(e) { seedsToast('Failed: ' + e.message); }
+}
+
+// ══ TUTOR SCHEDULING LINKS (SCRUM-74) ═══════════════════════════════════
+// Each tutor's own Cal.com account's three public booking links — no
+// admin UI for these existed until now (SQL-only, set by hand during the
+// Calendly→Cal.com migration for the one tutor with an account already).
+async function adOpenEditCalLinks(tutorName) {
+  document.getElementById('ad-ecl-tutor-name').value = tutorName;
+  document.getElementById('ad-ecl-error').style.display = 'none';
+  document.getElementById('ad-ecl-lesson').value = '';
+  document.getElementById('ad-ecl-consultation').value = '';
+  document.getElementById('ad-ecl-trial').value = '';
+  document.getElementById('ad-ecl-save-btn').disabled = false;
+  document.getElementById('ad-ecl-save-btn').textContent = 'Save changes →';
+  document.getElementById('ad-edit-cal-links-modal').classList.add('open');
+  try {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/auth', {
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
+      body: JSON.stringify({ action: 'get-tutor-links', tutorName }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    document.getElementById('ad-ecl-lesson').value = d.calLessonLink || '';
+    document.getElementById('ad-ecl-consultation').value = d.calConsultationLink || '';
+    document.getElementById('ad-ecl-trial').value = d.calTrialLink || '';
+  } catch(e) {
+    const errEl = document.getElementById('ad-ecl-error');
+    errEl.textContent = 'Could not load current links: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function adSaveCalLinks() {
+  const btn = document.getElementById('ad-ecl-save-btn');
+  const errEl = document.getElementById('ad-ecl-error');
+  btn.disabled = true; btn.textContent = 'Saving…'; errEl.style.display = 'none';
+  try {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/auth', {
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
+      body: JSON.stringify({
+        action: 'edit-tutor-links',
+        tutorName: document.getElementById('ad-ecl-tutor-name').value,
+        calLessonLink: document.getElementById('ad-ecl-lesson').value.trim(),
+        calConsultationLink: document.getElementById('ad-ecl-consultation').value.trim(),
+        calTrialLink: document.getElementById('ad-ecl-trial').value.trim(),
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    document.getElementById('ad-edit-cal-links-modal').classList.remove('open');
+    seedsToast('✓ Scheduling links updated', false);
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Save changes →';
+  }
 }
 
 // ══ EDIT STUDENT ════════════════════════════════════════════════════════
