@@ -238,10 +238,76 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
     await page.locator('#lg-enter').click();
     await expect(page.locator('#portal-overlay')).toBeVisible();
 
+    // Let the portal's own data loads settle first. fastForward advances
+    // every pending timer, including fetchWithTimeout's abort timers — if a
+    // request is still in flight when the clock jumps, it aborts and toasts
+    // "Could not load your lessons" into the same shared #seeds-toast we
+    // assert on below, which is a race, not a real failure.
+    await expect(page.locator('#p-home')).toContainText('Start with a free consultation');
+
     // No simulated activity for 30+ minutes — the last real event was the
     // login click above, which reset the inactivity timer.
     await page.clock.fastForward('30:01');
     await expect(page.locator('#seeds-toast')).toContainText('Session expired');
+  });
+
+  test('SCRUM-87: a session awaiting the tutor is tagged pending in the calendar', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    // A consultation the student requested for themselves — real and holding
+    // the slot, but not confirmed until the tutor accepts it.
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({
+      json: { recentBookings: [
+        { id: 'r1', tutorName: 'Suleiman', subject: 'History', lessonType: 'consultation',
+          startTime: new Date(Date.now() + 3 * 86400000).toISOString(), status: 'requested', paymentStatus: 'free' },
+      ] },
+    }));
+    await page.route('**/api/bookings?action=scheduling-link*', (route) => route.fulfill({ status: 404, json: { error: 'not needed for this test' } }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    await expect(page.locator('#p-home')).toContainText('Pending tutor confirmation');
+    // A request in flight already counts, so no second consultation is offered.
+    await page.locator('.p-nav-item', { hasText: 'Calendar' }).click();
+    await page.locator('button', { hasText: '+ Book lesson' }).click();
+    await expect(page.locator('#sp-book-type option[value="consultation"]')).toHaveCount(0);
+  });
+
+  test('SCRUM-87: a student with no bookings at all is offered a free consultation', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    // A freshly approved account: nothing booked, no consultation yet. This
+    // used to be a dead end — only paid lesson types were offered, and the
+    // free trial only unlocks after a consultation.
+    await page.route('**/api/analytics?resource=my-bookings*', (route) => route.fulfill({ json: { recentBookings: [] } }));
+    await page.route('**/api/bookings?action=scheduling-link*', (route) => route.fulfill({ status: 404, json: { error: 'not needed for this test' } }));
+    await page.route('**/api/billing?resource=billing-history*', (route) => route.fulfill({ json: { batches: [] } }));
+    await page.route('**/api/leads?email=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=progress*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/lifecycle?resource=homework*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('student@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#portal-overlay')).toBeVisible();
+
+    // The empty state points them at the consultation instead of dead-ending.
+    await expect(page.locator('#p-home')).toContainText('Start with a free consultation');
+
+    await page.locator('.p-nav-item', { hasText: 'Calendar' }).click();
+    await page.locator('button', { hasText: '+ Book lesson' }).click();
+    await expect(page.locator('#sp-book-type option[value="consultation"]')).toHaveText('Free initial consultation (15 min)');
+    // Free sessions are requests, not instant bookings — copy must say so.
+    await expect(page.locator('#sp-book-btn')).toHaveText('Request this time →');
   });
 
   test('SCRUM-69: offers a free trial lesson only once eligible (had consultation, no trial yet)', async ({ page }) => {
