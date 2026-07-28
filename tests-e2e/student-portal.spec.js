@@ -238,6 +238,13 @@ test.describe('Student portal (mocked Supabase + backend)', () => {
     await page.locator('#lg-enter').click();
     await expect(page.locator('#portal-overlay')).toBeVisible();
 
+    // Let the portal's own data loads settle first. fastForward advances
+    // every pending timer, including fetchWithTimeout's abort timers — if a
+    // request is still in flight when the clock jumps, it aborts and toasts
+    // "Could not load your lessons" into the same shared #seeds-toast we
+    // assert on below, which is a race, not a real failure.
+    await expect(page.locator('#p-home')).toContainText('Start with a free consultation');
+
     // No simulated activity for 30+ minutes — the last real event was the
     // login click above, which reset the inactivity timer.
     await page.clock.fastForward('30:01');
