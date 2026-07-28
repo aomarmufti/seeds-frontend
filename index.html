@@ -1716,7 +1716,7 @@ function switchAud(e, panel) {
       <span class="lg-label">Subject</span>
       <input class="lg-input" type="text" id="sp-book-subject" placeholder="e.g. Mathematics" style="margin-bottom:10px">
       <span class="lg-label">Lesson type</span>
-      <select class="lg-input" id="sp-book-type" onchange="spLoadBookCal()" style="cursor:pointer;margin-bottom:10px">
+      <select class="lg-input" id="sp-book-type" onchange="spLoadBookCal();spSyncBookCopy()" style="cursor:pointer;margin-bottom:10px">
         <option value="gcse">GCSE 1:1 — £40</option>
         <option value="alevel">A-Level 1:1 — £45</option>
         <option value="group">Group session — £20</option>
@@ -1727,7 +1727,7 @@ function switchAud(e, panel) {
         <iframe id="sp-book-cal-embed" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox" style="width:100%;min-width:280px;height:480px;border:none"></iframe>
       </div>
       <div id="sp-book-time-chosen" style="display:none;font-size:.8rem;color:#2D7A4F;padding:8px 12px;background:#f0faf4;border-radius:8px;margin-bottom:10px"></div>
-      <div style="background:#FAF8F4;border-radius:10px;padding:12px 14px;font-size:.8rem;color:#4A5568;margin-bottom:14px">
+      <div id="sp-book-note" style="background:#FAF8F4;border-radius:10px;padding:12px 14px;font-size:.8rem;color:#4A5568;margin-bottom:14px">
         💳 No payment needed now — this lesson will be included in your next billing cycle (see Payments in your portal).
       </div>
       <button class="lg-enter" id="sp-book-btn" onclick="spSubmitBooking()">Book lesson →</button>
@@ -5827,23 +5827,47 @@ function spRenderHome(studentName) {
   if (!card) return;
   const hdr = card.querySelector('.p-card-hdr');
   if (!upcoming.length) {
-    card.innerHTML = (hdr?.outerHTML||'') + '<div style="padding:16px;text-align:center;color:#A7A7A7;font-size:.82rem">No upcoming lessons yet — your tutor will be in touch soon.</div>';
+    // SCRUM-87: an approved student with no bookings used to get a dead end
+    // here ("your tutor will be in touch soon") with nothing to act on —
+    // the only route to a first consultation was the pre-signup wizard on
+    // the public site, which they've already been through or never saw.
+    const hasConsultation = spBookings.some(b => b.lessonType === 'consultation');
+    card.innerHTML = (hdr?.outerHTML||'') + `<div style="padding:22px 16px;text-align:center">
+      <div style="font-size:1.6rem;margin-bottom:8px">🌱</div>
+      <div style="font-size:.9rem;font-weight:600;color:#0D1B2A;margin-bottom:4px">${hasConsultation ? 'No upcoming lessons' : 'Start with a free consultation'}</div>
+      <div style="font-size:.8rem;color:#718096;margin-bottom:14px">${hasConsultation
+        ? 'Book your next lesson whenever you\'re ready.'
+        : 'A free 15-minute chat to talk through goals and find the right tutor. No payment needed.'}</div>
+      <button onclick="spOpenBook()" style="padding:10px 18px;background:#0D1B2A;color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">${hasConsultation ? 'Book a lesson' : 'Book my free consultation →'}</button>
+    </div>`;
     return;
   }
-  const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F'};
+  const COLOURS = {gcse:'#C8A15A',alevel:'#7B5EA7',group:'#4A90D9',trial:'#2D7A4F',consultation:'#C8A15A'};
   const TYPE_LBL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group',trial:'Free trial',consultation:'Initial Consultation'};
   card.innerHTML = (hdr?.outerHTML||'') + upcoming.map(b => {
     const lbl = spTimeLabel(b.startTime);
     const isLive = lbl === '🔴 Live';
+    // SCRUM-87: a free session the student requested themselves is real and
+    // holds the slot, but isn't confirmed until the tutor accepts it — say
+    // so plainly rather than showing it as a normal booked lesson.
+    const isPending = b.status === 'requested';
     return `<div class="p-lesson">
-      <div class="p-l-stripe" style="background:${COLOURS[b.lessonType]||'#C8A15A'}"></div>
+      <div class="p-l-stripe" style="background:${isPending ? '#A7A7A7' : (COLOURS[b.lessonType]||'#C8A15A')}"></div>
       <div class="p-l-info">
-        <div class="p-l-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}${spPayBadge(b)}</div>
+        <div class="p-l-subj">${b.subject} — ${TYPE_LBL[b.lessonType]||b.lessonType}${isPending ? spPendingBadge() : spPayBadge(b)}</div>
         <div class="p-l-meta">${spFmt(b.startTime)} · ${b.tutorName} · 55 min</div>
       </div>
-      <button class="p-join-btn ${isLive?'p-join-live':'p-join-soon'}"${isLive?` onclick="spJoinLesson('${b.meetLink||''}')"`:''}>${lbl||'Soon'}</button>
+      ${isPending
+        ? `<button class="p-join-btn p-join-soon" style="cursor:default;opacity:.7" title="Waiting for your tutor to confirm">Requested</button>`
+        : `<button class="p-join-btn ${isLive?'p-join-live':'p-join-soon'}"${isLive?` onclick="spJoinLesson('${b.meetLink||''}')"`:''}>${lbl||'Soon'}</button>`}
     </div>`;
   }).join('');
+}
+
+// SCRUM-87: pill shown instead of the payment badge while a requested free
+// session is waiting on its tutor.
+function spPendingBadge() {
+  return `<span style="display:inline-block;margin-left:7px;padding:2px 8px;border-radius:20px;background:#FDF6E7;color:#8A6D1F;font-size:.66rem;font-weight:700;vertical-align:middle">⏳ Pending tutor confirmation</span>`;
 }
 
 // ── LIVE CALENDAR ENGINE ─────────────────────────────────────────────────
@@ -6026,8 +6050,41 @@ function spOpenInPortalBooking() {
     existingTrialOpt.remove();
   }
 
+  // SCRUM-87: a student who hasn't had their Initial Consultation yet had
+  // no way to get one from inside the portal at all — and since the free
+  // trial above only unlocks *after* a consultation, they were stuck with
+  // nothing but paid lesson types. Offer it, first and selected by default.
+  const existingConsultOpt = typeSel.querySelector('option[value="consultation"]');
+  const needsConsultation = !spBookings.some(b => b.lessonType === 'consultation');
+  if (needsConsultation && !existingConsultOpt) {
+    const opt = document.createElement('option');
+    opt.value = 'consultation';
+    opt.textContent = 'Free initial consultation (15 min)';
+    typeSel.insertBefore(opt, typeSel.firstChild);
+    typeSel.value = 'consultation';
+  } else if (!needsConsultation && existingConsultOpt) {
+    existingConsultOpt.remove();
+  }
+  spSyncBookCopy();
+
   document.getElementById('sp-book-modal').classList.add('open');
   spLoadBookCal();
+}
+
+// SCRUM-87: the modal's fixed "billed on your next cycle" copy and "Book
+// lesson" button are wrong for the two free session types — nothing is
+// billed, and the tutor still has to accept. Swap both to match.
+function spSyncBookCopy() {
+  const type = document.getElementById('sp-book-type').value;
+  const isFree = type === 'consultation' || type === 'trial';
+  const note = document.getElementById('sp-book-note');
+  const btn = document.getElementById('sp-book-btn');
+  if (note) {
+    note.innerHTML = isFree
+      ? '🌱 Completely free — no payment now or later. Your tutor confirms the time, and you\'ll see it in your calendar straight away as pending.'
+      : '💳 No payment needed now — this lesson will be included in your next billing cycle (see Payments in your portal).';
+  }
+  if (btn && !btn.disabled) btn.textContent = isFree ? 'Request this time →' : 'Book lesson →';
 }
 
 async function spLoadBookCal() {
@@ -6112,8 +6169,10 @@ async function spSubmitBooking() {
     // the family's next billing date (see Payments settings), together
     // with every other lesson completed since the last bill. Booking
     // just books; nothing to pay right now.
-    const successMsg = lessonType === 'trial'
-      ? '✓ Lesson booked!'
+    // SCRUM-87: free sessions land as 'requested' — say what actually
+    // happens next rather than claiming it's booked.
+    const successMsg = (lessonType === 'consultation' || lessonType === 'trial')
+      ? '✓ Requested! It\'s in your calendar now — your tutor will confirm shortly.'
       : '✓ Lesson booked! It\'ll be included in your next billing cycle.';
     document.getElementById('sp-book-success').textContent = successMsg;
     document.getElementById('sp-book-success').style.display = 'block';
@@ -6232,7 +6291,57 @@ function tpFmt(iso) {
   return new Date(iso).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 }
 
+// SCRUM-87: free sessions a student requests for themselves arrive as
+// 'requested' and are not real until this tutor accepts them. Surfaced at
+// the top of the tutor's home so a request can't sit unnoticed — without
+// this the student would be left staring at "Pending tutor confirmation"
+// forever with nothing on the tutor's side ever prompting them.
+function tpRenderPendingRequests() {
+  const host = document.getElementById('tp-home');
+  if (!host) return;
+  const existing = document.getElementById('tp-requests-card');
+  const pending = tpLiveBookings
+    .filter(b => b.status === 'requested' && new Date(b.startTime) > Date.now())
+    .sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
+  if (!pending.length) { if (existing) existing.remove(); return; }
+
+  const card = existing || document.createElement('div');
+  card.id = 'tp-requests-card';
+  // Deliberately NOT class "tp-card": tpRenderHomeToday() below grabs
+  // `#tp-home > .tp-card`, so giving this card that class would make it
+  // hijack the today-lessons render.
+  card.style.cssText = 'margin-bottom:16px;border:1.5px solid #F0DFAE;background:#FFFCF4;border-radius:14px;padding:16px 18px';
+  card.innerHTML = `<div class="tp-card-hdr"><span class="tp-card-title">⏳ Awaiting your confirmation (${pending.length})</span></div>`
+    + pending.map((b,i) => `<div class="tp-lesson-row"${i===pending.length-1?' style="border-bottom:none"':''}>
+        <div class="tp-l-stripe" style="background:#C8A15A"></div>
+        <div class="tp-l-info">
+          <div class="tp-l-subj">${b.studentName||'A student'} — ${TYPE_LBL[b.lessonType]||b.lessonType}</div>
+          <div class="tp-l-meta">${tpFmt(b.startTime)} · requested by the student</div>
+        </div>
+        <button class="tp-btn-xs tp-btn-primary" onclick="tpConfirmRequest('${b.id}',this)">Confirm</button>
+      </div>`).join('');
+  if (!existing) host.insertBefore(card, host.firstChild);
+}
+
+async function tpConfirmRequest(bookingId, btn) {
+  btn.disabled = true; btn.textContent = 'Confirming…';
+  try {
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/lifecycle?resource=confirm-booking`, {
+      method: 'POST', headers: await seedsAuthHeaders(),
+      body: JSON.stringify({ bookingId }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed to confirm');
+    seedsToast('Confirmed — the student has been emailed the details.', false);
+    tpLoadSchedule();
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Confirm';
+    seedsToast('Could not confirm: ' + e.message);
+  }
+}
+
 function tpRenderHomeToday() {
+  tpRenderPendingRequests();
   const card = document.querySelector('#tp-home > .tp-card');
   if (!card) return;
   const hdr = card.querySelector('.tp-card-hdr');
