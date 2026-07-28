@@ -88,4 +88,58 @@ test.describe('Admin portal (mocked Supabase + backend)', () => {
     await expect(page.locator('#lg-error')).toBeVisible();
     await expect(page.locator('#ad-overlay')).not.toHaveClass(/ad-open/);
   });
+
+  // SCRUM-74: admin UI for each tutor's Cal.com scheduling links, added
+  // during the Calendly→Cal.com migration — previously SQL-only.
+  test('edits a tutor\'s Cal.com scheduling links from the Tutors panel', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/analytics', (route) => route.fulfill({
+      json: {
+        revenue: { total: 0, thisMonth: 0, lastMonth: 0 }, monthly: {},
+        byType: {}, tutors: {}, studentCount: 0, bookingCount: 0,
+        recentBookings: [], payouts: [], failedPayments: [],
+        reconciliation: { confirmed: 0, scheduled: 0, paymentFailed: 0, cancelled: 0, completed: 0 },
+      },
+    }));
+
+    let editRequestBody = null;
+    await page.route('**/api/auth', async (route) => {
+      const body = route.request().postDataJSON();
+      if (body.action === 'get-tutor-links') {
+        return route.fulfill({ json: { calLessonLink: 'https://cal.eu/suleiman/lesson', calConsultationLink: '', calTrialLink: '' } });
+      }
+      if (body.action === 'edit-tutor-links') {
+        editRequestBody = body;
+        return route.fulfill({ json: { success: true } });
+      }
+      return route.fulfill({ status: 404, json: { error: 'unexpected action' } });
+    });
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('admin@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#ad-overlay')).toHaveClass(/ad-open/);
+
+    await page.locator('.ad-nav-item', { hasText: 'Tutors' }).click();
+    await page.locator('.ad-card', { hasText: 'Suleiman' }).getByRole('button', { name: /Scheduling links/i }).click();
+
+    // Pre-filled from get-tutor-links.
+    await expect(page.locator('#ad-ecl-lesson')).toHaveValue('https://cal.eu/suleiman/lesson');
+
+    await page.locator('#ad-ecl-consultation').fill('https://cal.eu/suleiman/15min');
+    await page.getByRole('button', { name: /Save changes/i }).click();
+
+    await expect.poll(() => editRequestBody).toMatchObject({
+      action: 'edit-tutor-links',
+      tutorName: 'Suleiman',
+      calLessonLink: 'https://cal.eu/suleiman/lesson',
+      calConsultationLink: 'https://cal.eu/suleiman/15min',
+      calTrialLink: '',
+    });
+    await expect(page.locator('#ad-edit-cal-links-modal')).not.toHaveClass(/open/);
+  });
 });
