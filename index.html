@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://js.stripe.com">
-<link rel="preconnect" href="https://assets.calendly.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1709,7 +1708,7 @@ function switchAud(e, panel) {
       <p style="margin-bottom:16px">Book a lesson with one of your tutors — it's billed automatically on your next billing date, not right now.</p>
       <div id="sp-book-error" style="display:none;font-size:.78rem;color:#c0392b;padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:10px"></div>
       <span class="lg-label">Tutor</span>
-      <select class="lg-input" id="sp-book-tutor" onchange="spLoadBookCalendly()" style="cursor:pointer;margin-bottom:10px">
+      <select class="lg-input" id="sp-book-tutor" onchange="spLoadBookCal()" style="cursor:pointer;margin-bottom:10px">
         <option value="Azeem Omar-Mufti">Azeem Omar-Mufti — Mathematics</option>
         <option value="Suleiman">Suleiman — History & Arabic</option>
         <option value="Abdul-Moez">Abdul-Moez — Chemistry & Biology</option>
@@ -1717,15 +1716,15 @@ function switchAud(e, panel) {
       <span class="lg-label">Subject</span>
       <input class="lg-input" type="text" id="sp-book-subject" placeholder="e.g. Mathematics" style="margin-bottom:10px">
       <span class="lg-label">Lesson type</span>
-      <select class="lg-input" id="sp-book-type" onchange="spLoadBookCalendly()" style="cursor:pointer;margin-bottom:10px">
+      <select class="lg-input" id="sp-book-type" onchange="spLoadBookCal()" style="cursor:pointer;margin-bottom:10px">
         <option value="gcse">GCSE 1:1 — £40</option>
         <option value="alevel">A-Level 1:1 — £45</option>
         <option value="group">Group session — £20</option>
       </select>
       <span class="lg-label">Pick a real available time</span>
-      <div id="sp-book-calendly-status" style="text-align:center;color:#718096;font-size:.8rem;padding:24px 10px">Loading availability…</div>
-      <div id="sp-book-calendly-wrap" style="display:none;margin-bottom:10px">
-        <div class="calendly-inline-widget" id="sp-book-calendly-embed" style="min-width:280px;height:480px"></div>
+      <div id="sp-book-cal-status" style="text-align:center;color:#718096;font-size:.8rem;padding:24px 10px">Loading availability…</div>
+      <div id="sp-book-cal-wrap" style="display:none;margin-bottom:10px">
+        <iframe id="sp-book-cal-embed" style="width:100%;min-width:280px;height:480px;border:none"></iframe>
       </div>
       <div id="sp-book-time-chosen" style="display:none;font-size:.8rem;color:#2D7A4F;padding:8px 12px;background:#f0faf4;border-radius:8px;margin-bottom:10px"></div>
       <div style="background:#FAF8F4;border-radius:10px;padding:12px 14px;font-size:.8rem;color:#4A5568;margin-bottom:14px">
@@ -1880,7 +1879,7 @@ function seedsToast(msg, isError = true) {
 }
 
 // A plain fetch() has no built-in timeout — if the backend (or a downstream
-// call it makes, e.g. to Calendly's API) hangs, the caller waits forever
+// call it makes, e.g. to a third-party API) hangs, the caller waits forever
 // with no way to recover. Used anywhere a frozen "Confirming…" state would
 // otherwise be possible, so callers always get an outcome one way or another.
 function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
@@ -4774,12 +4773,12 @@ window.showTpPanel = function(id, navEl){
       </div>
     </div>
 
-    <!-- STEP 2: Date & time — real availability via an embedded Calendly widget -->
+    <!-- STEP 2: Date & time — real availability via an embedded Cal.com booking page -->
     <div class="bk-panel" id="bk-step-2">
       <span class="bk-label">Pick a date &amp; time</span>
-      <div id="bk-calendly-status" style="text-align:center;color:#718096;font-size:.85rem;padding:40px 20px">Loading your tutor's availability…</div>
-      <div id="bk-calendly-wrap" style="display:none">
-        <div class="calendly-inline-widget" id="bk-calendly-embed" style="min-width:280px;height:630px"></div>
+      <div id="bk-cal-status" style="text-align:center;color:#718096;font-size:.85rem;padding:40px 20px">Loading your tutor's availability…</div>
+      <div id="bk-cal-wrap" style="display:none">
+        <iframe id="bk-cal-embed" style="width:100%;min-width:280px;height:630px;border:none"></iframe>
       </div>
       <div class="bk-tz-note">🌍 Times shown in your local timezone · Lesson runs live on Zoom</div>
 
@@ -4856,17 +4855,45 @@ window.showTpPanel = function(id, navEl){
 </div>
 
 <script src="https://js.stripe.com/v3/"></script>
-<script src="https://assets.calendly.com/assets/external/widget.js"></script>
 <script>
 // ── Config ─────────────────────────────────────────────────────────────────
 const BACKEND = 'https://seeds-backend-six.vercel.app';
+
+// ── Cal.com real-availability embeds ────────────────────────────────────────
+// Each tutor has their own individual Cal.com account (unlimited free event
+// types), unlike the single shared Calendly account this replaces (its free
+// plan only allowed one active event type account-wide, which broke every
+// tutor's booking twice). Embedded as a plain iframe of the tutor's own
+// public booking URL — not Cal.com's JS embed SDK, which binds one single
+// "init" origin for the whole page and would be a poor fit here since
+// different tutors' own individual accounts aren't guaranteed to share one
+// Cal.com domain (e.g. cal.com vs. cal.eu). A plain iframe has no such
+// binding: it just loads whichever tutor's URL the backend returns.
+//
+// Not independently verified against a live Cal.com account in this
+// environment (no live embed available here) — written to Cal.com's
+// documented postMessage shape for a successful booking. Verify on first
+// real use; if the shape has changed, this returns null and the caller
+// shows a graceful "we'll be in touch" message instead of hanging on a
+// booking that actually went through on Cal.com's own calendar.
+function calParseBookingSuccess(eventData) {
+  if (!eventData || typeof eventData !== 'object') return null;
+  const type = eventData.type || (eventData.data && eventData.data.type);
+  if (typeof type !== 'string' || !/bookingSuccessful/i.test(type)) return null;
+  const data = eventData.data || eventData;
+  const booking = data.booking || data;
+  const startTime = booking.startTime || booking.start_time;
+  const endTime = booking.endTime || booking.end_time;
+  if (!startTime) return null;
+  return { startTime, endTime };
+}
 const STRIPE_PK = 'pk_test_51JCVAfK7JOHHGmfJ3soySmouzVwdHLSPwFZKKz7ZsHmrpN8A9x9to207NqshfThICO0QOQKSmQhAO02n2wZ3fnZa00DGO1eals';
 
 // ── State ───────────────────────────────────────────────────────────────────
 const bkState = {
   tutor: 'Azeem Omar-Mufti', subject: 'Mathematics',
   type: 'trial', typeLabel: 'Initial Consultation', price: 0,
-  // Real slot chosen inside the embedded Calendly widget (step 2) — day/time
+  // Real slot chosen inside the embedded Cal.com booking page (step 2) — day/time
   // are just display strings derived from this once a slot is picked.
   startTimeISO: null, day: '', time: '',
   customerId: null, paymentMethodId: null,
@@ -4891,7 +4918,7 @@ function openBooking(tutorName, subject) {
   // Clear any previously-picked slot so a fresh attempt never inherits one
   // from an earlier booking in the same page session.
   bkState.startTimeISO = null; bkState.day = ''; bkState.time = '';
-  _bkCalendlyLoadedFor = null;
+  _bkCalLoadedFor = null;
   document.getElementById('bk-overlay').classList.add('bk-open');
   document.body.style.overflow = 'hidden';
   bkGoStep(1);
@@ -4911,7 +4938,7 @@ function bkGoStep(n) {
   for (let i = 1; i <= 4; i++) {
     document.getElementById('bk-seg-' + i).classList.toggle('bk-seg-active', i <= n);
   }
-  if (n === 2) loadCalendlyWidget();
+  if (n === 2) loadCalWidget();
   if (n === 4) updateBookingSummary();
   document.querySelector('.bk-modal').scrollTop = 0;
 }
@@ -4929,79 +4956,59 @@ function selectType(el, type, price) {
   bkState.typeLabel = el.querySelector('.bk-type-name').childNodes[0].textContent.trim();
 }
 
-// ── Calendly inline embed (step 2) — real per-tutor availability ────────────
+// ── Cal.com embed (step 2) — real per-tutor availability ────────────────────
 // Cache key includes lessonType alongside tutor — a trial/consultation and a
-// regular paid lesson are different Calendly event types, so switching lesson
-// type for the same tutor (going back to step 1) must reload the widget too.
-let _bkCalendlyLoadedFor = null;
-async function loadCalendlyWidget() {
-  const statusEl = document.getElementById('bk-calendly-status');
-  const wrapEl = document.getElementById('bk-calendly-wrap');
-  const embedEl = document.getElementById('bk-calendly-embed');
+// regular paid lesson are different Cal.com event types, so switching lesson
+// type for the same tutor (going back to step 1) must reload the embed too.
+let _bkCalLoadedFor = null;
+async function loadCalWidget() {
+  const statusEl = document.getElementById('bk-cal-status');
+  const wrapEl = document.getElementById('bk-cal-wrap');
+  const embedEl = document.getElementById('bk-cal-embed');
   const cacheKey = bkState.tutor + '|' + bkState.type;
-  if (_bkCalendlyLoadedFor === cacheKey) return; // already loaded for this tutor + lesson type
+  if (_bkCalLoadedFor === cacheKey) return; // already loaded for this tutor + lesson type
   statusEl.style.display = 'block';
   statusEl.textContent = "Loading " + bkState.tutor + "'s availability…";
   wrapEl.style.display = 'none';
-  embedEl.innerHTML = '';
+  embedEl.src = 'about:blank';
   try {
     // context=consultation — this wizard only ever books the free 15-min
     // Initial Consultation, never the (longer) free trial lesson itself,
     // which is booked separately from the portal afterwards.
-    const r = await fetchWithTimeout(`${BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}&context=consultation`);
+    const r = await fetchWithTimeout(`${BACKEND}/api/bookings?action=scheduling-link&tutorName=${encodeURIComponent(bkState.tutor)}&lessonType=${encodeURIComponent(bkState.type)}&context=consultation`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load availability');
-    // widget.js is loaded as a regular (non-async) <script>, but guard
-    // against any load-order race rather than assuming it's always ready.
-    let attempts = 0;
-    while (!window.Calendly && attempts < 50) { await new Promise(r => setTimeout(r, 100)); attempts++; }
-    if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
-    _bkCalendlyLoadedFor = cacheKey;
+    _bkCalLoadedFor = cacheKey;
     statusEl.style.display = 'none';
     wrapEl.style.display = 'block';
-    window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
+    // ?embed=true renders Cal.com's own iframe-friendly layout (no site
+    // chrome around the booking calendar).
+    embedEl.src = data.url + (data.url.includes('?') ? '&' : '?') + 'embed=true';
   } catch(e) {
     statusEl.textContent = e.message || "We couldn't load real-time availability for this tutor. Please email hello@seedsinstitute.co.uk to arrange a time.";
   }
 }
 
-// Calendly's embed posts a window message once a visitor finishes scheduling
-// inside the iframe. The message doesn't include the plain start time, only
-// the event's API URI, so we look that up server-side and continue our own
-// wizard with the real, conflict-checked slot.
+// Cal.com's embedded booking page posts a window message once a visitor
+// finishes scheduling — see calParseBookingSuccess above for the (best-
+// effort, unverified-live) payload shape this expects.
 //
-// More than one Calendly embed can exist on this page (this public wizard,
+// More than one Cal.com embed can exist on this page (this public wizard,
 // plus the logged-in student portal's own "Book a lesson" modal) — only one
 // modal is ever actually open at a time, so route the event to whichever
 // one is currently visible rather than assuming it's always this wizard.
 window.addEventListener('message', async (e) => {
-  if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
-  if (e.data.event !== 'calendly.event_scheduled') return;
-  const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
-  if (!eventUri) return;
+  const booking = calParseBookingSuccess(e.data);
+  if (!booking) return;
 
   const wizardOpen = document.getElementById('bk-overlay')?.classList.contains('bk-open');
   if (!wizardOpen) return; // some other embed's event — its own listener handles it
 
-  const statusEl = document.getElementById('bk-calendly-status');
-  document.getElementById('bk-calendly-wrap').style.display = 'none';
-  statusEl.style.display = 'block';
-  statusEl.textContent = 'Confirming your slot…';
-  try {
-    const r = await fetchWithTimeout(`${BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Could not confirm your chosen time');
-    bkState.startTimeISO = data.startTime;
-    const d = new Date(data.startTime);
-    bkState.day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-    bkState.time = d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
-    bkGoStep(3);
-  } catch(err) {
-    statusEl.textContent = err.message;
-    // Let them try picking again rather than getting stuck
-    _bkCalendlyLoadedFor = null;
-    setTimeout(loadCalendlyWidget, 1500);
-  }
+  bkState.startTimeISO = booking.startTime;
+  const d = new Date(booking.startTime);
+  bkState.day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  bkState.time = d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+  bkGoStep(3);
 });
 // ── Step 4 summary ──────────────────────────────────────────────────────────
 function updateBookingSummary() {
@@ -5038,7 +5045,7 @@ function bkShowSuccess() {
 
 // ── Build a JS Date from the selected day/time strings ───────────────────────
 function buildStartTime() {
-  // The real slot the visitor picked inside the embedded Calendly widget
+  // The real slot the visitor picked inside the embedded Cal.com booking page
   // (step 2) — resolved server-side from the postMessage's event URI.
   return bkState.startTimeISO ? new Date(bkState.startTimeISO) : null;
 }
@@ -5869,12 +5876,12 @@ function spRenderCalendar() {
 }
 
 // ── IN-PORTAL BOOKING (for logged-in students) ───────────────────────────
-// Real availability via the same Calendly embed pattern as the public
+// Real availability via the same Cal.com embed pattern as the public
 // booking wizard — previously this was a raw datetime-local input the
 // student could set to anything, with zero connection to the tutor's
 // actual schedule (a conflict only surfaced as a 409 after submitting).
 let _spBookStartTimeISO = null;
-let _spBookCalendlyLoadedFor = null;
+let _spBookCalLoadedFor = null;
 
 function spOpenInPortalBooking() {
   document.getElementById('sp-book-error').style.display = 'none';
@@ -5885,7 +5892,7 @@ function spOpenInPortalBooking() {
   const subjects = [...new Set(spBookings.map(b=>b.subject).filter(Boolean))];
   if (subjects.length) document.getElementById('sp-book-subject').value = subjects[0];
   _spBookStartTimeISO = null;
-  _spBookCalendlyLoadedFor = null;
+  _spBookCalLoadedFor = null;
   document.getElementById('sp-book-time-chosen').style.display = 'none';
 
   // SCRUM-69: offer a free trial lesson only when eligible — had their
@@ -5907,68 +5914,52 @@ function spOpenInPortalBooking() {
   }
 
   document.getElementById('sp-book-modal').classList.add('open');
-  spLoadBookCalendly();
+  spLoadBookCal();
 }
 
-async function spLoadBookCalendly() {
+async function spLoadBookCal() {
   const tutorName = document.getElementById('sp-book-tutor').value;
   const lessonType = document.getElementById('sp-book-type').value;
-  const statusEl = document.getElementById('sp-book-calendly-status');
-  const wrapEl = document.getElementById('sp-book-calendly-wrap');
-  const embedEl = document.getElementById('sp-book-calendly-embed');
+  const statusEl = document.getElementById('sp-book-cal-status');
+  const wrapEl = document.getElementById('sp-book-cal-wrap');
+  const embedEl = document.getElementById('sp-book-cal-embed');
   const cacheKey = tutorName + '|' + lessonType;
-  if (_spBookCalendlyLoadedFor === cacheKey) return;
+  if (_spBookCalLoadedFor === cacheKey) return;
   _spBookStartTimeISO = null;
   document.getElementById('sp-book-time-chosen').style.display = 'none';
   statusEl.style.display = 'block';
   statusEl.textContent = 'Loading ' + tutorName + "'s availability…";
   wrapEl.style.display = 'none';
-  embedEl.innerHTML = '';
+  embedEl.src = 'about:blank';
   try {
-    const r = await fetchWithTimeout(`${SP_BACKEND}/api/bookings?action=calendly-link&tutorName=${encodeURIComponent(tutorName)}&lessonType=${encodeURIComponent(lessonType)}`);
+    const r = await fetchWithTimeout(`${SP_BACKEND}/api/bookings?action=scheduling-link&tutorName=${encodeURIComponent(tutorName)}&lessonType=${encodeURIComponent(lessonType)}`);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load availability');
-    let attempts = 0;
-    while (!window.Calendly && attempts < 50) { await new Promise(res => setTimeout(res, 100)); attempts++; }
-    if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
-    _spBookCalendlyLoadedFor = cacheKey;
+    _spBookCalLoadedFor = cacheKey;
     statusEl.style.display = 'none';
     wrapEl.style.display = 'block';
-    window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
+    embedEl.src = data.url + (data.url.includes('?') ? '&' : '?') + 'embed=true';
   } catch(e) {
     statusEl.textContent = e.message || "We couldn't load real-time availability for this tutor. Please email hello@seedsinstitute.co.uk to arrange a time.";
   }
 }
 
-// Handles this modal's share of the page-wide calendly.event_scheduled
+// Handles this modal's share of the page-wide Cal.com bookingSuccessful
 // postMessage — only acts when this modal is the one actually open.
 window.addEventListener('message', async (e) => {
-  if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
-  if (e.data.event !== 'calendly.event_scheduled') return;
+  const booking = calParseBookingSuccess(e.data);
+  if (!booking) return;
   const modalOpen = document.getElementById('sp-book-modal')?.classList.contains('open');
   if (!modalOpen) return;
-  const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
-  if (!eventUri) return;
 
-  const statusEl = document.getElementById('sp-book-calendly-status');
+  const statusEl = document.getElementById('sp-book-cal-status');
   const chosenEl = document.getElementById('sp-book-time-chosen');
-  document.getElementById('sp-book-calendly-wrap').style.display = 'none';
-  statusEl.style.display = 'block';
-  statusEl.textContent = 'Confirming your slot…';
-  try {
-    const r = await fetchWithTimeout(`${SP_BACKEND}/api/bookings?action=calendly-event&eventUri=${encodeURIComponent(eventUri)}`);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Could not confirm your chosen time');
-    _spBookStartTimeISO = data.startTime;
-    const d = new Date(data.startTime);
-    statusEl.style.display = 'none';
-    chosenEl.style.display = 'block';
-    chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
-  } catch(err) {
-    statusEl.textContent = err.message;
-    _spBookCalendlyLoadedFor = null;
-    setTimeout(spLoadBookCalendly, 1500);
-  }
+  document.getElementById('sp-book-cal-wrap').style.display = 'none';
+  _spBookStartTimeISO = booking.startTime;
+  const d = new Date(booking.startTime);
+  statusEl.style.display = 'none';
+  chosenEl.style.display = 'block';
+  chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
 });
 
 async function spSubmitBooking() {
@@ -6315,16 +6306,16 @@ async function tpSubmitSlots() {
     <span class="lg-label">Subject</span>
     <input class="lg-input" type="text" id="tp-al-subject" placeholder="e.g. Mathematics">
     <span class="lg-label">Lesson type</span>
-    <select class="lg-input" id="tp-al-type" onchange="tpLoadAlCalendly()" style="cursor:pointer">
+    <select class="lg-input" id="tp-al-type" onchange="tpLoadAlCal()" style="cursor:pointer">
       <option value="gcse">GCSE 1:1 (&pound;40)</option>
       <option value="alevel">A-Level 1:1 (&pound;45)</option>
       <option value="group">Group (&pound;20)</option>
       <option value="trial">Free trial (&pound;0)</option>
     </select>
     <span class="lg-label">Pick a free slot from your own calendar</span>
-    <div id="tp-al-calendly-status" style="text-align:center;color:#718096;font-size:.8rem;padding:24px 10px">Loading your availability…</div>
-    <div id="tp-al-calendly-wrap" style="display:none;margin-bottom:10px">
-      <div class="calendly-inline-widget" id="tp-al-calendly-embed" style="min-width:280px;height:480px"></div>
+    <div id="tp-al-cal-status" style="text-align:center;color:#718096;font-size:.8rem;padding:24px 10px">Loading your availability…</div>
+    <div id="tp-al-cal-wrap" style="display:none;margin-bottom:10px">
+      <iframe id="tp-al-cal-embed" style="width:100%;min-width:280px;height:480px;border:none"></iframe>
     </div>
     <div id="tp-al-time-chosen" style="display:none;font-size:.8rem;color:#2D7A4F;padding:8px 12px;background:#f0faf4;border-radius:8px;margin-bottom:10px"></div>
     <span class="lg-label">Repeat weekly for</span>
@@ -6342,7 +6333,7 @@ async function tpSubmitSlots() {
 <script>
 let _tpAlStudents = [];
 let _tpAlStartTimeISO = null;
-let _tpAlCalendlyLoadedFor = null;
+let _tpAlCalLoadedFor = null;
 async function tpOpenAddLesson() {
   document.getElementById('tp-al-error').style.display = 'none';
   document.getElementById('tp-al-success').style.display = 'none';
@@ -6350,10 +6341,10 @@ async function tpOpenAddLesson() {
   document.getElementById('tp-al-btn').disabled = true;
   document.getElementById('tp-al-btn').textContent = 'Add to calendar';
   _tpAlStartTimeISO = null;
-  _tpAlCalendlyLoadedFor = null;
+  _tpAlCalLoadedFor = null;
   document.getElementById('tp-al-time-chosen').style.display = 'none';
   document.getElementById('tp-add-lesson-modal').classList.add('open');
-  tpLoadAlCalendly();
+  tpLoadAlCal();
   // Load this tutor's students
   const sel = document.getElementById('tp-al-student');
   sel.innerHTML = '<option value="">Loading...</option>';
@@ -6372,68 +6363,52 @@ async function tpOpenAddLesson() {
   }
 }
 
-// Real availability via the tutor's own Calendly, same pattern as the
-// public wizard and the student portal's booking modal — previously this
-// was a raw datetime-local input the tutor could set to literally anything,
-// with no check against their own real schedule.
-async function tpLoadAlCalendly() {
+// Real availability via the tutor's own Cal.com account, same pattern as
+// the public wizard and the student portal's booking modal — previously
+// this was a raw datetime-local input the tutor could set to literally
+// anything, with no check against their own real schedule.
+async function tpLoadAlCal() {
   const lessonType = document.getElementById('tp-al-type').value;
-  const statusEl = document.getElementById('tp-al-calendly-status');
-  const wrapEl = document.getElementById('tp-al-calendly-wrap');
-  const embedEl = document.getElementById('tp-al-calendly-embed');
+  const statusEl = document.getElementById('tp-al-cal-status');
+  const wrapEl = document.getElementById('tp-al-cal-wrap');
+  const embedEl = document.getElementById('tp-al-cal-embed');
   const cacheKey = earnCurrentTutor + '|' + lessonType;
-  if (_tpAlCalendlyLoadedFor === cacheKey) return;
+  if (_tpAlCalLoadedFor === cacheKey) return;
   _tpAlStartTimeISO = null;
   document.getElementById('tp-al-time-chosen').style.display = 'none';
   tpAlValidate();
   statusEl.style.display = 'block';
   statusEl.textContent = 'Loading your availability…';
   wrapEl.style.display = 'none';
-  embedEl.innerHTML = '';
+  embedEl.src = 'about:blank';
   try {
-    const r = await fetchWithTimeout(SP_BACKEND + '/api/bookings?action=calendly-link&tutorName=' + encodeURIComponent(earnCurrentTutor) + '&lessonType=' + encodeURIComponent(lessonType));
+    const r = await fetchWithTimeout(SP_BACKEND + '/api/bookings?action=scheduling-link&tutorName=' + encodeURIComponent(earnCurrentTutor) + '&lessonType=' + encodeURIComponent(lessonType));
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Could not load your availability');
-    let attempts = 0;
-    while (!window.Calendly && attempts < 50) { await new Promise(res => setTimeout(res, 100)); attempts++; }
-    if (!window.Calendly) throw new Error('Scheduling widget failed to load. Please refresh and try again.');
-    _tpAlCalendlyLoadedFor = cacheKey;
+    _tpAlCalLoadedFor = cacheKey;
     statusEl.style.display = 'none';
     wrapEl.style.display = 'block';
-    window.Calendly.initInlineWidget({ url: data.url, parentElement: embedEl });
+    embedEl.src = data.url + (data.url.includes('?') ? '&' : '?') + 'embed=true';
   } catch(e) {
     statusEl.textContent = e.message || "We couldn't load your real-time availability. Please email hello@seedsinstitute.co.uk to arrange this instead.";
   }
 }
 
 window.addEventListener('message', async (e) => {
-  if (!e.data || typeof e.data !== 'object' || !e.data.event) return;
-  if (e.data.event !== 'calendly.event_scheduled') return;
+  const booking = calParseBookingSuccess(e.data);
+  if (!booking) return;
   const modalOpen = document.getElementById('tp-add-lesson-modal')?.classList.contains('open');
   if (!modalOpen) return;
-  const eventUri = e.data.payload && e.data.payload.event && e.data.payload.event.uri;
-  if (!eventUri) return;
 
-  const statusEl = document.getElementById('tp-al-calendly-status');
+  const statusEl = document.getElementById('tp-al-cal-status');
   const chosenEl = document.getElementById('tp-al-time-chosen');
-  document.getElementById('tp-al-calendly-wrap').style.display = 'none';
-  statusEl.style.display = 'block';
-  statusEl.textContent = 'Confirming your slot…';
-  try {
-    const r = await fetchWithTimeout(SP_BACKEND + '/api/bookings?action=calendly-event&eventUri=' + encodeURIComponent(eventUri));
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Could not confirm this time');
-    _tpAlStartTimeISO = data.startTime;
-    const d = new Date(data.startTime);
-    statusEl.style.display = 'none';
-    chosenEl.style.display = 'block';
-    chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
-    tpAlValidate();
-  } catch(err) {
-    statusEl.textContent = err.message;
-    _tpAlCalendlyLoadedFor = null;
-    setTimeout(tpLoadAlCalendly, 1500);
-  }
+  document.getElementById('tp-al-cal-wrap').style.display = 'none';
+  _tpAlStartTimeISO = booking.startTime;
+  const d = new Date(booking.startTime);
+  statusEl.style.display = 'none';
+  chosenEl.style.display = 'block';
+  chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+  tpAlValidate();
 });
 
 function tpAlValidate() {

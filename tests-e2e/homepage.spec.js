@@ -11,18 +11,10 @@ const { test, expect } = require('@playwright/test');
 //    the local static server that no *local* asset ever 404s.
 //    "supabase is not defined" is the downstream symptom of the Supabase
 //    JS client's own CDN script failing to load for the same reason.
-// 2. Calendly's widget.js itself — confirmed via a real CI run's full
-//    stack trace (assets.calendly.com/assets/external/widget.js
-//    parseOptions) that it throws internally during its own auto-init on
-//    a page load where no Calendly embed is actively open yet (the
-//    wizard's #bk-calendly-embed only gets used once step 2 is reached).
-//    This is inside Calendly's own script, not ours — it fires in
-//    production too, just unnoticed since no one has devtools open.
 const KNOWN_THIRD_PARTY_NOISE = [
   /net::ERR_/,
   /the server responded with a status of 404/,
   /supabase is not defined/,
-  /assets\.calendly\.com/,
 ];
 
 test.describe('Public homepage', () => {
