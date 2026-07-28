@@ -2066,12 +2066,20 @@ async function lgSendMagic() {
   lgClearError();
   document.getElementById('lg-magic-enter').disabled = true;
   document.getElementById('lg-magic-enter').textContent = 'Sending…';
+  // SCRUM-78: this is a sign-in convenience for an existing account, not a
+  // signup path — shouldCreateUser:false stops a brand-new email from
+  // silently provisioning a real account here. The one supported way to
+  // request access is lgSignup() below, which creates a 'pending' profile
+  // and a leads row for admin review; this button must not become a second,
+  // unreviewed way in.
   const { error } = await sbClient.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    options: { emailRedirectTo: window.location.origin + window.location.pathname, shouldCreateUser: false }
   });
   if (error) {
-    lgShowError(error.message);
+    lgShowError(error.message.includes('Signups not allowed')
+      ? 'No account found for that email — use "Request access" below instead.'
+      : error.message);
     document.getElementById('lg-magic-enter').disabled = false;
     document.getElementById('lg-magic-enter').textContent = 'Send magic link →';
   } else {
