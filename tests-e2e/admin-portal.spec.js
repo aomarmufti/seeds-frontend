@@ -142,4 +142,53 @@ test.describe('Admin portal (mocked Supabase + backend)', () => {
     });
     await expect(page.locator('#ad-edit-cal-links-modal')).not.toHaveClass(/open/);
   });
+
+  // SCRUM-76: payouts are automatic now — no more tutor self-serve
+  // "Request payout" — admin sets each tutor's own weekly/monthly cadence.
+  test('sets a tutor\'s payout cycle from the Tutors panel', async ({ page }) => {
+    await mockSupabaseAuth(page);
+    await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/analytics', (route) => route.fulfill({
+      json: {
+        revenue: { total: 0, thisMonth: 0, lastMonth: 0 }, monthly: {},
+        byType: {}, tutors: {}, studentCount: 0, bookingCount: 0,
+        recentBookings: [], payouts: [], failedPayments: [],
+        reconciliation: { confirmed: 0, scheduled: 0, paymentFailed: 0, cancelled: 0, completed: 0 },
+      },
+    }));
+
+    let setCycleBody = null;
+    await page.route('**/api/payouts*', async (route) => {
+      const req = route.request();
+      if (req.method() === 'GET') {
+        return route.fulfill({ json: { connected: true, onboardingComplete: true, payoutCycle: 'weekly' } });
+      }
+      const body = req.postDataJSON();
+      if (body.action === 'set-payout-cycle') {
+        setCycleBody = body;
+        return route.fulfill({ json: { success: true } });
+      }
+      return route.fulfill({ status: 404, json: { error: 'unexpected action' } });
+    });
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('admin@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#ad-overlay')).toHaveClass(/ad-open/);
+
+    await page.locator('.ad-nav-item', { hasText: 'Tutors' }).click();
+    const suleimanCard = page.locator('.ad-card', { hasText: 'Suleiman' });
+    // Pre-filled weekly (from connect-status).
+    await expect(suleimanCard.locator('button[data-cycle="weekly"]')).toHaveCSS('background-color', 'rgb(13, 27, 42)');
+
+    await suleimanCard.locator('button[data-cycle="monthly"]').click();
+
+    await expect.poll(() => setCycleBody).toMatchObject({
+      action: 'set-payout-cycle', tutorName: 'Suleiman', payoutCycle: 'monthly',
+    });
+    await expect(suleimanCard.locator('button[data-cycle="monthly"]')).toHaveCSS('background-color', 'rgb(13, 27, 42)');
+  });
 });

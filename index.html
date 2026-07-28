@@ -1798,9 +1798,17 @@ function switchAud(e, panel) {
         <button class="lg-enter" id="sp-add-card-btn" onclick="spSubmitAddCard()" style="width:auto;padding:9px 20px">Save card</button>
       </div>
     </div>
-    <div class="p-card">
+    <div class="p-card" style="margin-bottom:14px">
       <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Payment history</span></div>
       <div id="sp-payment-history">
+        <div style="color:#A7A7A7;font-size:.82rem;padding:20px;text-align:center">Loading…</div>
+      </div>
+    </div>
+    <div class="p-card">
+      <!-- SCRUM-75: batches above show "this week is paid", but not which
+           lesson that covered — this is the per-lesson breakdown. -->
+      <div class="p-card-hdr"><span style="font-size:.68rem;font-weight:700;color:#718096;letter-spacing:.08em;text-transform:uppercase">Lesson history</span></div>
+      <div id="sp-lesson-history">
         <div style="color:#A7A7A7;font-size:.82rem;padding:20px;text-align:center">Loading…</div>
       </div>
     </div>
@@ -3263,6 +3271,14 @@ function adRenderTutorPayouts() {
             <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#0D1B2A">${t.label}</div>
             <div style="font-size:.78rem;color:#718096">${t.subj}</div>
             <button onclick="adOpenEditCalLinks('${t.key}')" style="margin-top:6px;padding:5px 10px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:8px;font-size:.71rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🔗 Scheduling links</button>
+            <!-- SCRUM-76: payouts are automatic — admin picks each tutor's own cadence here. -->
+            <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
+              <span style="font-size:.7rem;color:#A7A7A7">💷 Payout:</span>
+              <div id="ad-payout-cycle-${t.key.replace(/[^a-zA-Z]/g,'')}" style="display:flex;gap:4px">
+                <button onclick="adSetPayoutCycle('${t.key}','weekly',this)" data-cycle="weekly" style="padding:4px 9px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.7rem;font-weight:700;cursor:pointer;background:#fff;color:#0D1B2A;font-family:'Inter',sans-serif">Weekly</button>
+                <button onclick="adSetPayoutCycle('${t.key}','monthly',this)" data-cycle="monthly" style="padding:4px 9px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.7rem;font-weight:700;cursor:pointer;background:#fff;color:#0D1B2A;font-family:'Inter',sans-serif">Monthly</button>
+              </div>
+            </div>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div style="text-align:right">
@@ -3282,7 +3298,7 @@ function adRenderTutorPayouts() {
         ${unpaid > 0 ? `
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#FAF8F4;border-radius:10px;flex-wrap:wrap">
           <div style="flex:1;min-width:160px;font-size:.82rem;color:#718096">
-            Pending payout request: <strong style="color:#0D1B2A">${adFmt(unpaid)}</strong>
+            Unpaid balance: <strong style="color:#0D1B2A">${adFmt(unpaid)}</strong> — pays out automatically on their next cycle, or pay early below.
           </div>
           <button onclick="adVerifyLessons('${t.key}',this)"
             style="padding:9px 16px;background:#fff;color:#0D1B2A;border:1.5px solid #E8E8E8;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">
@@ -3310,6 +3326,8 @@ function adRenderTutorPayouts() {
       </div>
     </div>
     ${payoutCards}`;
+
+  adLoadPayoutCycles(tutorDefs.map(t => t.key));
 }
 
 // ── STUDENTS PANEL ───────────────────────────────────────────────────────
@@ -3999,7 +4017,7 @@ window.addEventListener('DOMContentLoaded', function() {
         <div class="tp-kpi" style="border-left-color:#C8A15A">
           <div class="tp-kpi-num">£<em id="earn-unpaid">596</em></div>
           <div class="tp-kpi-lbl">Unpaid balance</div>
-          <div class="tp-kpi-trend" style="color:#C8A15A">Ready to request</div>
+          <div class="tp-kpi-trend" style="color:#C8A15A">Paid out automatically</div>
         </div>
         <div class="tp-kpi" style="border-left-color:#2D7A4F">
           <div class="tp-kpi-num">£<em id="earn-paid-month">—</em></div>
@@ -4013,34 +4031,23 @@ window.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
 
-      <!-- Payout request card -->
+      <!-- SCRUM-76: payouts are automatic (weekly or monthly, set by admin —
+           see api/lifecycle?resource=auto-payout) — no self-serve "Request
+           payout" any more, this card is read-only status. -->
       <div class="tp-card" style="border:1.5px solid #C8A15A20;background:linear-gradient(135deg,#FAF8F4,#fff);margin-bottom:14px">
         <div class="tp-card-hdr" style="margin-bottom:14px">
-          <span class="tp-card-title">Request a payout</span>
-          <span style="font-size:.72rem;color:#718096">Processed within 2 working days via bank transfer</span>
+          <span class="tp-card-title">Payouts</span>
+          <span style="font-size:.72rem;color:#718096">Automatic via bank transfer — no action needed</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <div style="flex:1;min-width:160px">
-            <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#A7A7A7;margin-bottom:6px">Amount to request</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:1.1rem;color:#0D1B2A;font-weight:700">£</span>
-              <input id="earn-payout-amount" type="number" value="596" min="50" max="596"
-                style="width:100px;padding:9px 12px;border:1.5px solid #E8E8E8;border-radius:9px;font-size:.95rem;font-family:'Inter',sans-serif;font-weight:700;color:#0D1B2A"
-                oninput="earnValidatePayout(this)">
-              <button onclick="earnSetFull()" style="padding:9px 13px;border:1.5px solid #E8E8E8;border-radius:9px;font-size:.75rem;font-weight:700;cursor:pointer;background:#fff;color:#0D1B2A;font-family:'Inter',sans-serif">Full amount</button>
-            </div>
-            <div id="earn-payout-err" style="font-size:.72rem;color:#c0392b;margin-top:5px;display:none">Minimum payout is £50</div>
+            <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#A7A7A7;margin-bottom:6px">Payout schedule</div>
+            <div id="earn-payout-cycle" style="font-size:.85rem;color:#718096;font-weight:600">Checking…</div>
           </div>
           <div style="flex:1;min-width:160px">
             <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#A7A7A7;margin-bottom:6px">Payout account</div>
             <div id="earn-connect-status" style="font-size:.85rem;color:#718096;font-weight:600">Checking…</div>
           </div>
-          <button id="earn-payout-btn" onclick="earnRequestPayout()" style="padding:13px 22px;background:#0D1B2A;color:#fff;border:none;border-radius:11px;font-size:.87rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:opacity .2s">
-            Request payout →
-          </button>
-        </div>
-        <div id="earn-payout-success" style="display:none;margin-top:14px;padding:12px 16px;background:#2D7A4F15;border:1px solid #2D7A4F40;border-radius:10px;font-size:.83rem;color:#2D7A4F;font-weight:600">
-          ✓ Payout request submitted — you'll receive £<span id="earn-payout-confirm-amt"></span> within 2 working days.
         </div>
         <div id="earn-forecast" style="margin-top:10px;font-size:.78rem;color:#718096;text-align:center">&nbsp;</div>
       </div>
@@ -4395,9 +4402,6 @@ function earnUpdateKPIs(){
   if (paidMonthEl) paidMonthEl.textContent = (paidThisMonth/100).toLocaleString('en-GB',{minimumFractionDigits:2});
   if (totalEl) totalEl.textContent = (totalEarned/100).toLocaleString('en-GB',{minimumFractionDigits:2});
 
-  const input = document.getElementById('earn-payout-amount');
-  if(input){ input.value=(unpaid/100).toFixed(2); input.max=(unpaid/100).toFixed(2); }
-
   earnCheckConnect();
 }
 
@@ -4409,10 +4413,10 @@ async function earnCheckConnect() {
       headers: await seedsAuthHeaders(),
     });
     const s = await r.json();
+    const cycleEl = document.getElementById('earn-payout-cycle');
+    if (cycleEl) cycleEl.textContent = (s.payoutCycle === 'monthly' ? 'Monthly' : 'Weekly') + ', automatic';
     if (s.onboardingComplete) {
       el.innerHTML = '<span style="color:#2D7A4F">✓ Payouts enabled</span><div style="font-size:.72rem;color:#718096;margin-top:2px">Bank account connected via Stripe</div>';
-      const btn = document.getElementById('earn-payout-btn');
-      if (btn) btn.disabled = false;
     } else if (s.connected) {
       el.innerHTML = '<button onclick="earnStartConnect(this)" style="padding:8px 14px;background:#C8A15A;color:#fff;border:none;border-radius:9px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Finish payout setup →</button><div style="font-size:.72rem;color:#718096;margin-top:4px">Setup incomplete</div>';
     } else {
@@ -4533,42 +4537,6 @@ function earnRenderLedger(){
       <span>Awaiting payout: <strong style="color:#C8A15A">${earnFmt(pendingTotal)}</strong></span>
       <span>Already paid out: <strong style="color:#2D7A4F">${earnFmt(paidTotal)}</strong></span>
     </div>${payoutHTML}`;
-}
-
-function earnValidatePayout(input){
-  const max = parseFloat(input.max)||0;
-  const val = parseFloat(input.value)||0;
-  const err = document.getElementById('earn-payout-err');
-  const btn = document.getElementById('earn-payout-btn');
-  const bad = val<50 || val>max;
-  err.style.display = val<50 ? 'block':'none';
-  btn.disabled = bad;
-  btn.style.opacity = bad ? '.4':'1';
-}
-function earnSetFull(){
-  const input = document.getElementById('earn-payout-amount');
-  input.value = input.max;
-  earnValidatePayout(input);
-}
-async function earnRequestPayout(){
-  const input = document.getElementById('earn-payout-amount');
-  const amt = parseFloat(input.value)||0;
-  if(amt<50) return;
-  const tutor = earnCurrentTutor || 'Azeem Omar-Mufti';
-  try {
-    const r = await fetchWithTimeout(`${BACKEND}/api/payouts`, {
-      method:'POST',
-      headers: await seedsAuthHeaders(),
-      body:JSON.stringify({ tutorName: tutor, amountPence: Math.round(amt*100) }),
-    });
-    const data = await r.json();
-    if(!r.ok) throw new Error(data.error);
-    document.getElementById('earn-payout-btn').style.display='none';
-    document.getElementById('earn-payout-confirm-amt').textContent = amt.toFixed(2);
-    document.getElementById('earn-payout-success').style.display='block';
-  } catch(e) {
-    alert('Payout request failed: ' + e.message);
-  }
 }
 
 // Init earnings when the panel is opened
@@ -7760,6 +7728,50 @@ async function adSaveCalLinks() {
   }
 }
 
+// ══ TUTOR PAYOUT CYCLE (SCRUM-76) ════════════════════════════════════════
+// Payouts are automatic (api/lifecycle?resource=auto-payout) — no more
+// self-serve "Request payout" from the tutor portal. Admin picks each
+// tutor's own weekly/monthly cadence here, mirroring the student billing-
+// cycle picker.
+function adPaintPayoutCycleButtons(wrap, activeCycle) {
+  wrap.querySelectorAll('button[data-cycle]').forEach(btn => {
+    const isActive = btn.dataset.cycle === activeCycle;
+    btn.style.background = isActive ? '#0D1B2A' : '#fff';
+    btn.style.color = isActive ? '#fff' : '#0D1B2A';
+    btn.style.borderColor = isActive ? '#0D1B2A' : '#E8E8E8';
+  });
+}
+
+async function adLoadPayoutCycles(tutorKeys) {
+  await Promise.all(tutorKeys.map(async (key) => {
+    const wrap = document.getElementById('ad-payout-cycle-' + key.replace(/[^a-zA-Z]/g, ''));
+    if (!wrap) return;
+    try {
+      const r = await fetchWithTimeout(AD_BACKEND + '/api/payouts?resource=connect-status&tutor=' + encodeURIComponent(key), {
+        headers: await adAuthHeaders(),
+      });
+      const d = await r.json();
+      adPaintPayoutCycleButtons(wrap, d.payoutCycle || 'weekly');
+    } catch(e) { /* leave default (unpainted) styling on failure */ }
+  }));
+}
+
+async function adSetPayoutCycle(tutorName, cycle, btn) {
+  const wrap = btn.parentElement;
+  adPaintPayoutCycleButtons(wrap, cycle); // optimistic
+  try {
+    const r = await fetchWithTimeout(AD_BACKEND + '/api/payouts', {
+      method: 'POST', headers: {'Content-Type':'application/json', ...(await adAuthHeaders())},
+      body: JSON.stringify({ action: 'set-payout-cycle', tutorName, payoutCycle: cycle }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    seedsToast(`✓ ${tutorName}'s payouts set to ${cycle}`, false);
+  } catch(e) {
+    seedsToast('Failed: ' + e.message);
+  }
+}
+
 // ══ EDIT STUDENT ════════════════════════════════════════════════════════
 let _adEditStudentId = null;
 
@@ -8041,8 +8053,43 @@ window.spLoadPaymentHistory = async function() {
       `<div style="text-align:right;padding-top:10px;font-size:.82rem;font-weight:700;color:#0D1B2A">
         Total paid: &pound;${(total/100).toFixed(2)}
       </div>`;
+
+    spRenderLessonHistory(historyData.lessons || []);
   } catch(e) { console.error('spLoadPaymentHistory:', e.message); }
 };
+
+// SCRUM-75: per-lesson breakdown alongside the batch totals above — lets a
+// family see exactly which lesson a given weekly/monthly bill covered,
+// matching the granularity the tutor's own earnings ledger already has.
+const SP_PAYMENT_STATUS_LABEL = {
+  unbilled: { text: 'Unbilled', colour: '#718096' },
+  invoiced: { text: 'Payment pending', colour: '#C8A15A' },
+  paid:     { text: 'Paid', colour: '#2D7A4F' },
+  failed:   { text: 'Payment failed', colour: '#c0392b' },
+  refunded: { text: 'Refunded', colour: '#718096' },
+};
+function spRenderLessonHistory(lessons) {
+  const el = document.getElementById('sp-lesson-history');
+  if (!el) return;
+  if (!lessons.length) {
+    el.innerHTML = '<div style="color:#A7A7A7;font-size:.82rem;text-align:center;padding:20px">No lessons yet.</div>';
+    return;
+  }
+  el.innerHTML = lessons.map(l => {
+    const st = SP_PAYMENT_STATUS_LABEL[l.paymentStatus] || { text: l.paymentStatus, colour: '#718096' };
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F0EDE8">
+        <div>
+          <div style="font-weight:600;font-size:.85rem;color:#0D1B2A">${l.subject || 'Lesson'} &mdash; ${l.tutorName}</div>
+          <div style="font-size:.75rem;color:#718096">${new Date(l.startTime).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.72rem;font-weight:700;color:${st.colour}">${st.text}</span>
+          <span style="font-weight:700;color:#0D1B2A">&pound;${(l.feePence/100).toFixed(2)}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
 
 function spRenderBillingCycleButtons(active) {
   ['weekly', 'monthly'].forEach(cycle => {

@@ -63,6 +63,32 @@ test.describe('Tutor portal (mocked Supabase + backend)', () => {
     await expect(page.locator('#tp-kpi-students')).toHaveText('2');
   });
 
+  // SCRUM-76: self-serve "Request payout" was removed — payouts are now
+  // automatic (weekly/monthly, admin-set per tutor), so this panel is
+  // read-only status rather than an amount-and-submit form.
+  test('Earnings panel shows automatic payout schedule, no Request payout button', async ({ page }) => {
+    await mockSupabaseAuth(page, { role: 'tutor', fullName: 'Suleiman', tutorName: 'Suleiman' });
+    await page.route('**/api/analytics?resource=my-tutor-bookings*', (route) => route.fulfill({ json: { recentBookings: [] } }));
+    await page.route('**/api/payouts?resource=connect-status*', (route) => route.fulfill({
+      json: { connected: true, onboardingComplete: true, payoutCycle: 'monthly' },
+    }));
+    await page.route('**/api/payouts?tutor=*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/analytics?resource=students*', (route) => route.fulfill({ json: [] }));
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('tutor@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#tp-overlay')).toHaveClass(/tp-open/);
+
+    await page.locator('.tp-nav-item', { hasText: 'Earnings' }).click();
+    await expect(page.locator('#earn-payout-cycle')).toHaveText('Monthly, automatic');
+    await expect(page.locator('#earn-connect-status')).toContainText('Payouts enabled');
+    await expect(page.getByRole('button', { name: /Request payout/i })).toHaveCount(0);
+  });
+
   test('shows a friendly error on a wrong password, without opening the tutor portal', async ({ page }) => {
     await page.route('**/auth/v1/token*', (route) => route.fulfill({
       status: 400,
