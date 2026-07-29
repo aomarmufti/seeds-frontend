@@ -3633,7 +3633,15 @@ async function adRenderStudents() {
     tbody.innerHTML = students.map(s => {
       const initials = s.student_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const bookings = s.bookings || [];
-      const tutors = [...new Set(bookings.map(b=>b.tutor_name))].join(', ') || '—';
+      // The assigned tutor is the answer to "who looks after this family",
+      // which is what this column is asking. It used to be derived purely
+      // from who they'd booked with, so a student assigned to a tutor but
+      // not yet booked in showed "—" and looked unassigned.
+      const booked = [...new Set(bookings.map(b=>b.tutor_name))];
+      const tutors = s.assigned_tutor
+        ? s.assigned_tutor + (booked.length && !booked.includes(s.assigned_tutor)
+            ? ` <span style="color:#A7A7A7;font-size:.75rem">(also taught by ${booked.join(', ')})</span>` : '')
+        : (booked.join(', ') || '—');
       const joined = new Date(s.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
       return `<tr>
         <td><div style="display:flex;align-items:center;gap:9px"><div class="ad-mini-av">${initials}</div>${s.student_name}</div></td>
@@ -4237,10 +4245,7 @@ async function tpRenderStudentsList() {
     // Get this tutor's bookings to derive their student list
     const r = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
-    // Filter to students who have a booking with this tutor
-    const mine = students.filter(s =>
-      (s.bookings || []).some(b => b.tutor_name === earnCurrentTutor)
-    );
+    const mine = students.filter(tpIsMyStudent);
     if (!mine.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#A7A7A7;padding:20px">No students yet.</td></tr>';
       return;
@@ -4440,6 +4445,19 @@ const TUTOR_CUT = 0.78;
 const LABEL = {gcse:'GCSE 1:1',alevel:'A-Level 1:1',group:'Group session',trial:'Free trial',consultation:'Initial Consultation'};
 let EARN_LESSONS = []; // populated from API
 let earnCurrentTutor = null; // set when tutor logs in
+
+// Whose students are mine. This used to be "anyone I have a booking with",
+// which meant a student admin had explicitly assigned to me was invisible in
+// my portal until they'd actually booked something — exactly backwards, since
+// the whole point of the assignment is that I'm meant to reach out to them.
+// assignedTutor (students.assigned_tutor) is the real link; bookings are kept
+// as a fallback so historic students assigned before that column existed, or
+// booked with me without a formal assignment, don't disappear.
+function tpIsMyStudent(s) {
+  if (!earnCurrentTutor) return false;
+  if (s.assigned_tutor === earnCurrentTutor) return true;
+  return (s.bookings || []).some(b => b.tutor_name === earnCurrentTutor);
+}
 
 function earnCut(fee){ return Math.round(fee * TUTOR_CUT); }
 function earnFmt(p){ return '£'+(p/100).toFixed(2); }
@@ -6286,7 +6304,7 @@ async function tpRenderRecentHomework() {
     // Get this tutor's students, then their recently-completed homework
     const r = await fetchWithTimeout(`${SP_BACKEND}/api/analytics?resource=students`, { headers: await seedsAuthHeaders() });
     const students = await r.json();
-    const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
+    const mine = students.filter(tpIsMyStudent);
     let items = [];
     const _tpHwAuthH = await seedsAuthHeaders();
     for (const s of mine.slice(0, 8)) {
@@ -6663,7 +6681,7 @@ async function tpOpenAddLesson() {
   try {
     const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
-    _tpAlStudents = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
+    _tpAlStudents = students.filter(tpIsMyStudent);
     if (!_tpAlStudents.length) {
       // Show all students if none matched yet (new tutor)
       _tpAlStudents = students;
@@ -6775,7 +6793,7 @@ async function tpLoadResourceStudents() {
   try {
     const r = await fetchWithTimeout(SP_BACKEND + '/api/analytics?resource=students', { headers: await seedsAuthHeaders() });
     const students = await r.json();
-    const mine = students.filter(s => (s.bookings||[]).some(b => b.tutor_name === earnCurrentTutor));
+    const mine = students.filter(tpIsMyStudent);
     mine.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id; opt.textContent = s.student_name;
