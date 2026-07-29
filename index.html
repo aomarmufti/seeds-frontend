@@ -7549,6 +7549,29 @@ if (typeof adRenderDashboard === 'function') {
 </div>
 
 <!-- TUTOR SELF-CANCEL / RESCHEDULE MODAL -->
+<!-- SCRUM-88: what actually happened in a finished lesson. Every option says
+     plainly whether it charges the family, because that is the consequence
+     the tutor is actually choosing between. -->
+<div class="ad-modal-overlay" id="tp-outcome-modal">
+  <div class="ad-modal" style="max-width:440px">
+    <div class="ad-modal-hdr">
+      <div>
+        <h3>What happened?</h3>
+        <p style="margin:2px 0 0;font-size:.8rem;color:#718096"><span id="tp-outcome-student"></span> · this decides whether the family is charged</p>
+      </div>
+      <button type="button" onclick="document.getElementById('tp-outcome-modal').classList.remove('open')" aria-label="Close" style="cursor:pointer;font-size:1.3rem;color:#A7A7A7;line-height:1;background:none;border:none;padding:0;font-family:inherit">&#x2715;</button>
+    </div>
+    <div id="tp-outcome-list" style="margin:4px 0 12px"></div>
+    <label style="display:block">
+      <span class="lg-label">Note (optional)</span>
+      <input type="text" id="tp-outcome-note" maxlength="500" placeholder="Anything worth recording"
+             style="width:100%;padding:9px 11px;border:1.5px solid #E8E8E8;border-radius:9px;font-size:.85rem;font-family:'Inter',sans-serif">
+    </label>
+    <div id="tp-outcome-err" style="display:none;color:#c0392b;font-size:.8rem;margin-top:9px"></div>
+    <button class="lg-enter" id="tp-outcome-save" onclick="tpSubmitOutcome()" style="margin-top:12px">Save outcome</button>
+  </div>
+</div>
+
 <div class="ad-modal-overlay" id="tp-self-reschedule-modal">
   <div class="ad-modal">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
@@ -7769,20 +7792,61 @@ async function tpSelfCancel() {
 // actually happened. Before this, a lesson was charged simply because its
 // start time had passed — a no-show or a lesson that never ran was billed
 // exactly like one that was taught.
-async function tpMarkDelivered(bookingId, outcome, studentName) {
-  const LABEL = {
-    delivered: 'Confirm this lesson went ahead?',
-    no_show: 'Mark as a no-show? ' + (studentName || 'The student') + ' will still be charged for the slot, and you\'ll still be paid for it.',
-    waived: 'Waive this lesson? Nobody is charged and you won\'t be paid for it.',
-  };
-  if (!confirm(LABEL[outcome])) return;
-  let note = null;
-  if (outcome !== 'delivered') {
-    // A charge the family didn't expect needs a reason attached to it —
-    // "you were charged for a lesson you say didn't happen" is not a
-    // conversation anyone should have to reconstruct from memory later.
-    note = prompt('Add a short note for our records (optional):', '') || null;
-  }
+// Every outcome a week of teaching actually throws up, and what each one
+// does to the money. Two buttons ("Taught" / "No-show") forced a tutor to
+// bill a family in full for anything that wasn't a clean lesson — there was
+// no way to say the two of you agreed to move it, or that the tutor was the
+// one who couldn't make it.
+const TP_OUTCOMES = [
+  { key:'delivered',        label:'Taught as planned',            bills:true,
+    detail:'Charged as normal. You get paid for it.' },
+  { key:'partial',          label:'Cut short by the student',     bills:true,
+    detail:'Charged in full — you held and delivered the slot.' },
+  { key:'no_show',          label:'Student didn\'t turn up',      bills:true,
+    detail:'Charged in full — you held the slot. You still get paid.' },
+  { key:'cancelled_mutual', label:'Cancelled by agreement',       bills:false,
+    detail:'Nobody is charged and nobody is paid.' },
+  { key:'tutor_cancelled',  label:'I cancelled / couldn\'t make it', bills:false,
+    detail:'Nobody is charged and nobody is paid.' },
+  { key:'waived',           label:'Waive this one (goodwill)',    bills:false,
+    detail:'Nobody is charged and nobody is paid.' },
+];
+
+function tpOpenOutcome(bookingId, studentName) {
+  const rows = TP_OUTCOMES.map((o,i) => `
+    <label style="display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1.5px solid #E8E8E8;border-radius:10px;cursor:pointer;margin-bottom:7px" onmouseover="this.style.borderColor='#C8A15A'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'#0D1B2A':'#E8E8E8'">
+      <input type="radio" name="tp-outcome" value="${o.key}"${i===0?' checked':''} style="margin-top:3px;cursor:pointer"
+             onchange="document.querySelectorAll('#tp-outcome-list label').forEach(l=>l.style.borderColor=l.querySelector('input').checked?'#0D1B2A':'#E8E8E8')">
+      <span>
+        <span style="display:block;font-weight:650;font-size:.85rem;color:#0D1B2A">${o.label}</span>
+        <span style="display:block;font-size:.75rem;color:${o.bills?'#8A6A22':'#718096'};margin-top:1px">${o.detail}</span>
+      </span>
+    </label>`).join('');
+  document.getElementById('tp-outcome-student').textContent = studentName || 'this lesson';
+  document.getElementById('tp-outcome-list').innerHTML = rows;
+  document.getElementById('tp-outcome-note').value = '';
+  document.getElementById('tp-outcome-err').style.display = 'none';
+  document.getElementById('tp-outcome-save').disabled = false;
+  document.getElementById('tp-outcome-save').textContent = 'Save outcome';
+  document.getElementById('tp-outcome-modal').dataset.bid = bookingId;
+  document.getElementById('tp-outcome-modal').classList.add('open');
+  document.querySelectorAll('#tp-outcome-list label').forEach(l =>
+    l.style.borderColor = l.querySelector('input').checked ? '#0D1B2A' : '#E8E8E8');
+}
+
+async function tpSubmitOutcome() {
+  const modal = document.getElementById('tp-outcome-modal');
+  const btn = document.getElementById('tp-outcome-save');
+  const sel = document.querySelector('input[name="tp-outcome"]:checked');
+  if (!sel) return;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const ok = await tpMarkDelivered(modal.dataset.bid, sel.value,
+                                   document.getElementById('tp-outcome-note').value.trim() || null);
+  if (ok) { modal.classList.remove('open'); }
+  else { btn.disabled = false; btn.textContent = 'Save outcome'; }
+}
+
+async function tpMarkDelivered(bookingId, outcome, note) {
   try {
     const r = await fetchWithTimeout(SP_BACKEND + '/api/lifecycle?resource=mark-delivered', {
       method: 'POST', headers: await seedsAuthHeaders(),
@@ -7792,7 +7856,13 @@ async function tpMarkDelivered(bookingId, outcome, studentName) {
     if (!r.ok) throw new Error(d.error);
     seedsToast('✓ Lesson marked', false);
     if (typeof tpLoadSchedule === 'function') tpLoadSchedule();
-  } catch(e) { seedsToast('Could not save: ' + e.message); }
+    return true;
+  } catch(e) {
+    const err = document.getElementById('tp-outcome-err');
+    if (err) { err.textContent = e.message; err.style.display = 'block'; }
+    else seedsToast('Could not save: ' + e.message);
+    return false;
+  }
 }
 
 // Renders either the outcome already recorded, or the buttons to record one.
@@ -7800,11 +7870,14 @@ async function tpMarkDelivered(bookingId, outcome, studentName) {
 // control never appears on a lesson that hasn't happened yet.
 function tpDeliveryControl(b) {
   const OUTCOME_LBL = {
-    delivered: '✓ Taught', no_show: '⚠ No-show',
-    late_cancelled: '⚠ Late cancellation', waived: '— Waived',
+    delivered: '✓ Taught', partial: '✓ Cut short', no_show: '⚠ No-show',
+    late_cancelled: '⚠ Late cancellation', cancelled_mutual: '— Cancelled',
+    tutor_cancelled: '— You cancelled', waived: '— Waived',
   };
+  // Must match BILLABLE_OUTCOMES in the backend's lib/cancellationPolicy.js.
+  const BILLABLE = ['delivered', 'partial', 'no_show', 'late_cancelled'];
   if (b.deliveryStatus) {
-    const chargeable = b.deliveryStatus !== 'waived';
+    const chargeable = BILLABLE.includes(b.deliveryStatus);
     return `<span title="${chargeable ? 'Chargeable' : 'Not charged'}" style="padding:5px 9px;border-radius:7px;font-size:.68rem;font-weight:700;color:${chargeable?'#2D7A4F':'#A7A7A7'};background:${chargeable?'#EAF5EE':'#F4F4F4'};white-space:nowrap">${OUTCOME_LBL[b.deliveryStatus]||b.deliveryStatus}</span>`;
   }
   // end_time, not start_time: a lesson in progress is not yet a lesson that
@@ -7812,9 +7885,7 @@ function tpDeliveryControl(b) {
   const finished = b.endTime && new Date(b.endTime) < new Date();
   if (!finished || b.status === 'requested' || b.status === 'cancelled') return '';
   const sn = (b.studentName || '').replace(/'/g, '');
-  const btn = (outcome, label, bg) =>
-    `<button onclick="tpMarkDelivered('${b.id||''}','${outcome}','${sn}')" style="padding:6px 10px;border:1.5px solid ${bg};border-radius:7px;font-size:.71rem;font-weight:700;color:${bg};cursor:pointer;background:#fff;font-family:Inter,sans-serif">${label}</button>`;
-  return btn('delivered', '✓ Taught', '#2D7A4F') + btn('no_show', 'No-show', '#C0632F');
+  return `<button onclick="tpOpenOutcome('${b.id||''}','${sn}')" style="padding:6px 12px;border:1.5px solid #2D7A4F;border-radius:7px;font-size:.71rem;font-weight:700;color:#2D7A4F;cursor:pointer;background:#fff;font-family:Inter,sans-serif">What happened? →</button>`;
 }
 
 // ══ SESSION TIMEOUT (30 min inactivity) ══════════════════════════════════
@@ -8705,8 +8776,27 @@ window.adRenderStudents = async function() {
     // approval. Also adds assign-tutor and deactivate, neither of which
     // existed anywhere in the admin UI.
     const accounts = await adLoadAccounts(true);
-    const students = accounts.filter(a => a.role === 'student');
     const tutorNames = adTutorAccounts(accounts).map(t => t.tutorName);
+    // Reading accounts alone missed the other half: a lead assigned to a
+    // tutor creates a students row but no login, so a family admin is
+    // actively managing was invisible here until they signed up. Merge in
+    // any students-table row with no matching account, keyed on email.
+    let students = accounts.filter(a => a.role === 'student');
+    try {
+      const sr = await fetchWithTimeout(`${AD_BACKEND}/api/analytics?resource=students`, { headers: await adAuthHeaders() });
+      const rows = await sr.json();
+      const known = new Set(students.map(a => (a.email||'').toLowerCase()));
+      students = students.concat(
+        (Array.isArray(rows) ? rows : [])
+          .filter(r => r.parent_email && !known.has(r.parent_email.toLowerCase()))
+          .map(r => ({
+            id: r.id, studentId: r.id, noAccount: true,
+            studentName: r.student_name, parentName: r.parent_name,
+            email: r.parent_email, assignedTutor: r.assigned_tutor || '',
+            lessonCount: (r.bookings || []).length, createdAt: r.created_at,
+          }))
+      );
+    } catch(e) { console.warn('students-table merge failed:', e.message); }
     if (!students.length) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#A7A7A7;padding:20px">No students yet</td></tr>';
       return;
@@ -8720,17 +8810,22 @@ window.adRenderStudents = async function() {
         .concat(tutorNames.map(t =>
           `<option value="${t}"${t === s.assignedTutor ? ' selected' : ''}>${t}</option>`
         )).join('');
+      // A lead-created student has no login yet, so the account-scoped
+      // actions (edit profile, deactivate) have nothing to act on — say so
+      // rather than showing buttons that would fail.
+      const assignFn = s.noAccount ? 'adAssignTutorToRecord' : 'adAssignTutor';
       return `<tr>
-        <td><div style="display:flex;align-items:center;gap:9px"><div class="ad-mini-av">${initials}</div>${name}</div></td>
+        <td><div style="display:flex;align-items:center;gap:9px"><div class="ad-mini-av">${initials}</div>${name}${
+          s.noAccount ? ' <span class="ad-pay-status" style="background:#EFECE5;color:#718096" title="Assigned from a lead — this family hasn\'t created a login yet">No account yet</span>' : ''}</div></td>
         <td>${s.parentName||'—'}</td>
         <td style="font-size:.78rem;color:#718096">${s.email||'—'}</td>
-        <td><select onchange="adAssignTutor('${s.id}',this.value,this)" style="padding:4px 6px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.74rem;font-family:'Inter',sans-serif;cursor:pointer;max-width:150px">${opts}</select></td>
+        <td><select onchange="${assignFn}('${s.id}',this.value,this)" style="padding:4px 6px;border:1.5px solid #E8E8E8;border-radius:7px;font-size:.74rem;font-family:'Inter',sans-serif;cursor:pointer;max-width:150px">${opts}</select></td>
         <td>${s.lessonCount}</td>
         <td style="color:#718096">${joined}</td>
         <td style="white-space:nowrap">
-          <button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adOpenEditStudent('${s.id}','${escName}','','','')">Edit</button>
+          ${s.noAccount ? '' : `<button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adOpenEditStudent('${s.id}','${escName}','','','')">Edit</button>`}
           ${s.studentId ? `<button class="ad-btn-xs ad-btn-ghost" style="margin-right:5px" onclick="adLogSafeguarding('${s.studentId}','${escName}')" title="Safeguarding log">🛡</button>` : ''}
-          <button class="ad-btn-xs ad-btn-ghost" style="color:#c0392b" onclick="adDeactivateAccount('${s.id}','${escName}')">Deactivate</button>
+          ${s.noAccount ? '' : `<button class="ad-btn-xs ad-btn-ghost" style="color:#c0392b" onclick="adDeactivateAccount('${s.id}','${escName}')">Deactivate</button>`}
         </td>
       </tr>`;
     }).join('');
@@ -8738,6 +8833,28 @@ window.adRenderStudents = async function() {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#c0392b;padding:20px">Failed: ${e.message}</td></tr>`;
   }
 };
+
+// The same action for a student who has no login yet — a lead admin assigned
+// before the family ever signed up. Keyed on the students row rather than an
+// auth user, since there isn't one.
+async function adAssignTutorToRecord(studentId, tutorName, sel) {
+  const prev = sel.dataset.prev || '';
+  sel.disabled = true;
+  try {
+    const r = await fetchWithTimeout(`${AD_BACKEND}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await adAuthHeaders()) },
+      body: JSON.stringify({ action: 'assign-tutor', studentId, tutorName }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    sel.dataset.prev = tutorName;
+    seedsToast(tutorName ? `Assigned to ${tutorName}` : 'Tutor unassigned', false);
+  } catch(e) {
+    sel.value = prev;
+    seedsToast('Could not assign tutor: ' + e.message);
+  } finally { sel.disabled = false; }
+}
 
 // SCRUM-86: assign or move a student to a tutor. profiles.assigned_tutor
 // already existed but nothing in the UI ever wrote to it.
