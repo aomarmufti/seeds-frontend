@@ -7,11 +7,11 @@ on:
     branches: [main]
 
 jobs:
-  # The build is the syntax check now — Next.js won't emit a bundle if a
-  # module doesn't compile. This replaces the old job, which parsed inline
-  # <script> blocks out of index.html; those no longer exist, so it would have
-  # checked nothing from here on.
-  build:
+  # Replaces the old inline-<script> syntax check (SCRUM-32 removed the inline
+  # blocks it parsed). The build is now the syntax check — it won't produce a
+  # bundle if a module doesn't parse — and the smoke step goes further by
+  # actually evaluating the output, which the old check deliberately never did.
+  build-and-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,4 +20,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - run: npm run build
+      - name: Build
+        run: npm run build
+      - name: Evaluate the built bundles and check every inline handler resolves
+        run: npm run test:smoke
