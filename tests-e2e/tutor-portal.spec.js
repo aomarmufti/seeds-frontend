@@ -146,10 +146,70 @@ test.describe('Tutor portal (mocked Supabase + backend)', () => {
     await expect(card).not.toContainText('Student Two');
     await expect(card).not.toContainText('Student Three');
 
-    page.on('dialog', (d) => d.accept());
-    await card.getByRole('button', { name: /Taught/ }).click();
+    // The picker replaced the old two-button "Taught / No-show" pair, so the
+    // tutor now goes through a modal that spells out what each outcome does
+    // to the family's bill.
+    await card.getByRole('button', { name: /What happened/ }).click();
+    const modal = page.locator('#tp-outcome-modal');
+    await expect(modal).toHaveClass(/open/);
+    await expect(modal).toContainText('Student One');
+
+    // Every outcome is offered, and each one states whether it charges.
+    await expect(modal).toContainText('Taught as planned');
+    await expect(modal).toContainText('Cut short by the student');
+    await expect(modal).toContainText('Cancelled by agreement');
+    await expect(modal).toContainText('Waive this one');
+
+    await modal.locator('input[name="tp-outcome"][value="delivered"]').check();
+    await page.locator('#tp-outcome-save').click();
     await expect.poll(() => markCall).not.toBeNull();
     expect(markCall).toMatchObject({ bookingId: 'b-await', outcome: 'delivered' });
+    await expect(modal).not.toHaveClass(/open/);
+  });
+
+  test('SCRUM-88: a tutor can record a non-billable outcome without charging the family', async ({ page }) => {
+    // The whole point of the widened set: "we agreed to move it" must reach
+    // the backend as its own outcome, not get forced into delivered/no_show.
+    await mockSupabaseAuth(page, { role: 'tutor', fullName: 'Suleiman', tutorName: 'Suleiman' });
+
+    const now = Date.now();
+    const finishedStart = new Date(now - 2 * 86400000).toISOString();
+    const finishedEnd = new Date(now - 2 * 86400000 + 55 * 60000).toISOString();
+
+    await page.route('**/api/analytics?resource=my-tutor-bookings*', (route) => route.fulfill({
+      json: {
+        recentBookings: [
+          { id: 'b-await', studentId: 's1', studentName: 'Student One', tutorName: 'Suleiman', subject: 'History',
+            startTime: finishedStart, endTime: finishedEnd, status: 'confirmed', feePence: 4000,
+            paymentStatus: 'unbilled', deliveryStatus: null },
+        ],
+      },
+    }));
+    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/analytics?resource=students*', (route) => route.fulfill({ json: [] }));
+
+    let markCall = null;
+    await page.route('**/api/lifecycle?resource=mark-delivered*', async (route) => {
+      markCall = JSON.parse(route.request().postData() || '{}');
+      await route.fulfill({ json: { success: true } });
+    });
+
+    await page.goto('/');
+    await page.locator('#portal-launch-btn').click();
+    await page.locator('#lg-email').fill('tutor@example.com');
+    await page.locator('#lg-password').fill('correct-horse-battery');
+    await page.locator('#lg-enter').click();
+    await expect(page.locator('#tp-overlay')).toHaveClass(/tp-open/);
+
+    await page.locator('#tp-delivery-card').getByRole('button', { name: /What happened/ }).click();
+    await page.locator('input[name="tp-outcome"][value="cancelled_mutual"]').check();
+    await page.locator('#tp-outcome-note').fill('Rescheduled to Thursday');
+    await page.locator('#tp-outcome-save').click();
+
+    await expect.poll(() => markCall).not.toBeNull();
+    expect(markCall).toMatchObject({
+      bookingId: 'b-await', outcome: 'cancelled_mutual', note: 'Rescheduled to Thursday',
+    });
   });
 
   test('shows a friendly error on a wrong password, without opening the tutor portal', async ({ page }) => {
