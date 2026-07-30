@@ -4,6 +4,12 @@
 // the other modules' bare cross-references — and the inline on* handlers in
 // the markup — keep resolving exactly as they did in global scope.
 
+// NOTE (SCRUM-32): adRenderDashboard(), adRenderStudents() are declared here but replaced later by
+// another module assigning to window. Under the old shared global scope that
+// replacement applied to this block's own calls too; as a module, a local
+// declaration would shadow it. Declared as ...$base and published to window so
+// every reference, here included, still resolves to the current override.
+
 // ── ADMIN ANALYTICS — live data from /api/analytics ─────────────────────
 const AD_BACKEND = 'https://seeds-backend-six.vercel.app';
 let adData = null; // cached after first load
@@ -94,7 +100,7 @@ function adDateFmt(iso) {
 const TYPE_LABEL = {gcse:'GCSE 1:1', alevel:'A-Level 1:1', group:'Group', trial:'Free trial',consultation:'Initial Consultation'};
 
 // ── DASHBOARD KPIs & CHART ───────────────────────────────────────────────
-function adRenderDashboard() {
+function adRenderDashboard$base() {
   if (!adData) return;
   const { revenue, studentCount, bookingCount, byType, monthly, tutors, recentBookings } = adData;
 
@@ -942,7 +948,7 @@ function adRelativeTime(iso) {
   return `${days}d ago`;
 }
 
-async function adRenderStudents() {
+async function adRenderStudents$base() {
   const tbody = document.getElementById('ad-students-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#A7A7A7;padding:20px">Loading...</td></tr>';
@@ -1095,8 +1101,11 @@ async function adApprovePayout(tutorName, amountPence) {
 }
 
 // Hook into panel switching to load data when admin portal opens
-// Use DOMContentLoaded to ensure _openAdminPortal is defined before wrapping
-window.addEventListener('DOMContentLoaded', function() {
+// SCRUM-32: whenReady, not a bare DOMContentLoaded listener — this module is
+// now in the lazily-loaded portal chunk, which is fetched on sign-in, long
+// after that event has fired. A plain listener here never runs, which left the
+// admin dashboard un-wired and empty.
+whenReady(function() {
   const _origOpenAdmin = window._openAdminPortal;
   window._openAdminPortal = function() {
     _origOpenAdmin();
@@ -1130,7 +1139,7 @@ window.addEventListener('DOMContentLoaded', function() {
   window.adFmt = adFmt;
   window.adDateFmt = adDateFmt;
   window.TYPE_LABEL = TYPE_LABEL;
-  window.adRenderDashboard = adRenderDashboard;
+  window.adRenderDashboard = adRenderDashboard$base;
   window.adRenderAttention = adRenderAttention;
   window.adFilterBookings = adFilterBookings;
   window.adClearBookingFilters = adClearBookingFilters;
@@ -1155,7 +1164,7 @@ window.addEventListener('DOMContentLoaded', function() {
   window.adAssignLead = adAssignLead;
   window.adViewLead = adViewLead;
   window.adRelativeTime = adRelativeTime;
-  window.adRenderStudents = adRenderStudents;
+  window.adRenderStudents = adRenderStudents$base;
   window.tpUpdateHomeKPIs = tpUpdateHomeKPIs;
   window.adVerifyLessons = adVerifyLessons;
   window.adApprovePayout = adApprovePayout;

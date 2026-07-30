@@ -655,7 +655,9 @@ async function spOpenBillingPortal() {
 
 // ══ CANCELLATION POLICY IN BOOKING MODAL ═════════════════════════════════
 // Add to payment step on booking modal
-document.addEventListener('DOMContentLoaded', function() {
+// SCRUM-32: see the note in 04 — lazily-loaded modules cannot rely on
+// DOMContentLoaded still being ahead of them.
+whenReady(function() {
   const card = document.querySelector('#bk-step-3 .bk-order-card');
   if (!card) return;
   const policy = document.createElement('div');

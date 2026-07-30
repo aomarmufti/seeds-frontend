@@ -4,7 +4,13 @@
 // the other modules' bare cross-references — and the inline on* handlers in
 // the markup — keep resolving exactly as they did in global scope.
 
-function _openAdminPortal(){
+// NOTE (SCRUM-32): _openAdminPortal(), showAdPanel() are declared here but replaced later by
+// another module assigning to window. Under the old shared global scope that
+// replacement applied to this block's own calls too; as a module, a local
+// declaration would shadow it. Declared as ...$base and published to window so
+// every reference, here included, still resolves to the current override.
+
+function _openAdminPortal$base(){
   document.getElementById('ad-overlay').classList.add('ad-open');
   document.body.style.overflow='hidden';
   adUpdateLeadsBadge();
@@ -39,7 +45,7 @@ function closeAdmin(){
   document.body.style.overflow='';
   routeClear();
 }
-function showAdPanel(id, navEl){
+function showAdPanel$base(id, navEl){
   routeSet('admin', id);
   document.querySelectorAll('.ad-panel').forEach(p=>p.classList.remove('ad-active'));
   document.getElementById(id).classList.add('ad-active');
@@ -61,9 +67,9 @@ function assignTutor(btn, tutorName){
 
 // ── global bridge (generated) ──────────────────────────────────────────
 {
-  window._openAdminPortal = _openAdminPortal;
+  window._openAdminPortal = _openAdminPortal$base;
   window.adUpdateLeadsBadge = adUpdateLeadsBadge;
   window.closeAdmin = closeAdmin;
-  window.showAdPanel = showAdPanel;
+  window.showAdPanel = showAdPanel$base;
   window.assignTutor = assignTutor;
 }

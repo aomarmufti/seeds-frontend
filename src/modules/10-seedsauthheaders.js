@@ -4,6 +4,12 @@
 // the other modules' bare cross-references — and the inline on* handlers in
 // the markup — keep resolving exactly as they did in global scope.
 
+// NOTE (SCRUM-32): spRenderHome(), spSubmitBooking() are declared here but replaced later by
+// another module assigning to window. Under the old shared global scope that
+// replacement applied to this block's own calls too; as a module, a local
+// declaration would shadow it. Declared as ...$base and published to window so
+// every reference, here included, still resolves to the current override.
+
 const SP_BACKEND = 'https://seeds-backend-six.vercel.app';
 let spBookings = [];
 
@@ -321,7 +327,7 @@ function spPayBadge(b) {
   return `<span class="sp-pay-badge" style="padding:2px 9px;border-radius:20px;font-size:.66rem;font-weight:700;background:${cfg.bg};color:${cfg.color};margin-left:6px;white-space:nowrap">${cfg.label}</span>`;
 }
 
-function spRenderHome(studentName) {
+function spRenderHome$base(studentName) {
   const greet = document.getElementById('p-greeting-name');
   if (greet && studentName) greet.textContent = studentName.split(' ')[0] ? studentName : 'Welcome';
   const tod = document.getElementById('p-greet-tod');
@@ -666,7 +672,7 @@ window.addEventListener('message', async (e) => {
   chosenEl.textContent = '✓ ' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
 });
 
-async function spSubmitBooking() {
+async function spSubmitBooking$base() {
   const btn = document.getElementById('sp-book-btn');
   const errEl = document.getElementById('sp-book-error');
   const tutorName = document.getElementById('sp-book-tutor').value;
@@ -762,7 +768,7 @@ window.showPortalPanel = function(id, navEl) {
   window.spJoinLesson = spJoinLesson;
   window.SP_PAY_BADGE = SP_PAY_BADGE;
   window.spPayBadge = spPayBadge;
-  window.spRenderHome = spRenderHome;
+  window.spRenderHome = spRenderHome$base;
   window.spPendingBadge = spPendingBadge;
   Object.defineProperty(window, "calViewDate", { get: () => calViewDate, set: (v) => { calViewDate = v; }, configurable: true });
   window.calNav = calNav;
@@ -774,7 +780,7 @@ window.showPortalPanel = function(id, navEl) {
   window.spOpenInPortalBooking = spOpenInPortalBooking;
   window.spSyncBookCopy = spSyncBookCopy;
   window.spLoadBookCal = spLoadBookCal;
-  window.spSubmitBooking = spSubmitBooking;
+  window.spSubmitBooking = spSubmitBooking$base;
   window._origSPOpen = _origSPOpen;
   window._origSPPanel = _origSPPanel;
 }

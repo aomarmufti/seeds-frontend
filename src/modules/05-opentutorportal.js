@@ -4,7 +4,13 @@
 // the other modules' bare cross-references — and the inline on* handlers in
 // the markup — keep resolving exactly as they did in global scope.
 
-function _openTutorPortal(){
+// NOTE (SCRUM-32): _openTutorPortal(), showTpPanel(), earnRenderAll() are declared here but replaced later by
+// another module assigning to window. Under the old shared global scope that
+// replacement applied to this block's own calls too; as a module, a local
+// declaration would shadow it. Declared as ...$base and published to window so
+// every reference, here included, still resolves to the current override.
+
+function _openTutorPortal$base(){
   document.getElementById('tp-overlay').classList.add('tp-open');
   document.body.style.overflow='hidden';
 }
@@ -13,7 +19,7 @@ function closeTutorPortal(){
   document.body.style.overflow='';
   routeClear();
 }
-function showTpPanel(id, navEl){
+function showTpPanel$base(id, navEl){
   document.querySelectorAll('.tp-panel').forEach(p=>p.classList.remove('tp-active'));
   document.getElementById(id).classList.add('tp-active');
   document.querySelectorAll('.tp-nav-item').forEach(n=>n.classList.remove('tp-active-nav'));
@@ -322,7 +328,7 @@ async function earnLoadData() {
   }
 }
 
-function earnRenderAll(){
+function earnRenderAll$base(){
   earnUpdateKPIs();
   earnRenderChart();
   earnRenderLedger();
@@ -494,9 +500,9 @@ window.showTpPanel = function(id, navEl){
 
 // ── global bridge (generated) ──────────────────────────────────────────
 {
-  window._openTutorPortal = _openTutorPortal;
+  window._openTutorPortal = _openTutorPortal$base;
   window.closeTutorPortal = closeTutorPortal;
-  window.showTpPanel = showTpPanel;
+  window.showTpPanel = showTpPanel$base;
   window.tpSetIdentity = tpSetIdentity;
   Object.defineProperty(window, "_tpCurrentStudent", { get: () => _tpCurrentStudent, set: (v) => { _tpCurrentStudent = v; }, configurable: true });
   window.tpRenderStudentsList = tpRenderStudentsList;
@@ -519,7 +525,7 @@ window.showTpPanel = function(id, navEl){
   window.earnFmt = earnFmt;
   window.earnDateFmt = earnDateFmt;
   window.earnLoadData = earnLoadData;
-  window.earnRenderAll = earnRenderAll;
+  window.earnRenderAll = earnRenderAll$base;
   window.earnUpdateKPIs = earnUpdateKPIs;
   window.earnCheckConnect = earnCheckConnect;
   window.earnStartConnect = earnStartConnect;

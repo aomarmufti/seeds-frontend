@@ -10,6 +10,10 @@
 // the booking wizard, config and the auth/login flow. Everything behind a
 // login lives in ./portal.js and is fetched on demand by loadPortal() below.
 
+// Eager, and before anything else: the portal chunk loads after DOMContentLoaded
+// has already fired, so its modules need whenReady() in place of a plain
+// listener. See dom-ready.js.
+import './dom-ready.js';
 import './router.js';
 
 import './modules/00-scroll-progress-indicator-lets-people-se.js';

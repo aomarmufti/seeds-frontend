@@ -4,6 +4,12 @@
 // the other modules' bare cross-references — and the inline on* handlers in
 // the markup — keep resolving exactly as they did in global scope.
 
+// NOTE (SCRUM-32): spLoadPaymentHistory() is declared here but replaced later by
+// another module assigning to window. Under the old shared global scope that
+// replacement applied to this block's own calls too; as a module, a local
+// declaration would shadow it. Declared as ...$base and published to window so
+// every reference, here included, still resolves to the current override.
+
 // ── ITEM 6: POST-LESSON LOG ──────────────────────────────────────────────
 let _tpLogLesson = null; // { bookingId, studentId, studentName, subject, tutorName }
 
@@ -104,7 +110,7 @@ async function tpSubmitLessonLog() {
 }
 
 // ── ITEM 7: STUDENT PAYMENT HISTORY ─────────────────────────────────────
-async function spLoadPaymentHistory() {
+async function spLoadPaymentHistory$base() {
   const el = document.getElementById('sp-payment-history');
   if (!el) return;
   try {
@@ -172,6 +178,6 @@ async function earnLoadFullHistory() {
   window.tpOpenLessonLogFromBtn = tpOpenLessonLogFromBtn;
   window.tpOpenLessonLog = tpOpenLessonLog;
   window.tpSubmitLessonLog = tpSubmitLessonLog;
-  window.spLoadPaymentHistory = spLoadPaymentHistory;
+  window.spLoadPaymentHistory = spLoadPaymentHistory$base;
   window.earnLoadFullHistory = earnLoadFullHistory;
 }

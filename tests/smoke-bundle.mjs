@@ -106,4 +106,31 @@ if (undef.length) {
 }
 console.log('every inline handler resolves at runtime ✓');
 
+// A module in the lazy portal chunk must not register a DOMContentLoaded
+// listener: that chunk is fetched on sign-in, long after the event has fired,
+// so the callback never runs. This silently un-wired the admin dashboard once
+// already — it fails as an empty page, not an error, so it needs a guard
+// rather than a memory. Use whenReady() from src/dom-ready.js instead.
+const srcDir = new URL('../src/', import.meta.url).pathname;
+const portalSrc = fs.readFileSync(path.join(srcDir, 'portal.js'), 'utf8');
+const lazyModules = [...portalSrc.matchAll(/from\s+'([^']+)'|import\s+'([^']+)'/g)]
+  .map((m) => m[1] || m[2]);
+
+const offenders = [];
+for (const rel of lazyModules) {
+  const file = path.join(srcDir, rel);
+  if (!fs.existsSync(file)) continue;
+  const body = fs.readFileSync(file, 'utf8')
+    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  if (/addEventListener\(\s*['"]DOMContentLoaded['"]/.test(body)) offenders.push(rel);
+}
+
+if (offenders.length) {
+  console.error('\nDOMContentLoaded listener inside the lazy portal chunk:');
+  for (const o of offenders) console.error('  ', o);
+  console.error('That callback will never fire. Use whenReady() instead.');
+  process.exit(1);
+}
+console.log('no DOMContentLoaded listeners in the lazy chunk ✓');
+
 process.exit(0);
