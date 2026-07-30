@@ -7,12 +7,20 @@ on:
     branches: [main]
 
 jobs:
-  syntax-check:
+  # Replaces the old inline-<script> syntax check (SCRUM-32 removed the inline
+  # blocks it parsed). The build is now the syntax check — it won't produce a
+  # bundle if a module doesn't parse — and the smoke step goes further by
+  # actually evaluating the output, which the old check deliberately never did.
+  build-and-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Syntax-check every inline <script> block in index.html
-        run: node .github/scripts/check-inline-scripts.js
+          cache: 'npm'
+      - run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Evaluate the built bundles and check every inline handler resolves
+        run: npm run test:smoke

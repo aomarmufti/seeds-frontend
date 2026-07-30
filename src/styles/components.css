@@ -1,0 +1,104 @@
+/* Shared portal components (SCRUM-33)
+ *
+ * One definition per component, shared by the student, tutor and admin
+ * portals. Every rule here was previously duplicated verbatim across two or
+ * three portals; merging them is a visual no-op by construction, since only
+ * byte-identical declaration blocks were collapsed.
+ * 
+ * When a portal needs to differ, override the shared rule in its own sheet
+ * rather than forking a new copy of it here.
+ */
+
+/* topbar — was 2 identical copies */
+.ad-topbar,
+.tp-topbar {
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:rgba(250,248,244,0.97);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(200,161,90,0.14);
+  padding:0 28px;
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+/* layout — was 2 identical copies */
+.ad-layout,
+.tp-layout {
+  display:flex;
+  min-height:calc(100vh - 64px);
+}
+
+/* kpi-lbl — was 2 identical copies */
+.ad-kpi-lbl,
+.tp-kpi-lbl {
+  font-size:.71rem;
+  color:#718096;
+  font-weight:500;
+}
+
+/* card-hdr — was 3 identical copies */
+.p-card-hdr,
+.ad-card-hdr,
+.tp-card-hdr {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+/* l-info — was 2 identical copies */
+.p-l-info,
+.tp-l-info {
+  flex:1;
+}
+
+/* mini-av — was 2 identical copies */
+.ad-mini-av,
+.tp-mini-av {
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:#243650;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-weight:700;
+  font-size:.62rem;
+  flex-shrink:0;
+}
+
+/* bar-chart — was 2 identical copies */
+.ad-bar-chart,
+.tp-bar-chart {
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  height:120px;
+  margin-bottom:10px;
+  padding:0 4px;
+}
+
+/* bar-col — was 2 identical copies */
+.ad-bar-col,
+.tp-bar-col {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  height:100%;
+}
+
+/* bar-lbl — was 2 identical copies */
+.ad-bar-lbl,
+.tp-bar-lbl {
+  font-size:.62rem;
+  color:#718096;
+  margin-top:6px;
+  font-weight:500;
+}
