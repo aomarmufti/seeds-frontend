@@ -7,12 +7,14 @@ on:
     branches: [main]
 
 jobs:
-  # Always runs, on every push — no dependency on Vercel's deploy timing.
-  # Serves the repo root locally (tests-e2e/static-server.js) with the
-  # backend mocked at the network boundary, so it's deterministic and
-  # doesn't need real Supabase/Stripe/Cal.com test accounts. This is the
-  # required check; the preview-deployment job below is best-effort.
-  e2e-local:
+  # Builds the real production output and runs against it. No Vercel
+  # dependency, so this is deterministic and is the required check.
+  #
+  # The old e2e-preview job is not carried over: it never once ran a test
+  # (SCRUM-82 — it passed an input the wait action doesn't support, so it
+  # 401-looped and timed out). It should come back only on a run that goes
+  # green, not on trust.
+  e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,44 +28,6 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-local
-          path: playwright-report/
-          retention-days: 14
-
-  # Best-effort: runs the same suite against the PR's actual Vercel preview
-  # deployment once it's ready, catching anything the local-mocked run
-  # can't (real Supabase/CDN/Vercel routing). Only fires on a PR, and only
-  # once Vercel's own GitHub check for this commit has succeeded — not a
-  # hard requirement (`continue-on-error`), since the exact timing/shape of
-  # Vercel's check hasn't been observed against a real run yet.
-  e2e-preview:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Wait for the Vercel preview deployment
-        id: wait
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 300
-          vercel_protection_bypass_header: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-      - name: Run against the live preview
-        if: steps.wait.outputs.url
-        run: npm run test:e2e
-        env:
-          BASE_URL: ${{ steps.wait.outputs.url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-preview
+          name: playwright-report
           path: playwright-report/
           retention-days: 14

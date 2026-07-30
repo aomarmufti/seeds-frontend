@@ -7,12 +7,17 @@ on:
     branches: [main]
 
 jobs:
-  syntax-check:
+  # The build is the syntax check now — Next.js won't emit a bundle if a
+  # module doesn't compile. This replaces the old job, which parsed inline
+  # <script> blocks out of index.html; those no longer exist, so it would have
+  # checked nothing from here on.
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Syntax-check every inline <script> block in index.html
-        run: node .github/scripts/check-inline-scripts.js
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
