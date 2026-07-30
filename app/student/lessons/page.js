@@ -2,9 +2,10 @@
 
 import { api, lessonTime, money } from '@/lib/api';
 import {
-  PageHead, Card, KpiRow, Kpi, Badge, Lesson,
+  PageHead, Card, Badge, Lesson,
   Empty, Loading, ErrorNote, useAsync,
 } from '@/components/ui';
+import NextUp from '@/components/NextUp';
 import { Calendar, Lessons, Video, Alert } from '@/components/icons';
 
 // A batch the family still owes money on. The old portal surfaced this as a
@@ -59,21 +60,21 @@ export default function StudentLessonsPage() {
         </Card>
       )}
 
-      <KpiRow cols={3}>
-        <Kpi label="Upcoming" value={upcoming.length} icon={Calendar} />
-        <Kpi label="Lessons taught" value={past.length} icon={Lessons} />
-        <Kpi label="Outstanding" value={money(owed)} />
-      </KpiRow>
+      {/* The answer first. A count of upcoming lessons is not what a parent
+          came here to find out; the date and time of the next one is. */}
+      <NextUp
+        booking={upcoming[0]}
+        emptyTitle="No lesson booked yet"
+        emptyBody="Your tutor will be in touch to arrange the next one. Anything already taught is listed below."
+      />
 
       <Card title="Coming up">
         {loading ? (
           <Loading />
-        ) : upcoming.length === 0 ? (
-          <Empty icon={Calendar}>
-            Nothing booked yet. Your tutor will be in touch to arrange the next one.
-          </Empty>
+        ) : upcoming.length <= 1 ? (
+          <Empty icon={Calendar}>Nothing else booked after the lesson above.</Empty>
         ) : (
-          upcoming.map((b) => (
+          upcoming.slice(1).map((b) => (
             <Lesson
               key={b.id}
               subject={b.subject || 'Lesson'}

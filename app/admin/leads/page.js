@@ -92,7 +92,7 @@ export default function AdminLeadsPage() {
       <KpiRow cols={3}>
         <Kpi label="New enquiries" value={newLeads.length} icon={Leads} />
         <Kpi label="Awaiting approval" value={pending.length} icon={User} />
-        <Kpi label="Total leads" value={leads.length} />
+        <Kpi label="All enquiries" value={leads.length} />
       </KpiRow>
 
       {pending.length > 0 && (

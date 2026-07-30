@@ -56,7 +56,7 @@ export default function StudentPaymentsPage() {
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
       <KpiRow cols={3}>
-        <Kpi label="Paid to date" value={money(paidTotal)} icon={Payments} />
+        <Kpi label="Paid so far" value={money(paidTotal)} icon={Payments} />
         <Kpi label="Outstanding" value={money(owedTotal)} />
         <Kpi label="Lessons charged" value={charged.length} icon={Lessons} />
       </KpiRow>

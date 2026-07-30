@@ -72,8 +72,8 @@ export default function AdminTutorsPage() {
 
       <KpiRow cols={3}>
         <Kpi label="Tutors" value={tutors.length} icon={Tutors} />
-        <Kpi label="Earned (tutor share)" value={money(totalOwed)} icon={Earnings} />
-        <Kpi label="Platform share" value={money(Math.round(totalOwed / TUTOR_SHARE - totalOwed))} />
+        <Kpi label="Owed to tutors" value={money(totalOwed)} icon={Earnings} />
+        <Kpi label="Seeds share" value={money(Math.round(totalOwed / TUTOR_SHARE - totalOwed))} />
       </KpiRow>
 
       <Card title={loading ? 'Tutors' : `Tutors (${tutors.length})`}>

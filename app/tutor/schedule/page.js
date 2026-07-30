@@ -56,13 +56,6 @@ export default function SchedulePage() {
         Your lessons, and anything still waiting on an answer from you.
       </PageHead>
 
-      <KpiRow cols={4}>
-        <Kpi label="Upcoming" value={upcoming.length} icon={Calendar} />
-        <Kpi label="Awaiting outcome" value={finished.length} icon={Check} />
-        <Kpi label="Students" value={new Set(bookings.map((b) => b.studentId)).size} icon={Students} />
-        <Kpi label="Billable so far" value={money(paidPence)} icon={Earnings} />
-      </KpiRow>
-
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
       {/* Lessons with no recorded outcome are the ones that matter most: until
@@ -83,6 +76,13 @@ export default function SchedulePage() {
           ))}
         </Card>
       )}
+
+      <KpiRow cols={4}>
+        <Kpi label="Upcoming" value={upcoming.length} icon={Calendar} />
+        <Kpi label="Awaiting outcome" value={finished.length} icon={Check} />
+        <Kpi label="Students" value={new Set(bookings.map((b) => b.studentId)).size} icon={Students} />
+        <Kpi label="You'll be paid for" value={money(paidPence)} icon={Earnings} />
+      </KpiRow>
 
       <Card title="Upcoming lessons">
         {loading ? (
