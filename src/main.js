@@ -10,6 +10,10 @@
 // bundle. Route-level splitting is the next step; doing it in the same change
 // as the module split would have made a regression impossible to attribute.
 
+// The router is imported first so routeSet/routeClear exist on window before
+// any portal module's panel switcher can call them.
+import './router.js';
+
 import './modules/00-scroll-progress-indicator-lets-people-se.js';
 import './modules/01-supabase-client.js';
 import './modules/02-openstudentportal.js';

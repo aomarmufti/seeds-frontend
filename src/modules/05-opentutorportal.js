@@ -11,6 +11,7 @@ function _openTutorPortal(){
 function closeTutorPortal(){
   document.getElementById('tp-overlay').classList.remove('tp-open');
   document.body.style.overflow='';
+  routeClear();
 }
 function showTpPanel(id, navEl){
   document.querySelectorAll('.tp-panel').forEach(p=>p.classList.remove('tp-active'));
@@ -18,6 +19,7 @@ function showTpPanel(id, navEl){
   document.querySelectorAll('.tp-nav-item').forEach(n=>n.classList.remove('tp-active-nav'));
   if(navEl) navEl.classList.add('tp-active-nav');
   closeStudentDetail();
+  routeSet('tutor', id);
 }
 // SCRUM-83: replaces the old switchTutor(). Identity is set once from the
 // authenticated session and is not selectable — see the sidebar comment.

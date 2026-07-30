@@ -37,8 +37,10 @@ async function adUpdateLeadsBadge() {
 function closeAdmin(){
   document.getElementById('ad-overlay').classList.remove('ad-open');
   document.body.style.overflow='';
+  routeClear();
 }
 function showAdPanel(id, navEl){
+  routeSet('admin', id);
   document.querySelectorAll('.ad-panel').forEach(p=>p.classList.remove('ad-active'));
   document.getElementById(id).classList.add('ad-active');
   document.querySelectorAll('.ad-nav-item').forEach(n=>n.classList.remove('ad-active-nav'));

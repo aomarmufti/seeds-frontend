@@ -13,6 +13,7 @@ function closePortal(){
   document.getElementById('portal-overlay').style.display='none';
   document.getElementById('portal-launch-btn').style.display='flex';
   document.body.style.overflow='';
+  routeClear();
 }
 function showPortalPanel(id,navEl){
   document.querySelectorAll('.p-panel').forEach(p=>p.classList.remove('p-active'));
@@ -20,6 +21,7 @@ function showPortalPanel(id,navEl){
   document.querySelectorAll('.p-nav-item').forEach(n=>n.classList.remove('p-active-nav'));
   if(navEl) navEl.classList.add('p-active-nav');
   if (id === 'p-rec' && typeof spLoadRecordings === 'function') spLoadRecordings();
+  routeSet('student', id);
 }
 function togglePHW(el){
   el.classList.toggle('p-done');

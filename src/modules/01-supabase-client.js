@@ -401,6 +401,10 @@ function lgOpenPortalForSession(session, profile) {
   } else {
     _openStudentPortal();
   }
+  // SCRUM-34: a deep link like #/tutor/tp-earnings only takes effect here,
+  // after a real session has opened the portal — so the URL can request a
+  // panel but can never be the thing that grants access to one.
+  routeApplyPanel(role === 'admin' ? 'admin' : role === 'tutor' ? 'tutor' : 'student');
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
