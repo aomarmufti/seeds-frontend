@@ -370,12 +370,17 @@ async function lgHandleSession(session, viaMagicLink) {
     lgShowScreen('setpw');
     return;
   }
-  lgOpenPortalForSession(session, profile);
+  await lgOpenPortalForSession(session, profile);
 }
 
-function lgOpenPortalForSession(session, profile) {
+async function lgOpenPortalForSession(session, profile) {
   if (!profile) profile = (session && session._profile) || {};
   const role = profile.role || 'student';
+  // SCRUM-32: the portals are a separate chunk that an anonymous visitor never
+  // downloads, so it has to be here before any _open*Portal() call. This is the
+  // only place the eager bundle reaches into portal code, which is why the
+  // split was drawn at this line.
+  await loadPortal();
   closeLogin();
   if (role === 'admin') {
     _openAdminPortal();
