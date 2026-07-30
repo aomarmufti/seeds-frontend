@@ -30,40 +30,35 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
-  # Best-effort: runs the same suite against the PR's actual Vercel preview
-  # deployment once it's ready, catching anything the local-mocked run
-  # can't (real Supabase/CDN/Vercel routing). Only fires on a PR, and only
-  # once Vercel's own GitHub check for this commit has succeeded — not a
-  # hard requirement (`continue-on-error`), since the exact timing/shape of
-  # Vercel's check hasn't been observed against a real run yet.
-  e2e-preview:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Wait for the Vercel preview deployment
-        id: wait
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          max_timeout: 300
-          vercel_protection_bypass_header: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-      - name: Run against the live preview
-        if: steps.wait.outputs.url
-        run: npm run test:e2e
-        env:
-          BASE_URL: ${{ steps.wait.outputs.url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-preview
-          path: playwright-report/
-          retention-days: 14
+  # DISABLED — see SCRUM-82.
+  #
+  # This job was meant to run the same suite against the PR's real Vercel
+  # preview, which is the only thing that would exercise the genuine Supabase
+  # SDK, Vercel routing and the CDN. It has never once done that. It passes
+  # `vercel_protection_bypass_header` to wait-for-vercel-preview@v1.3.1, which
+  # has no such input (valid ones are token, max_timeout, environment,
+  # allow_inactive, check_interval, vercel_password, path), so the bypass
+  # secret never reaches the action, Vercel's Deployment Protection answers
+  # every poll with a 401, and the step times out after 150 attempts without
+  # running a single test.
+  #
+  # It is disabled rather than left failing on purpose. `continue-on-error`
+  # kept it from blocking merges, but it still painted a red X on every PR for
+  # a job that tested nothing — and a check everyone has learned to ignore is
+  # worse than no check, because it trains people to skim past real failures
+  # sitting next to it.
+  #
+  # SCRUM-82 carries the fix: either find the input this action version really
+  # supports for Protection Bypass for Automation, or drop the action and poll
+  # the deployment URL directly with Vercel's documented
+  # `?x-vercel-protection-bypass=` query param. Re-enable it there, with a run
+  # that actually goes green, rather than restoring it here on trust.
+  #
+  # Until then e2e-local below is the real signal: 30 Playwright tests against
+  # a locally served build with the backend mocked at the network boundary.
+  # What is NOT covered while this is off: anything that only breaks against
+  # the real Supabase SDK in a browser.
+  #
+  # e2e-preview:
+  #   if: github.event_name == 'pull_request'
+  #   ...
