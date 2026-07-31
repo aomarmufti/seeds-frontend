@@ -76,7 +76,7 @@ export default function TutorEarningsPage() {
         <Kpi label="Earned to date" value={money(yoursPence)} icon={Earnings} />
         <Kpi label="Paid out" value={money(paidOutPence)} />
         <Kpi label="Awaiting payout" value={money(awaitingPence)} />
-        <Kpi label="Payable lessons" value={earned.length} icon={Lessons} />
+        <Kpi label="Lessons counted" value={earned.length} icon={Lessons} />
       </KpiRow>
 
       {unanswered.length > 0 && (

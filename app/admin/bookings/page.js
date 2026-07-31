@@ -73,8 +73,8 @@ export default function AdminBookingsPage() {
       <KpiRow cols={4}>
         <Kpi label="Awaiting outcome" value={awaiting.length} icon={Alert} />
         <Kpi label="Upcoming" value={upcoming.length} icon={Lessons} />
-        <Kpi label="Billable, unpaid" value={unpaid.length} icon={Payments} />
-        <Kpi label="Value unpaid" value={money(unpaidPence)} />
+        <Kpi label="Not yet charged" value={unpaid.length} icon={Payments} />
+        <Kpi label="Amount unpaid" value={money(unpaidPence)} />
       </KpiRow>
 
       <Card
