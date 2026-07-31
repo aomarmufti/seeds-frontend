@@ -51,7 +51,7 @@
 - [x] UAT defect fixes — mobile header clipped at 375px (compact nav ≤600px in app/landing.css; ghost portal button hidden, redundant with floating Sign-in pill) + missing favicon (app/icon.svg, Seed mark on navy). Both verified in headless Chromium at 375px; build green. 2026-07-31, Kimi
 - [x] Docs delivered (2026-07-31, Kimi): docs/UX-REVIEW.md (holistic design review + feature ideas + P0–P3 priorities), docs/MARKETING-STRATEGY.md (3-tier acquisition plan + 30-day sequence), docs/JIRA-TICKETS.md (32-ticket backlog, SCRUM-XX placeholders)
 - [ ] MANUAL (Supabase dashboard, no code can do this): enable the Google provider (Authentication → Providers → Google, with a Client ID/Secret from Google Cloud Console) and add `<site>/login` and `<site>/set-password` to Authentication → URL Configuration → Redirect URLs. Until then the Google button surfaces the provider error on the page and email/password + reset work as before.
-- [ ] DEPLOY PENDING: auth restoration + BookingModal fix + mobile header + favicon are built and green locally but NOT deployed. Deploy /signup together with the BookingModal change or the success-screen button 404s (confirmed: /signup is 404 in prod).
+- [x] Deployed to production — commit ba6364c pushed to main, Vercel auto-deploy verified live (2026-07-31): /signup, /forgot-password, /set-password all 200; Google button + Forgot/Create-account links confirmed rendered on /login via headless Chromium; favicon served; mobile header fix confirmed live at 375px (btnRight 359 < vw 375).
 
 ## e2e suite status (2026-07-31)
 
