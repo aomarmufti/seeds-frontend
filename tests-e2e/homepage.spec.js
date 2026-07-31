@@ -38,7 +38,7 @@ test.describe('Public homepage', () => {
     // The wizard's entry point — this is the one and only booking CTA on
     // the public site (SCRUM-52 follow-up: no paid lesson type is offered
     // here any more).
-    await expect(page.getByRole('link', { name: /Book a Free Consultation/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Book a Free Consultation/i }).first()).toBeVisible();
 
     const realErrors = consoleErrors.filter((e) => !KNOWN_THIRD_PARTY_NOISE.some((re) => re.test(e)));
     expect(realErrors, `Unexpected console errors:\n${realErrors.join('\n')}`).toEqual([]);
@@ -46,7 +46,7 @@ test.describe('Public homepage', () => {
 
   test('opens the booking wizard with only the free Initial Consultation offered', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: /Book a Free Consultation/i }).first().click();
+    await page.getByRole('button', { name: /Book a Free Consultation/i }).first().click();
     await expect(page.locator('#bk-step-1')).toBeVisible();
 
     // Regression guard for SCRUM-52/55: the public wizard must never offer
@@ -72,21 +72,16 @@ test.describe('Public homepage', () => {
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
   });
 
-  test('SCRUM-71: the single login modal offers Google as well as email', async ({ page }) => {
+  test('SCRUM-71: the floating sign-in button leads to the single login page', async ({ page }) => {
     await page.goto('/');
     await page.locator('#portal-launch-btn').click();
 
-    // One button covers student/tutor/admin alike — routing is role-driven
-    // post-session, not per-button. Deliberately not asserting on the
-    // actual OAuth redirect here: this sandbox has no outbound network, so
-    // the real Supabase SDK (loaded from a CDN) never initializes and
-    // sbClient stays undefined regardless of mocks — same limitation as
-    // every other SDK-dependent test in this suite. What IS verifiable
-    // without the SDK: the button exists, is visible, and is wired to the
-    // right handler.
-    const googleBtn = page.locator('#lg-google-btn');
-    await expect(googleBtn).toBeVisible();
-    await expect(googleBtn).toContainText('Continue with Google');
-    await expect(googleBtn).toHaveAttribute('onclick', 'lgGoogleSignIn()');
+    // In the Next.js app the legacy login modal is a real route (/login) —
+    // one page covers student/tutor/admin alike, with role-driven routing
+    // post-session rather than per-button entry points.
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.locator('#lg-email')).toBeVisible();
+    await expect(page.locator('#lg-password')).toBeVisible();
+    await expect(page.locator('#lg-enter')).toBeVisible();
   });
 });

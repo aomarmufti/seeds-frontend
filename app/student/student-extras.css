@@ -1,0 +1,144 @@
+/* Student-portal extras — the surfaces restored from the legacy build that
+ * don't belong in the shared design system (globals.css): the month
+ * calendar, the book-lesson modal, and the payments billing-cycle / add-card
+ * controls. Imported once from app/student/layout.js.
+ *
+ * Calendar classes keep their legacy names (cal-*) and values; everything
+ * else is sx-prefixed so nothing here can collide with the shared system.
+ */
+
+/* ── month calendar (legacy app.css values, rebuild spec §1) ─────────────── */
+.cal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.cal-month {
+  font-family: var(--font-display);
+  font-size: 1.15rem; color: var(--ink);
+}
+
+.cal-grid-p {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  margin-bottom: 18px;
+}
+.cal-lbl {
+  text-align: center; font-size: .67rem; font-weight: 600;
+  color: var(--ink-3); padding: 3px 0;
+}
+
+.cal-d {
+  min-height: 52px; border-radius: 9px; padding: 5px 6px;
+  border: 1.5px solid transparent; transition: all .22s;
+  background: var(--surface);
+}
+.cal-d:hover:not(.cal-empty) { border-color: #C8A15A; }
+.cal-d.cal-empty { background: transparent; }
+/* Today: gold border + tint. Listed before .cal-has on purpose — a day with
+   lessons stays navy and keeps only the gold border, as in legacy. */
+.cal-d.cal-today { border-color: #C8A15A; background: rgba(200, 161, 90, .08); }
+.cal-d.cal-has { background: #0D1B2A; }
+
+.cal-d-num { font-size: .76rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.cal-d.cal-has .cal-d-num { color: #fff; }
+/* After the navy rule so today's number stays gold even on a navy cell —
+   same ordering as the legacy stylesheet. */
+.cal-d.cal-today .cal-d-num { color: #C8A15A; }
+.cal-d.cal-empty .cal-d-num { color: #E8E8E8; }
+
+.cal-d-lbl { font-size: .52rem; color: rgba(255, 255, 255, .7); line-height: 1.2; }
+
+/* ── calendar legend ─────────────────────────────────────────────────────── */
+.cal-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 2px; }
+.cal-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .74rem; color: var(--ink-2);
+}
+.cal-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── modal (legacy .ad-modal-overlay / .ad-modal values) ────────────────── */
+.sx-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(13, 27, 42, .55);
+  backdrop-filter: blur(5px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 16px; overflow-y: auto;
+}
+.sx-modal {
+  background: var(--surface); border-radius: 18px;
+  max-width: 480px; width: 100%;
+  padding: 26px 24px; box-shadow: var(--shadow-md);
+}
+.sx-modal h3 { margin: 0; font-size: 1.05rem; }
+.sx-modal p.sx-sub { margin: 4px 0 6px; font-size: .84rem; color: var(--ink-2); }
+.sx-close {
+  cursor: pointer; font-size: 1.3rem; color: var(--ink-4); line-height: 1;
+  background: none; border: none; padding: 0; font-family: inherit;
+}
+.sx-close:hover { color: var(--ink); }
+
+.sx-label {
+  display: block; font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-3); margin: 12px 0 5px;
+}
+.sx-input {
+  width: 100%; padding: 11px 12px;
+  border: 1.5px solid var(--line); border-radius: 9px;
+  font-family: inherit; font-size: .85rem;
+  background: var(--surface); color: var(--ink);
+}
+.sx-input:focus { border-color: var(--gold); outline: none; }
+
+.sx-note {
+  background: #FAF8F4; border-radius: 10px; padding: 12px 14px;
+  font-size: .8rem; color: var(--ink-2); margin: 14px 0;
+}
+.sx-error {
+  font-size: .78rem; color: var(--bad);
+  padding: 8px 12px; background: var(--bad-bg); border-radius: 8px;
+  margin-bottom: 10px;
+}
+.sx-chosen {
+  font-size: .8rem; color: var(--good);
+  padding: 8px 12px; background: var(--good-bg); border-radius: 8px;
+  margin: 10px 0;
+}
+.sx-success {
+  font-size: .82rem; color: var(--good);
+  padding: 10px 12px; background: var(--good-bg); border-radius: 8px;
+  text-align: center;
+}
+.sx-cal-status {
+  text-align: center; color: var(--ink-3); font-size: .8rem;
+  padding: 24px 10px;
+}
+
+/* Full-width navy submit — the legacy .lg-enter used in every modal. */
+.sx-enter {
+  width: 100%; padding: 14px;
+  background: var(--navy); color: #fff; border: none; border-radius: 12px;
+  font-size: .9rem; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.sx-enter:hover { opacity: .92; }
+.sx-enter:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── billing-cycle picker (legacy #sp-billing-cycle-picker) ─────────────── */
+.sx-cycle { display: flex; gap: 10px; }
+.sx-cycle-btn {
+  flex: 1; padding: 10px; border-radius: 8px;
+  border: 1.5px solid var(--line); background: var(--surface);
+  font-size: .82rem; font-weight: 700; cursor: pointer;
+  color: var(--ink); font-family: inherit;
+}
+.sx-cycle-btn.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+/* ── saved cards (legacy #sp-saved-cards / #sp-add-card-form) ───────────── */
+.sx-card-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid #F0EDE8;
+}
+.sx-card-row:last-child { border-bottom: none; }
+.sx-card-mount {
+  padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 8px;
+  margin-bottom: 10px; background: #fff;
+}

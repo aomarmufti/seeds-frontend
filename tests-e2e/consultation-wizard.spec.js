@@ -7,9 +7,9 @@
 // are reachable. A real Cal.com iframe can't be driven from here either
 // way; the postMessage it fires on a completed booking is simulated
 // directly, exactly at the boundary our own code actually listens on
-// (calParseBookingSuccess in index.html) — not independently verified
-// against a live Cal.com account's actual message shape (see the comment
-// on calParseBookingSuccess itself).
+// (calParseBookingSuccess in components/booking/BookingModal.jsx) — not
+// independently verified against a live Cal.com account's actual message
+// shape (see the comment on calParseBookingSuccess itself).
 const { test, expect } = require('@playwright/test');
 
 test.describe('Consultation booking wizard (mocked backend)', () => {
@@ -27,7 +27,7 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     });
 
     await page.goto('/');
-    await page.getByRole('link', { name: /Book a Free Consultation/i }).first().click();
+    await page.getByRole('button', { name: /Book a Free Consultation/i }).first().click();
 
     // Step 1 — tutor + lesson type (Initial Consultation is pre-selected,
     // it's the only option).
@@ -43,7 +43,7 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     // Simulate Cal.com's embedded page firing its "booking completed"
     // message — this is the actual boundary our own code listens on (see
     // calParseBookingSuccess and the window.addEventListener('message', ...)
-    // handler in index.html).
+    // handler in components/booking/BookingModal.jsx).
     await page.evaluate(() => {
       window.postMessage({
         type: 'CAL:bookingSuccessful',
@@ -86,11 +86,10 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     });
   });
 
-  // SCRUM-62: exercises the fetchWithTimeout 15s guard (index.html) added
-  // this session for the exact "Confirming your slot…"-style hang this
-  // wizard used to be vulnerable to — a slow/hung backend call must
-  // recover with a friendly message, never leave the wizard stuck on
-  // "Loading…" forever.
+  // SCRUM-62: exercises the 15s fetch timeout (lib/api.js) for the exact
+  // "Confirming your slot…"-style hang this wizard used to be vulnerable
+  // to — a slow/hung backend call must recover with a friendly message,
+  // never leave the wizard stuck on "Loading…" forever.
   test('recovers with a friendly message instead of hanging if the availability call is slow', async ({ page }) => {
     test.setTimeout(45000);
     await page.route('**/api/bookings?action=scheduling-link*', async (route) => {
@@ -100,7 +99,7 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     });
 
     await page.goto('/');
-    await page.getByRole('link', { name: /Book a Free Consultation/i }).first().click();
+    await page.getByRole('button', { name: /Book a Free Consultation/i }).first().click();
     await page.locator('.bk-tutor-opt', { hasText: 'Suleiman' }).click();
     await page.locator('#bk-step-1').getByRole('button', { name: /Continue/i }).click();
 
@@ -118,7 +117,7 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     await page.route('**/api/bookings?action=confirm', (route) => { confirmCalled = true; return route.fulfill({ json: { success: true } }); });
 
     await page.goto('/');
-    await page.getByRole('link', { name: /Book a Free Consultation/i }).first().click();
+    await page.getByRole('button', { name: /Book a Free Consultation/i }).first().click();
     await page.locator('#bk-step-1').getByRole('button', { name: /Continue/i }).click();
     await page.evaluate(() => {
       window.postMessage({ type: 'CAL:bookingSuccessful', data: { booking: { startTime: '2027-03-15T10:00:00Z' } } }, '*');

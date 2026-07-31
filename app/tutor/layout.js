@@ -1,6 +1,10 @@
 'use client';
 
 import PortalShell from '@/components/PortalShell';
+// Month-calendar cells and the add-lesson modal — the tutor-only styles
+// restored from the legacy build (see this file's header comment for why
+// they aren't in the shared globals.css).
+import './tutor-extras.css';
 
 // Every page below /tutor lives inside this shell. The nav is data, not
 // markup, so a page can never drift out of step with the sidebar — and each
