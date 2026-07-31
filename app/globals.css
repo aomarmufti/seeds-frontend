@@ -338,4 +338,38 @@ button { font-family: inherit; }
   font-family: inherit; background: var(--surface);
 }
 .field input:focus { border-color: var(--gold); outline: none; }
+.field select {
+  width: 100%; padding: 11px 13px; font-size: .9rem;
+  border: 1.5px solid var(--line); border-radius: var(--r-md);
+  font-family: inherit; background: var(--surface); cursor: pointer;
+}
+.field select:focus { border-color: var(--gold); outline: none; }
 .auth-card .btn { width: 100%; margin-top: 6px; }
+
+/* Google sign-in — the legacy overlay's .lg-google-btn look, on auth-card tokens */
+.auth-google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 0; background: #fff; color: #3c4043;
+  border: 1.5px solid var(--line); border-radius: var(--r-md);
+  font-size: .88rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: box-shadow .2s, border-color .2s;
+}
+.auth-google-btn:hover { border-color: #c8c8c8; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+.auth-google-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.auth-divider {
+  display: flex; align-items: center; gap: 12px; margin: 16px 0;
+  font-size: .72rem; color: var(--ink-4); text-transform: uppercase; letter-spacing: .06em;
+}
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+.auth-links { text-align: center; margin-top: 14px; font-size: .8rem; color: var(--ink-3); }
+.auth-links a { color: var(--navy); font-weight: 700; text-decoration: none; }
+.auth-links a:hover { text-decoration: underline; }
+.auth-footlink { display: block; text-align: center; margin-top: 12px; font-size: .78rem; color: var(--ink-4); }
+.auth-footlink a { color: inherit; }
+
+.ok-note {
+  background: var(--good-bg); color: var(--good);
+  border-radius: var(--r-md); padding: 12px 15px; font-size: .84rem;
+}

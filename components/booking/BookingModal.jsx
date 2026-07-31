@@ -411,7 +411,19 @@ export default function BookingModal() {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" className="bk-back-btn" style={{ flex: 1 }} onClick={close}>Close</button>
-                <button type="button" className="bk-next-btn" onClick={() => { close(); router.push('/login'); }}>
+                <button
+                  type="button"
+                  className="bk-next-btn"
+                  onClick={() => {
+                    close();
+                    // Send the parent to signup prefilled with the same email
+                    // they booked with — the backend links the consultation to
+                    // their account by matching students.parent_email, so this
+                    // is what makes the booking appear in their portal.
+                    const q = `email=${encodeURIComponent(form.email.trim())}&name=${encodeURIComponent(form.parentName.trim())}`;
+                    router.push(`/signup?${q}`);
+                  }}
+                >
                   View in Student Portal
                 </button>
               </div>

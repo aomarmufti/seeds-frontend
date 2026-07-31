@@ -547,4 +547,13 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 @media (max-width: 600px) {
   .bk-input-row { grid-template-columns: 1fr; }
   .bk-modal { border-radius: 18px; max-height: 96vh; }
+
+  /* Compact header: at 375px the logo + two CTAs overflowed and clipped the
+     primary button off the viewport edge. The ghost "Student Portal" entry
+     is redundant on phones — the floating Sign-in pill below-right covers it. */
+  .landing nav { padding: 0 16px; }
+  .nav-brand { font-size: 1.3rem; }
+  .nav-logo { gap: 9px; }
+  .nav-cta .btn-ghost { display: none; }
+  .nav-cta .btn-primary { padding: 9px 14px; font-size: .8rem; white-space: nowrap; }
 }

@@ -44,6 +44,14 @@
 - [x] Slice 4 — Tutor portal: calendar, add-lesson (2026-07-31, Kimi: app/tutor/schedule/page.js MonthCal + day list; components/tutor/AddLessonModal.jsx with tutor Cal.com embed + recurring weeks)
 - [x] Production build green (19/19 static pages, 2026-07-31)
 - [x] Deployed to production (www.seedsinstitute.co.uk) — commit 49b5b75, Vercel build succeeded, landing verified live (2026-07-31)
+- [x] Auth restoration — Google sign-in on /login (signInWithOAuth → redirect back to /login, `?next=` preserved; legacy lg-google-btn look), signup page ported from lgSignup (role:'pending' metadata + profiles upsert + /api/leads goal 'Student signup'), forgot-password + set-password pages (resetPasswordForEmail → PASSWORD_RECOVERY → updateUser with hasPassword flag; Google sessions excluded from forced set-password). 2026-07-31, Kimi: app/login/page.js, app/signup/page.js, app/forgot-password/page.js, app/set-password/page.js, auth CSS in app/globals.css
+- [x] Booking → signup → portal journey — BookingModal "View in Student Portal" now routes to /signup?email=…&name=… (prefilled with the booking email, which is what the backend matches on to link the consultation), and the signup success screen tells the parent their consultation appears after approval. 2026-07-31, Kimi: components/booking/BookingModal.jsx
+- [x] Production build green after auth work (22/22 static pages, 2026-07-31)
+- [x] Live-site UAT (2026-07-31, Kimi: docs/UAT-REPORT.md) — 6/7 consumer journeys pass; confirmed the two auth dead ends live (fixed locally); journey wizard lead POST returns 201. Left one test lead "UAT TEST (delete me)" / uat-test@example.com in /admin/leads — DELETE IT.
+- [x] UAT defect fixes — mobile header clipped at 375px (compact nav ≤600px in app/landing.css; ghost portal button hidden, redundant with floating Sign-in pill) + missing favicon (app/icon.svg, Seed mark on navy). Both verified in headless Chromium at 375px; build green. 2026-07-31, Kimi
+- [x] Docs delivered (2026-07-31, Kimi): docs/UX-REVIEW.md (holistic design review + feature ideas + P0–P3 priorities), docs/MARKETING-STRATEGY.md (3-tier acquisition plan + 30-day sequence), docs/JIRA-TICKETS.md (32-ticket backlog, SCRUM-XX placeholders)
+- [ ] MANUAL (Supabase dashboard, no code can do this): enable the Google provider (Authentication → Providers → Google, with a Client ID/Secret from Google Cloud Console) and add `<site>/login` and `<site>/set-password` to Authentication → URL Configuration → Redirect URLs. Until then the Google button surfaces the provider error on the page and email/password + reset work as before.
+- [ ] DEPLOY PENDING: auth restoration + BookingModal fix + mobile header + favicon are built and green locally but NOT deployed. Deploy /signup together with the BookingModal change or the success-screen button 404s (confirmed: /signup is 404 in prod).
 
 ## e2e suite status (2026-07-31)
 
@@ -51,6 +59,8 @@
 
 ## Open items / deferred (hand to next session)
 
+- Magic-link sign-in tab from the legacy overlay was deliberately NOT ported (out of scope for the auth restoration)
+- New from UX review + UAT (2026-07-31; full detail in docs/UX-REVIEW.md, tickets in docs/JIRA-TICKETS.md): pricing page (SCRUM-XX8), unify funnel CTAs (XX9), standardise free-offer terminology (XX10), Zoom-vs-Meet copy fix (XX12), single email domain (XX13), booking-modal availability cold-start (XX31), seeded test accounts for portal UAT (XX32), Stripe live-mode cutover (XX21)
 - Admin: Cal.com scheduling-links editor (SCRUM-74 UI), bulk tools, health modal, payments & finance page parity
 - Student: gamification widgets, group-sessions recordings panel, welcome modals
 - Tutor: lesson-prep modal, post-lesson log modal, resources sharing, tax statement download
