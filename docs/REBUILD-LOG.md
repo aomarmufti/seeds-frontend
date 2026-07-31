@@ -43,7 +43,11 @@
 - [x] Slice 3 — Student portal: calendar, book-lesson, Stripe add-card, billing cycle
 - [x] Slice 4 — Tutor portal: calendar, add-lesson (2026-07-31, Kimi: app/tutor/schedule/page.js MonthCal + day list; components/tutor/AddLessonModal.jsx with tutor Cal.com embed + recurring weeks)
 - [x] Production build green (19/19 static pages, 2026-07-31)
-- [ ] Deployed to production (www.seedsinstitute.co.uk)
+- [x] Deployed to production (www.seedsinstitute.co.uk) — commit 49b5b75, Vercel build succeeded, landing verified live (2026-07-31)
+
+## e2e suite status (2026-07-31)
+
+22 passed / 23 failed — all 23 failures are **stale pre-rebuild tests** that target the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) which the Next.js app never had. They were red before this rebuild and need rewriting against the real routes (see Open items). Homepage + consultation-wizard specs were updated in Slice 1/2 and pass (7/7).
 
 ## Open items / deferred (hand to next session)
 
@@ -52,3 +56,4 @@
 - Tutor: lesson-prep modal, post-lesson log modal, resources sharing, tax statement download
 - Replace hardcoded tutor roster with roster-driven data
 - Legal overlays (FAQ/Terms/Privacy) as routes
+- Rewrite the 23 stale e2e specs (targeting legacy overlay DOM) against the Next.js routes
