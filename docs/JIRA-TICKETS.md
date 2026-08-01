@@ -48,10 +48,10 @@ Confirmation/recovery emails currently come from raw Supabase defaults. Customis
 
 ## Epic 2 — Conversion Funnel (P1)
 
-### 🆕 SCRUM-XX8 — Pricing section/page
-Type: Story · Priority: Highest
-No price appears anywhere on the site. Add pricing by level (GCSE £40 / A-Level £45 / group £20 — confirm current rates), what's included, sibling discount, cancel-anytime; link from nav + footer.
-**AC:** A parent can learn the price before booking.
+### ✅ SCRUM-XX8 — Pricing section/page
+Type: Story · Priority: Highest · Status: **Done (2026-08-01)**
+`#pricing` section on the landing page between "How it works" and the parent Q&A — three cards (GCSE £40 / A-Level £45 featured / group £20) with what's included, plus pay-per-lesson / free-first / 24h-cancellation / sibling-discount notes and a MyTutor price anchor. Rates and notes live in `lib/site.js`. Linked from the nav ("Pricing") and the footer, and from `/faqs#pricing`.
+**AC:** A parent can learn the price before booking. ✔
 
 ### 🆕 SCRUM-XX9 — Unify funnel CTAs
 Type: Story · Priority: High

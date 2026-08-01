@@ -10,6 +10,7 @@ import SiteFonts from '@/components/site/SiteFonts';
 import SiteHeader from '@/components/site/SiteHeader';
 import SiteFooter from '@/components/site/SiteFooter';
 import { TUTORS } from '@/lib/tutors';
+import { PRICES, PRICING_NOTES } from '@/lib/site';
 
 // The public marketing page — a section-for-section rebuild of the legacy
 // landing page (legacy/index.html), with the exact legacy copy. Static
@@ -584,6 +585,56 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* PRICING (SCRUM-XX8) */}
+      <section className="pricing-section" id="pricing">
+        <div className="section-inner">
+          <div className="pricing-head">
+            <span className="section-label">Pricing</span>
+            <h2 className="section-heading">Simple, honest <em>pricing</em></h2>
+            <p className="section-body">
+              Pay per lesson. No subscription, no joining fee, no minimum term — and your
+              consultation and trial lesson are free, so you see the teaching before you pay
+              for any of it.
+            </p>
+          </div>
+
+          <div className="pricing-grid">
+            {PRICES.map((p) => (
+              <div className={`price-card${p.featured ? ' featured' : ''}`} key={p.id}>
+                {p.featured ? <span className="price-flag">Most booked</span> : null}
+                <div className="price-level">{p.level}</div>
+                <div className="price-amount">{p.price}</div>
+                <div className="price-unit">{p.unit}</div>
+                <p className="price-blurb">{p.blurb}</p>
+                <ul className="price-features">
+                  {p.features.map((f) => <li key={f}>{f}</li>)}
+                </ul>
+                <BookButton
+                  tutor="Best available match"
+                  subject="Any subject"
+                  className={p.featured ? 'btn-gold' : 'btn-ghost'}
+                >
+                  Start free →
+                </BookButton>
+              </div>
+            ))}
+          </div>
+
+          <div className="pricing-notes">
+            {PRICING_NOTES.map((n) => (
+              <div className="pricing-note" key={n}>{n}</div>
+            ))}
+          </div>
+
+          <p className="pricing-compare">
+            Marketplaces like MyTutor charge <strong>£25–£55 an hour</strong> for a tutor you
+            pick from a list and hope for the best. Every Seeds tutor is handpicked,
+            DBS-checked and trained in our methodology before they meet your child.{' '}
+            <Link href="/faqs#pricing">More on how payment works →</Link>
+          </p>
         </div>
       </section>
 

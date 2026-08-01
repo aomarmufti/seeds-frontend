@@ -34,6 +34,7 @@ export default function SiteFooter() {
                   Book a Lesson
                 </BookButton>
               </li>
+              <li><Link href="/#pricing">Pricing</Link></li>
               <li><Link href="/faqs#group-sessions">Group Sessions</Link></li>
               <li><Link href="/login">Progress Tracker</Link></li>
             </ul>

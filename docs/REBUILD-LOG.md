@@ -55,6 +55,8 @@
 
 - [x] SCRUM-XX11/XX12/XX13 — P0 legal & trust baseline (2026-08-01): `/terms`, `/privacy`, `/faqs` and `/tutors/[slug]` as real routes seeded from the legacy overlays; nav + footer extracted to `components/site/` (SiteHeader/SiteFooter/SeedLogo/SiteFonts/ContentPage) so content pages keep the brand chrome; every dead `<span>` in the footer and on the subject/tutor cards now navigates; all Zoom copy corrected to Google Meet (incl. pill colours); one contact domain (`hello@seedsinstitute.co.uk`) sourced from the new `lib/site.js`. Build green, 29/29 static pages; routes smoke-tested 200 and no horizontal overflow at 375px.
 
+- [x] SCRUM-XX8 — Pricing section on the landing page (2026-08-01): three cards driven by `lib/site.js` (GCSE £40 / A-Level £45 featured / group £20), what's-included lists, pay-per-lesson + sibling-discount + cancellation notes, MyTutor price anchor; nav and footer entry points. Build green (29/29); no horizontal overflow at 375px.
+
 ## e2e suite status (2026-07-31)
 
 22 passed / 23 failed — all 23 failures are **stale pre-rebuild tests** that target the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) which the Next.js app never had. They were red before this rebuild and need rewriting against the real routes (see Open items). Homepage + consultation-wizard specs were updated in Slice 1/2 and pass (7/7).

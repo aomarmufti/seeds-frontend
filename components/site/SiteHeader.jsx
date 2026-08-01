@@ -22,6 +22,7 @@ export default function SiteHeader({ home = false }) {
         <li><a href={to('#tutors')}>Tutors</a></li>
         <li><a href={to('#methodology')}>Methodology</a></li>
         <li><a href={to('#howitworks')}>How it works</a></li>
+        <li><a href={to('#pricing')}>Pricing</a></li>
         <li><a href={to('#testimonials')}>Testimonials</a></li>
       </ul>
       <div className="nav-cta">
