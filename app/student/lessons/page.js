@@ -7,6 +7,7 @@ import {
 } from '@/components/ui';
 import NextUp from '@/components/NextUp';
 import { Calendar, Lessons, Video, Alert } from '@/components/icons';
+import { isConsultation } from '@/lib/calendar';
 
 // A batch the family still owes money on. The old portal surfaced this as a
 // banner above everything else, which is the right instinct — an unpaid
@@ -64,8 +65,8 @@ export default function StudentLessonsPage() {
           came here to find out; the date and time of the next one is. */}
       <NextUp
         booking={upcoming[0]}
-        emptyTitle="No lesson booked yet"
-        emptyBody="Your tutor will be in touch to arrange the next one. Anything already taught is listed below."
+        emptyTitle="Nothing booked yet"
+        emptyBody="If you have just booked a free consultation, it appears here once your account is approved — usually within a few hours. Anything already taught is listed below."
       />
 
       <Card title="Coming up">
@@ -77,7 +78,7 @@ export default function StudentLessonsPage() {
           upcoming.slice(1).map((b) => (
             <Lesson
               key={b.id}
-              subject={b.subject || 'Lesson'}
+              subject={isConsultation(b) ? 'Free consultation call' : b.subject || 'Lesson'}
               meta={`${lessonTime(b.startTime)}${b.tutorName ? ` · with ${b.tutorName}` : ''}`}
               tone={b.status === 'requested' ? 'is-cancelled' : ''}
               action={
@@ -107,7 +108,7 @@ export default function StudentLessonsPage() {
           past.slice(0, 20).map((b) => (
             <Lesson
               key={b.id}
-              subject={b.subject || 'Lesson'}
+              subject={isConsultation(b) ? 'Free consultation call' : b.subject || 'Lesson'}
               meta={`${lessonTime(b.startTime)}${b.tutorName ? ` · with ${b.tutorName}` : ''}`}
               tone="is-done"
               action={<span style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{money(b.feePence)}</span>}

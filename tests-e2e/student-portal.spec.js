@@ -88,8 +88,41 @@ test.describe('Student portal', () => {
     await signInAsStudent(page, { bookings: { recentBookings: [] } });
     await expectPortalReady(page, 'My lessons');
 
-    await expect(page.getByText('No lesson booked yet')).toBeVisible();
+    await expect(page.getByText('Nothing booked yet')).toBeVisible();
     await expect(page.getByText('No lessons yet.')).toBeVisible();
+  });
+
+  test('the next lesson can be added to a calendar', async ({ page }) => {
+    await signInAsStudent(page);
+    await expectPortalReady(page, 'My lessons');
+
+    // A booking that lives only in the portal is a booking a parent can miss.
+    const gcal = page.getByRole('link', { name: /add to google calendar/i });
+    await expect(gcal).toBeVisible();
+    await expect(gcal).toHaveAttribute('href', /calendar\.google\.com/);
+
+    const ics = page.getByRole('link', { name: /apple \/ outlook/i });
+    await expect(ics).toHaveAttribute('href', /^data:text\/calendar/);
+  });
+
+  test('a family whose only booking is the consultation sees it named as one', async ({ page }) => {
+    await signInAsStudent(page, {
+      bookings: {
+        recentBookings: [{
+          id: 'c1', lessonType: 'consultation', tutorName: 'Azeem Omar-Mufti',
+          startTime: IN_2_DAYS, status: 'confirmed',
+          meetLink: 'https://meet.google.com/aaa-bbbb-ccc',
+        }],
+      },
+    });
+    await expectPortalReady(page, 'My lessons');
+
+    // It used to say "No lesson booked yet" — which was true and useless: they
+    // had already booked the thing the whole funnel exists to produce.
+    await expect(page.getByText('Your free consultation')).toBeVisible();
+    await expect(page.getByText(/Free consultation call/).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /join the call/i })).toBeVisible();
+    await expect(page.getByText('Nothing booked yet')).toHaveCount(0);
   });
 
   test('a wrong password does not open the portal', async ({ page }) => {

@@ -106,10 +106,10 @@ Type: Story · Priority: High
 
 ## Epic 4 — Portals (P2/P3)
 
-### 🆕 SCRUM-XX18 — Student portal: "consultation booked" state + add-to-calendar
-Type: Story · Priority: High
-New accounts with only a consultation see it explicitly (date/time/tutor/join link) instead of "No lesson booked yet". Add iCal/Google links on confirmations.
-**AC:** Post-approval, the consultation is visible and addable to calendar.
+### ✅ SCRUM-XX18 — Student portal: "consultation booked" state + add-to-calendar
+Type: Story · Priority: High · Status: **Done (2026-08-01)**
+A booking whose `lessonType` is `consultation` is now named as one throughout the lessons page — the lead card reads "Your free consultation / Free consultation call, <when>" with the tutor, a "Join the call" button and a line explaining that the free trial lesson follows. Add-to-calendar (Google + `.ics` data URL, `lib/calendar.js`) sits on the lead card for every booking. The empty state changed from "No lesson booked yet" to "Nothing booked yet", explaining that a just-booked consultation appears once the account is approved.
+**AC:** Post-approval, the consultation is visible and addable to calendar. ✔ (two e2e specs added)
 
 ### 🆕 SCRUM-XX19 — Student portal: group-session recordings library
 Type: Story · Priority: Medium
