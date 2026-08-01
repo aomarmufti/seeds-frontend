@@ -6,6 +6,10 @@ import ScrollProgress from '@/components/landing/ScrollProgress';
 import FaithTabs from '@/components/landing/FaithTabs';
 import JourneyWizard from '@/components/landing/JourneyWizard';
 import BookingModal from '@/components/booking/BookingModal';
+import SiteFonts from '@/components/site/SiteFonts';
+import SiteHeader from '@/components/site/SiteHeader';
+import SiteFooter from '@/components/site/SiteFooter';
+import { TUTORS } from '@/lib/tutors';
 
 // The public marketing page — a section-for-section rebuild of the legacy
 // landing page (legacy/index.html), with the exact legacy copy. Static
@@ -57,65 +61,6 @@ const SUBJECT_CARDS = [
   },
 ];
 
-const TUTORS = [
-  {
-    name: 'Azeem Omar-Mufti', short: 'Azeem', img: '/images/azeem.jpg',
-    pill: 'Mathematics', subject: 'Mathematics',
-    role: 'GCSE & A-Level Mathematics Specialist',
-    stats: [
-      { num: '700', suffix: '+', label: 'Hours taught' },
-      { num: '4.9', suffix: '★', label: 'Rating' },
-      { num: '98', suffix: '%', label: 'Grade lift' },
-    ],
-    bio: (
-      <>
-        Azeem specialises in building genuine mathematical confidence — not just exam technique.
-        His students describe lessons as the first time they truly <em>understood</em> a concept,
-        not just learned to replicate it. Specialist in GCSE Higher and A-Level Pure &amp; Mechanics.
-      </>
-    ),
-    tags: ['GCSE Maths', 'A-Level Maths', 'Further Maths', 'Edexcel · AQA · OCR'],
-  },
-  {
-    name: 'Abdul-Moez', short: 'Abdul-Moez', img: '/images/abdulmoez.jpg',
-    pill: 'Chemistry & Biology', subject: 'Chemistry & Biology',
-    role: "GCSE & A-Level Chemistry and Biology · King's College London",
-    stats: [
-      { num: 'KCL', suffix: '', label: 'Dentistry grad' },
-      { num: '4.9', suffix: '★', label: 'Rating' },
-      { num: '2', suffix: '', label: 'Sciences taught' },
-    ],
-    bio: (
-      <>
-        A Dentistry graduate from King&apos;s College London, Abdul-Moez brings a clinician&apos;s
-        precision to Chemistry and Biology. Having sat the very exams he now teaches towards a
-        competitive dentistry application, he knows exactly what separates a good answer from a
-        top-mark one.
-      </>
-    ),
-    tags: ['GCSE Chemistry', 'A-Level Biology', 'AQA · OCR', 'University applications'],
-  },
-  {
-    name: 'Suleiman', short: 'Suleiman', img: '/images/suleiman.jpg',
-    pill: 'History & Arabic', subject: 'History & Arabic',
-    role: "GCSE & A-Level History and Arabic · King's College London",
-    stats: [
-      { num: '7', suffix: '', label: 'Years in Jordan' },
-      { num: '4.9', suffix: '★', label: 'Rating' },
-      { num: 'KCL', suffix: '', label: 'Graduate' },
-    ],
-    bio: (
-      <>
-        Suleiman studied Arabic and Islamic Studies in Jordan for seven years before completing
-        his degree at King&apos;s College London. He brings rare fluency in classical Arabic
-        alongside a historian&apos;s eye for argument, source analysis, and structure — exactly
-        what GCSE and A-Level History examiners reward.
-      </>
-    ),
-    tags: ['GCSE History', 'A-Level Arabic', 'Classical Arabic', 'AQA · Edexcel'],
-  },
-];
-
 const PILLARS = [
   {
     num: '01', title: 'First principles, not formula sheets',
@@ -142,7 +87,7 @@ const PILLARS = [
 const STEPS = [
   { num: '01', title: 'Free diagnostic lesson', desc: 'A 30-minute session to assess current level, identify gaps, and set realistic grade targets. No pressure, no cost, no commitment.' },
   { num: '02', title: 'Tutor matched within 24h', desc: "We assign a subject specialist based on exam board, learning style, and your child's goals. Most matches are confirmed same day." },
-  { num: '03', title: 'Structured weekly sessions', desc: 'Live 1:1 on Zoom with an interactive whiteboard — undivided attention, every time. Plus weekly recorded group sessions working through past papers.' },
+  { num: '03', title: 'Structured weekly sessions', desc: 'Live 1:1 on Google Meet with a shared interactive whiteboard — undivided attention, every time. Plus weekly recorded group sessions working through past papers.' },
   { num: '04', title: 'Measurable, visible progress', desc: 'Monthly parent reports. Grade trajectory graphs. Syllabus coverage tracker. You always know exactly where your child stands and what comes next.' },
 ];
 
@@ -227,58 +172,12 @@ const FAITH_EXAMPLES = [
   },
 ];
 
-function SeedLogo({ size = 40, dark = true }) {
-  const wing1 = dark ? '#0D1B2A' : 'rgba(255,255,255,0.5)';
-  const wing2 = dark ? '#1a2d42' : 'rgba(255,255,255,0.4)';
-  return (
-    <svg style={{ width: size, height: size }} viewBox="0 0 44 44" fill="none" aria-hidden="true">
-      <path d="M22 30 L7 23 L9 33 Q15.5 36.5 22 33 Z" fill={wing1} />
-      <path d="M22 30 L37 23 L35 33 Q28.5 36.5 22 33 Z" fill={wing2} />
-      {dark ? <ellipse cx="22" cy="30" rx="1.5" ry="4.5" fill="#0D1B2A" /> : null}
-      <path d="M22 30 L12 19 L10 23 L22 30 Z" fill="#C8A15A" opacity="0.85" />
-      <path d="M22 30 L32 19 L34 23 L22 30 Z" fill="#C8A15A" opacity="0.85" />
-      {dark ? (
-        <>
-          <path d="M22 30 L15 17 L13 21 L22 30 Z" fill="#C8A15A" opacity="0.6" />
-          <path d="M22 30 L29 17 L31 21 L22 30 Z" fill="#C8A15A" opacity="0.6" />
-        </>
-      ) : null}
-      <path d="M22 30 L22 16" stroke="#C8A15A" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M22 22 Q17 15 13 17 Q17 19 22 23 Z" fill="#C8A15A" />
-      <path d="M22 18 Q27 11 31 13 Q27 15 22 20 Z" fill="#C8A15A" />
-    </svg>
-  );
-}
-
 export default function Home() {
   return (
     <main className="landing">
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        rel="stylesheet"
-        precedence="landing-fonts"
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap"
-      />
+      <SiteFonts />
+      <SiteHeader home />
 
-      {/* NAV */}
-      <nav>
-        <a href="#" className="nav-logo">
-          <SeedLogo size={40} />
-          <span className="nav-brand">Seeds</span>
-        </a>
-        <ul className="nav-links">
-          <li><a href="#subjects">Subjects</a></li>
-          <li><a href="#tutors">Tutors</a></li>
-          <li><a href="#methodology">Methodology</a></li>
-          <li><a href="#howitworks">How it works</a></li>
-          <li><a href="#testimonials">Testimonials</a></li>
-        </ul>
-        <div className="nav-cta">
-          <Link href="/login" className="btn-ghost">Student Portal</Link>
-          <a href="#journey" className="btn-primary">Get started ↗</a>
-        </div>
-      </nav>
       <ScrollProgress />
 
       {/* HERO */}
@@ -359,7 +258,7 @@ export default function Home() {
                     <div className="lesson-subject">A-Level Mathematics</div>
                     <div className="lesson-meta">Now · Integration by Parts</div>
                   </div>
-                  <button type="button" className="lesson-badge badge-live">Join Zoom</button>
+                  <span className="lesson-badge badge-live">Join Meet</span>
                 </div>
                 <div className="lesson-row">
                   <div className="lesson-stripe" style={{ background: '#4A90D9' }} />
@@ -367,7 +266,7 @@ export default function Home() {
                     <div className="lesson-subject">GCSE Biology</div>
                     <div className="lesson-meta">4:00 PM · Cell Division &amp; Mitosis</div>
                   </div>
-                  <button type="button" className="lesson-badge badge-soon">in 3h</button>
+                  <span className="lesson-badge badge-soon">in 3h</span>
                 </div>
                 <div className="lesson-row">
                   <div className="lesson-stripe" style={{ background: '#6B8E73' }} />
@@ -375,13 +274,13 @@ export default function Home() {
                     <div className="lesson-subject">GCSE History</div>
                     <div className="lesson-meta">5:30 PM · Cold War Origins</div>
                   </div>
-                  <button type="button" className="lesson-badge badge-soon">in 4.5h</button>
+                  <span className="lesson-badge badge-soon">in 4.5h</span>
                 </div>
 
                 <div className="zoom-pill">
-                  <div className="zoom-icon">Z</div>
+                  <div className="zoom-icon">M</div>
                   <div className="zoom-text">
-                    <strong>Live 1:1 on Zoom</strong>
+                    <strong>Live 1:1 on Google Meet</strong>
                     Weekly group past-paper sessions recorded — catch up anytime
                   </div>
                 </div>
@@ -496,7 +395,7 @@ export default function Home() {
               <span className="section-label">What we teach</span>
               <h2 className="section-heading">Subjects offered</h2>
             </div>
-            <span className="btn-ghost">View all courses →</span>
+            <Link href="/faqs#subjects" className="btn-ghost">View all subjects →</Link>
           </div>
           <div className="subjects-grid">
             {SUBJECT_CARDS.map((s) => (
@@ -561,7 +460,7 @@ export default function Home() {
                     <BookButton tutor={t.name} subject={t.subject} className="tutor-book-btn">
                       Book with {t.short}
                     </BookButton>
-                    <span className="tutor-profile-btn">Profile</span>
+                    <Link href={`/tutors/${t.slug}`} className="tutor-profile-btn">Profile</Link>
                   </div>
                 </div>
               </div>
@@ -603,11 +502,11 @@ export default function Home() {
               </p>
 
               <div className="zoom-feature-card">
-                <div className="zoom-logo-block">Z</div>
+                <div className="zoom-logo-block">M</div>
                 <div>
                   <div className="zoom-feature-title">Live 1:1 lessons, plus recorded group sessions</div>
                   <div className="zoom-feature-body">
-                    Every 1:1 lesson runs live on Zoom with an interactive whiteboard — fully
+                    Every 1:1 lesson runs live on Google Meet with a shared whiteboard — fully
                     focused, undivided attention, not recorded. Alongside this, weekly group
                     sessions work through past papers together and are recorded, so your child can
                     revisit exam technique anytime.
@@ -787,64 +686,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer>
-        <div className="footer-inner">
-          <div className="footer-top">
-            <div>
-              <div className="footer-brand-row">
-                <SeedLogo size={30} dark={false} />
-                <span className="footer-brand-name">Seeds</span>
-              </div>
-              <div className="footer-brand-text">
-                KS3, GCSE &amp; A-Level tuition — where academic excellence and genuine
-                understanding grow together.
-              </div>
-            </div>
-            <div>
-              <div className="footer-col-title">Platform</div>
-              <ul className="footer-links">
-                <li><Link href="/login">Student Portal</Link></li>
-                <li>
-                  <BookButton tutor="Best available match" subject="Any subject">
-                    Book a Lesson
-                  </BookButton>
-                </li>
-                <li><span className="footer-link-dead">Group Sessions</span></li>
-                <li><Link href="/login">Progress Tracker</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Subjects</div>
-              <ul className="footer-links">
-                <li><BookButton tutor="Azeem Omar-Mufti" subject="Mathematics">Mathematics</BookButton></li>
-                <li><BookButton tutor="Abdul-Moez" subject="Chemistry & Biology">Sciences</BookButton></li>
-                <li><BookButton tutor="Suleiman" subject="History & Arabic">History</BookButton></li>
-                <li><BookButton tutor="Suleiman" subject="History & Arabic">Arabic</BookButton></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Company</div>
-              <ul className="footer-links">
-                <li><span className="footer-link-dead">FAQs</span></li>
-                <li><span className="footer-link-dead">Terms &amp; Conditions</span></li>
-                <li><span className="footer-link-dead">Privacy Policy</span></li>
-                <li><a href="mailto:hello@seedstuition.co.uk">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <div className="footer-copy">
-              © 2026 Seeds Tuition Ltd. All rights reserved. ·{' '}
-              <span className="footer-copy-dead">Terms</span> ·{' '}
-              <span className="footer-copy-dead">Privacy</span> ·{' '}
-              <Link href="/login">Tutor Login</Link> ·{' '}
-              <Link href="/login">Admin</Link>
-            </div>
-            <div className="footer-gold">Nurturing the next Al-Khwārizmī</div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       <Link href="/login" className="portal-launch-btn" id="portal-launch-btn">🔑 Sign in</Link>
       <BookingModal />

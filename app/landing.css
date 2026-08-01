@@ -160,12 +160,12 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 .lesson-info { flex: 1; }
 .lesson-subject { font-size: .85rem; font-weight: 500; color: var(--white); margin-bottom: 2px; }
 .lesson-meta { font-size: .72rem; color: rgba(255,255,255,.35); }
-.lesson-badge { padding: 5px 12px; border-radius: 6px; font-size: .7rem; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
+.lesson-badge { padding: 5px 12px; border-radius: 6px; font-size: .7rem; font-weight: 600; border: none; font-family: 'Inter', sans-serif; display: inline-block; }
 .badge-live { background: var(--gold); color: var(--white); }
 .badge-soon { background: rgba(255,255,255,.08); color: rgba(255,255,255,.38); }
 
-.zoom-pill { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 14px; background: rgba(74,144,217,0.1); border: 1px solid rgba(74,144,217,0.22); border-radius: 8px; }
-.zoom-icon { width: 28px; height: 28px; background: #2D8CFF; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .7rem; font-weight: 700; color: #fff; letter-spacing: -.02em; }
+.zoom-pill { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 14px; background: rgba(0,137,123,0.12); border: 1px solid rgba(0,137,123,0.26); border-radius: 8px; }
+.zoom-icon { width: 28px; height: 28px; background: #00897B; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .7rem; font-weight: 700; color: #fff; letter-spacing: -.02em; }
 .zoom-text { font-size: .78rem; color: rgba(255,255,255,.65); line-height: 1.4; }
 .zoom-text strong { color: rgba(255,255,255,.9); display: block; }
 
@@ -270,7 +270,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 .tutor-actions { display: flex; gap: 8px; }
 .tutor-book-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 9px; font-size: .82rem; font-weight: 600; background: var(--navy); color: #fff; border: none; cursor: pointer; font-family: 'Inter', sans-serif; transition: background .25s; }
 .tutor-book-btn:hover { background: var(--navy-mid); }
-.tutor-profile-btn { padding: 10px 14px; border: 1.5px solid var(--grey-lt); border-radius: 9px; font-size: .82rem; font-weight: 600; color: var(--navy); cursor: pointer; transition: border-color .25s; background: none; font-family: 'Inter', sans-serif; }
+.tutor-profile-btn { display: inline-block; text-decoration: none; padding: 10px 14px; border: 1.5px solid var(--grey-lt); border-radius: 9px; font-size: .82rem; font-weight: 600; color: var(--navy); cursor: pointer; transition: border-color .25s; background: none; font-family: 'Inter', sans-serif; }
 .tutor-profile-btn:hover { border-color: var(--gold); }
 .vetting-note { margin-top: 28px; padding: 18px 26px; background: var(--beige-pale); border-radius: 13px; border: 1px solid var(--grey-lt); display: flex; align-items: center; gap: 15px; }
 .vetting-icon { font-size: 1.5rem; flex-shrink: 0; }
@@ -289,7 +289,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 .t-pillar-title { font-size: .95rem; font-weight: 600; color: var(--navy); margin-bottom: 7px; }
 .t-pillar-body { font-size: .84rem; color: var(--t-mid); line-height: 1.68; }
 .zoom-feature-card { margin-top: 28px; padding: 20px 22px; background: var(--navy); border-radius: var(--r); display: flex; gap: 16px; align-items: flex-start; }
-.zoom-logo-block { width: 40px; height: 40px; background: #2D8CFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .8rem; font-weight: 800; color: #fff; letter-spacing: -.02em; }
+.zoom-logo-block { width: 40px; height: 40px; background: #00897B; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .8rem; font-weight: 800; color: #fff; letter-spacing: -.02em; }
 .zoom-feature-title { font-size: .86rem; font-weight: 600; color: var(--white); margin-bottom: 4px; }
 .zoom-feature-body { font-size: .8rem; color: rgba(255,255,255,.55); line-height: 1.6; }
 .zoom-feature-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -419,13 +419,10 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
   cursor: pointer; font-family: 'Inter', sans-serif; text-align: left;
 }
 .footer-links a:hover, .footer-links button:hover { color: var(--white); }
-.footer-links .footer-link-dead { cursor: default; }
-.footer-links .footer-link-dead:hover { color: rgba(255,255,255,.42); }
 .footer-bottom { border-top: 1px solid rgba(255,255,255,.06); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
 .footer-copy { font-size: .76rem; color: rgba(255,255,255,.2); }
-.footer-copy a, .footer-copy .footer-copy-dead { color: inherit; text-decoration: underline; opacity: .6; cursor: pointer; transition: opacity .2s; background: none; border: none; padding: 0; font: inherit; }
+.footer-copy a { color: inherit; text-decoration: underline; opacity: .6; cursor: pointer; transition: opacity .2s; background: none; border: none; padding: 0; font: inherit; }
 .footer-copy a:hover { opacity: 1; }
-.footer-copy .footer-copy-dead { cursor: default; }
 .footer-gold { font-size: .74rem; color: var(--gold); opacity: .5; font-family: 'Cormorant Garamond', serif; font-style: italic; }
 
 /* Floating sign-in shortcut (bottom-right), as on the legacy page */

@@ -65,7 +65,7 @@ export default function JourneyWizard() {
       setStep('success');
     } catch (err) {
       setError(
-        `Something went wrong sending your request (${err.message}). Please try again — or email hello@seedstuition.co.uk and we'll set everything up for you.`
+        `Something went wrong sending your request (${err.message}). Please try again — or email hello@seedsinstitute.co.uk and we'll set everything up for you.`
       );
     } finally {
       setSending(false);

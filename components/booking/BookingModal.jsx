@@ -304,7 +304,7 @@ export default function BookingModal() {
                   />
                 </div>
               )}
-              <div className="bk-tz-note">🌍 Times shown in your local timezone · Lesson runs live on Zoom</div>
+              <div className="bk-tz-note">🌍 Times shown in your local timezone · Lesson runs live on Google Meet</div>
               <div className="bk-actions">
                 <button type="button" className="bk-back-btn" onClick={() => goStep(1)}>← Back</button>
               </div>

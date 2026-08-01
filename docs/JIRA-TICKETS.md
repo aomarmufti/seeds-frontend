@@ -63,20 +63,20 @@ Type: Bug (content) · Priority: High
 Pick one naming/sequence (e.g. "Free consultation (15-min call) → Free trial lesson (30 min)") and replace all variants (hero "free lesson", "diagnostic lesson", etc.).
 **AC:** Identical offer wording site-wide.
 
-### 🆕 SCRUM-XX11 — Route dead links: Terms, Privacy, FAQs, Group Sessions, tutor Profiles, "View all courses"
-Type: Bug · Priority: Highest (Terms/Privacy = legal)
-Dead `<span>`s in footer and cards become real routes; legacy overlay copy can seed the pages.
-**AC:** Every link-styled element navigates somewhere real.
+### ✅ SCRUM-XX11 — Route dead links: Terms, Privacy, FAQs, Group Sessions, tutor Profiles, "View all courses"
+Type: Bug · Priority: Highest (Terms/Privacy = legal) · Status: **Done (2026-08-01)**
+`/terms`, `/privacy`, `/faqs` (accordion via `<details>`, deep-linkable) and `/tutors/[slug]` are real routes seeded from the legacy overlays. Footer FAQs/Terms/Privacy, "Group Sessions" (→ `/faqs#group-sessions`), "View all courses" (→ `/faqs#subjects`, relabelled "View all subjects") and the tutor "Profile" buttons all navigate. Nav + footer extracted to `components/site/` so every page carries the same chrome.
+**AC:** Every link-styled element navigates somewhere real. ✔ (no `footer-link-dead` / `footer-copy-dead` spans remain)
 
-### 🆕 SCRUM-XX12 — Fix Zoom-vs-Google-Meet copy
-Type: Bug (content) · Priority: High
-Actual meeting links are Google Meet; marketing says Zoom. Align copy to reality (or switch links to Zoom).
-**AC:** The platform named on the landing matches the join link in the portal.
+### ✅ SCRUM-XX12 — Fix Zoom-vs-Google-Meet copy
+Type: Bug (content) · Priority: High · Status: **Done (2026-08-01)**
+All marketing copy now says Google Meet (hero card, how-we-teach, how-it-works, booking modal timezone note). Zoom blue swapped for Meet green in the pill/feature card. The hero card's "Join" buttons became non-interactive `<span>`s — it is an illustration, not a control.
+**AC:** The platform named on the landing matches the join link in the portal. ✔ (zero "Zoom" strings left in `app/` and `components/`)
 
-### 🆕 SCRUM-XX13 — Single email domain
-Type: Task · Priority: High
-`hello@seedstuition.co.uk` vs `seedsinstitute.co.uk` — pick one, redirect/forward the other, update footer + templates.
-**AC:** One contact domain everywhere.
+### ✅ SCRUM-XX13 — Single email domain (code side)
+Type: Task · Priority: High · Status: **Done in code (2026-08-01); mail forwarding still manual**
+Standardised on the brand domain: `hello@seedsinstitute.co.uk` and `privacy@seedsinstitute.co.uk`, sourced from `lib/site.js` so there is one definition. Zero `seedstuition.co.uk` references remain in the app.
+**AC:** One contact domain everywhere. ✔ in code — **remaining manual step:** forward/redirect `seedstuition.co.uk` mail to the institute domain, and update the Supabase email templates (SCRUM-XX7).
 
 ### 🆕 SCRUM-XX14 — Lead magnet + email capture
 Type: Story · Priority: Medium
