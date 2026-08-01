@@ -44,7 +44,7 @@ test.describe('Public homepage', () => {
     expect(realErrors, `Unexpected console errors:\n${realErrors.join('\n')}`).toEqual([]);
   });
 
-  test('opens the booking wizard with only the free Initial Consultation offered', async ({ page }) => {
+  test('opens the booking wizard with only the free consultation offered', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Book a Free Consultation/i }).first().click();
     await expect(page.locator('#bk-step-1')).toBeVisible();
@@ -52,7 +52,7 @@ test.describe('Public homepage', () => {
     // Regression guard for SCRUM-52/55: the public wizard must never offer
     // a paid lesson type, only the free consultation.
     await expect(page.locator('.bk-type-card')).toHaveCount(1);
-    await expect(page.locator('.bk-type-card')).toContainText('Initial Consultation');
+    await expect(page.locator('.bk-type-card')).toContainText('Free consultation');
     await expect(page.locator('.bk-type-card')).toContainText('Free');
   });
 

@@ -53,15 +53,15 @@ Type: Story · Priority: Highest · Status: **Done (2026-08-01)**
 `#pricing` section on the landing page between "How it works" and the parent Q&A — three cards (GCSE £40 / A-Level £45 featured / group £20) with what's included, plus pay-per-lesson / free-first / 24h-cancellation / sibling-discount notes and a MyTutor price anchor. Rates and notes live in `lib/site.js`. Linked from the nav ("Pricing") and the footer, and from `/faqs#pricing`.
 **AC:** A parent can learn the price before booking. ✔
 
-### 🆕 SCRUM-XX9 — Unify funnel CTAs
-Type: Story · Priority: High
-Booking modal = single primary CTA everywhere; journey wizard demoted to secondary ("Not ready to book?"). One gold button, one ghost, per section.
-**AC:** No section presents two equal-weight funnels.
+### ✅ SCRUM-XX9 — Unify funnel CTAs
+Type: Story · Priority: High · Status: **Done (2026-08-01)**
+The booking modal is the single primary CTA: the nav button now opens it (it used to point at the journey wizard, putting the two funnels head-to-head at the top of every page), and the hero, pricing cards and CTA section all lead with it. The wizard is the escape hatch — "Not ready to book?" in the hero and CTA section, and the journey section's own heading now reads "Not ready to book? / Then let us come to you".
+**AC:** No section presents two equal-weight funnels. ✔
 
-### 🆕 SCRUM-XX10 — Standardise the free-offer terminology
-Type: Bug (content) · Priority: High
-Pick one naming/sequence (e.g. "Free consultation (15-min call) → Free trial lesson (30 min)") and replace all variants (hero "free lesson", "diagnostic lesson", etc.).
-**AC:** Identical offer wording site-wide.
+### ✅ SCRUM-XX10 — Standardise the free-offer terminology
+Type: Bug (content) · Priority: High · Status: **Done (2026-08-01)**
+One offer, one sequence, everywhere: **free consultation (15-min call) → free trial lesson (30 min)**, defined in `lib/site.js`. Replaced "Free diagnostic lesson", the hero's bare "Free lesson", "Initial Consultation" in the booking modal summary/success rows, and the untimed "Free trial lesson" in the journey steps. How-it-works steps 01/02 are now the two free stages explicitly, with tutor matching folded into 02.
+**AC:** Identical offer wording site-wide. ✔ (two e2e specs updated for the modal's new label)
 
 ### ✅ SCRUM-XX11 — Route dead links: Terms, Privacy, FAQs, Group Sessions, tutor Profiles, "View all courses"
 Type: Bug · Priority: Highest (Terms/Privacy = legal) · Status: **Done (2026-08-01)**

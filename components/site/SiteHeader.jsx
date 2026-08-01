@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import SeedLogo from '@/components/site/SeedLogo';
+import BookButton from '@/components/landing/BookButton';
 
 // The landing page's nav, extracted so the content pages (/terms, /privacy,
 // /faqs, /tutors/…) carry the same chrome instead of feeling like orphaned
@@ -27,7 +28,9 @@ export default function SiteHeader({ home = false }) {
       </ul>
       <div className="nav-cta">
         <Link href="/login" className="btn-ghost">Student Portal</Link>
-        <a href={to('#journey')} className="btn-primary">Get started ↗</a>
+        <BookButton tutor="Best available match" subject="Any subject" className="btn-primary">
+          Book free consultation ↗
+        </BookButton>
       </div>
     </nav>
   );

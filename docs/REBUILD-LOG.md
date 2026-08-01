@@ -57,6 +57,8 @@
 
 - [x] SCRUM-XX8 — Pricing section on the landing page (2026-08-01): three cards driven by `lib/site.js` (GCSE £40 / A-Level £45 featured / group £20), what's-included lists, pay-per-lesson + sibling-discount + cancellation notes, MyTutor price anchor; nav and footer entry points. Build green (29/29); no horizontal overflow at 375px.
 
+- [x] SCRUM-XX9/XX10 — Funnel CTAs unified and the free offer named once (2026-08-01): booking modal is the single primary CTA (nav button now opens it instead of jumping to the wizard); journey wizard demoted to "Not ready to book?" throughout, including its own section heading. Offer standardised to "free consultation (15-min call) → free trial lesson (30 min)" across hero, how-it-works, journey steps, CTA section and the booking modal. Build green; homepage/consultation-wizard/routes specs green (22 passed) after updating two label assertions.
+
 ## e2e suite status (2026-07-31)
 
 22 passed / 23 failed — all 23 failures are **stale pre-rebuild tests** that target the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) which the Next.js app never had. They were red before this rebuild and need rewriting against the real routes (see Open items). Homepage + consultation-wizard specs were updated in Slice 1/2 and pass (7/7).

@@ -86,8 +86,8 @@ const PILLARS = [
 ];
 
 const STEPS = [
-  { num: '01', title: 'Free diagnostic lesson', desc: 'A 30-minute session to assess current level, identify gaps, and set realistic grade targets. No pressure, no cost, no commitment.' },
-  { num: '02', title: 'Tutor matched within 24h', desc: "We assign a subject specialist based on exam board, learning style, and your child's goals. Most matches are confirmed same day." },
+  { num: '01', title: 'Free consultation (15-min call)', desc: "A short call to understand your child's current level, the gaps holding them back, and the grade you're aiming for. No pressure, no cost, no card required." },
+  { num: '02', title: 'Free trial lesson (30 min)', desc: 'We match a subject specialist on exam board, learning style and goals — usually within 24 hours — and they teach a full trial lesson, free, before you decide anything.' },
   { num: '03', title: 'Structured weekly sessions', desc: 'Live 1:1 on Google Meet with a shared interactive whiteboard — undivided attention, every time. Plus weekly recorded group sessions working through past papers.' },
   { num: '04', title: 'Measurable, visible progress', desc: 'Monthly parent reports. Grade trajectory graphs. Syllabus coverage tracker. You always know exactly where your child stands and what comes next.' },
 ];
@@ -127,7 +127,7 @@ const QUESTIONS = [
     ),
   },
   {
-    q: 'What happens after the free lesson?',
+    q: 'What happens after the free trial lesson?',
     a: (
       <>
         Your child&apos;s tutor will share a short written diagnostic, with recommended frequency
@@ -230,10 +230,10 @@ export default function Home() {
               <BookButton tutor="Best available match" subject="Any subject" className="btn-gold">
                 Book a Free Consultation →
               </BookButton>
-              <a href="#journey" className="btn-outline-white">Start your journey</a>
+              <a href="#journey" className="btn-outline-white">Not ready to book?</a>
             </div>
             <div className="hero-cta-note">
-              Free lesson · No card required <span>|</span> Or answer 5 quick questions to get matched
+              Free consultation, then a free trial lesson · No card required
             </div>
 
             <div className="hero-trust">
@@ -686,12 +686,12 @@ export default function Home() {
       <section className="journey-section" id="journey">
         <div className="journey-inner">
           <div className="journey-left">
-            <span className="section-label">Get started</span>
-            <h2 className="section-heading">Start your<br /><em>journey</em></h2>
+            <span className="section-label">Not ready to book?</span>
+            <h2 className="section-heading">Then let us<br />come to <em>you</em></h2>
             <p className="section-body">
-              Answer five quick questions and we&apos;ll match your child with the right tutor —
-              usually within 24 hours. Your tutor will reach out directly to introduce themselves
-              and arrange the first session.
+              If you would rather not pick a time yet, answer five quick questions instead. We
+              will match your child with the right tutor — usually within 24 hours — and call you
+              to arrange the free consultation when it suits you.
             </p>
 
             <div className="journey-steps-list">
@@ -705,11 +705,11 @@ export default function Home() {
               </div>
               <div className="j-step">
                 <div className="j-dot">3</div>
-                <div className="j-step-text"><strong>Free 15-min consultation</strong>A quick call to introduce your tutor and confirm the plan</div>
+                <div className="j-step-text"><strong>Free consultation (15-min call)</strong>A quick call to introduce your tutor and confirm the plan</div>
               </div>
               <div className="j-step">
                 <div className="j-dot">4</div>
-                <div className="j-step-text"><strong>Free trial lesson</strong>No cost, no commitment — just brilliant teaching</div>
+                <div className="j-step-text"><strong>Free trial lesson (30 min)</strong>No cost, no commitment — just brilliant teaching</div>
               </div>
             </div>
           </div>
@@ -723,15 +723,15 @@ export default function Home() {
         <div className="cta-inner">
           <h2 className="cta-heading">Plant the <em>seed</em><br />of something great</h2>
           <p className="cta-body">
-            A free 15-minute consultation call, then a completely free trial lesson. No commitment,
-            no pressure — just brilliant teaching and a student who leaves more curious than when
-            they arrived.
+            A free consultation — a 15-minute call — and then a free 30-minute trial lesson. No
+            commitment, no pressure — just brilliant teaching and a student who leaves more
+            curious than when they arrived.
           </p>
           <div className="cta-actions">
             <BookButton tutor="Best available match" subject="Any subject" className="btn-gold">
-              Book Free Consultation →
+              Book a Free Consultation →
             </BookButton>
-            <a href="#journey" className="btn-ghost">Start your journey</a>
+            <a href="#journey" className="btn-ghost">Not ready to book?</a>
           </div>
           <div className="cta-note">No credit card required · Match confirmed within 24 hours · Cancel anytime</div>
         </div>
