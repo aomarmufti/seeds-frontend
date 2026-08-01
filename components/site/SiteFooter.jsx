@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import SeedLogo from '@/components/site/SeedLogo';
 import BookButton from '@/components/landing/BookButton';
+import LeadMagnet from '@/components/landing/LeadMagnet';
 import { CONTACT_EMAIL } from '@/lib/site';
 
 // The landing page's footer, extracted so every page carries it — and so the
@@ -14,6 +15,10 @@ export default function SiteFooter() {
   return (
     <footer>
       <div className="footer-inner">
+        {/* The ~95% who will not book today still leave with something, and we
+            still hear from them. SCRUM-XX14. */}
+        <div className="magnet-wrap"><LeadMagnet /></div>
+
         <div className="footer-top">
           <div>
             <div className="footer-brand-row">

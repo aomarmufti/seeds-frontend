@@ -85,3 +85,40 @@ test.describe('Public homepage', () => {
     await expect(page.locator('#lg-enter')).toBeVisible();
   });
 });
+
+test.describe('Lead magnet (SCRUM-XX14)', () => {
+  test('captures an email as a lead and confirms, without needing an account', async ({ page }) => {
+    let posted = null;
+    await page.route('**/api/leads', (route, request) => {
+      if (request.method() !== 'POST') return route.fallback();
+      posted = JSON.parse(request.postData() || '{}');
+      return route.fulfill({ status: 201, json: { id: 'lead-1' } });
+    });
+
+    await page.goto('/');
+    await page.getByLabel('Your email').fill('parent@example.com');
+    await page.getByLabel('Exam board').selectOption('Edexcel');
+    await page.getByRole('button', { name: /send it to me/i }).click();
+
+    await expect(page.getByText('On its way.')).toBeVisible();
+    expect(posted).toMatchObject({
+      email: 'parent@example.com',
+      level: 'Edexcel',
+      goal: 'Past paper pack request',
+    });
+  });
+
+  test('a failed capture tells the parent rather than silently losing them', async ({ page }) => {
+    await page.route('**/api/leads', (route, request) =>
+      request.method() === 'POST'
+        ? route.fulfill({ status: 500, json: { error: 'nope' } })
+        : route.fallback());
+
+    await page.goto('/');
+    await page.getByLabel('Your email').fill('parent@example.com');
+    await page.getByRole('button', { name: /send it to me/i }).click();
+
+    await expect(page.getByText(/hello@seedsinstitute\.co\.uk/)).toBeVisible();
+    await expect(page.getByText('On its way.')).toHaveCount(0);
+  });
+});

@@ -78,10 +78,10 @@ Type: Task · Priority: High · Status: **Done in code (2026-08-01); mail forwar
 Standardised on the brand domain: `hello@seedsinstitute.co.uk` and `privacy@seedsinstitute.co.uk`, sourced from `lib/site.js` so there is one definition. Zero `seedstuition.co.uk` references remain in the app.
 **AC:** One contact domain everywhere. ✔ in code — **remaining manual step:** forward/redirect `seedstuition.co.uk` mail to the institute domain, and update the Supabase email templates (SCRUM-XX7).
 
-### 🆕 SCRUM-XX14 — Lead magnet + email capture
-Type: Story · Priority: Medium
-"Free past-paper pack by exam board" email capture (footer/exit) → nurture sequence. Captures the ~95% who don't book.
-**AC:** Email capture stores a lead; welcome email sends.
+### 🔶 SCRUM-XX14 — Lead magnet + email capture
+Type: Story · Priority: Medium · Status: **Capture done (2026-08-01); nurture email outstanding**
+Footer capture (`components/landing/LeadMagnet.jsx`): exam board + email → `POST /api/leads` with `goal: 'Past paper pack request'`, so it lands in the existing `/admin/leads` screen with no backend change. A failed POST surfaces an error with the contact address rather than silently losing the lead.
+**AC:** Email capture stores a lead ✔ — **welcome/nurture email still to build** (needs the pack itself plus a Resend sequence; the form deliberately promises delivery "by email" rather than an instant download the backend cannot serve).
 
 ---
 

@@ -587,6 +587,37 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 .pricing-compare strong { color: var(--navy); }
 .pricing-compare a { color: #A17A2E; }
 
+/* ── LEAD MAGNET (SCRUM-XX14) ──────────────────────────────────────────────
+ * Sits inside the dark footer, so it is styled against navy rather than the
+ * page background.
+ */
+.magnet-wrap { border-bottom: 1px solid rgba(255,255,255,.07); padding-bottom: 40px; margin-bottom: 40px; }
+.magnet-card { display: grid; gap: 18px; max-width: 760px; }
+.magnet-title { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--white); margin-bottom: 6px; }
+.magnet-body { font-size: .85rem; color: rgba(255,255,255,.45); line-height: 1.65; margin: 0; max-width: 56ch; }
+.magnet-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.magnet-field { display: flex; flex-direction: column; gap: 6px; }
+.magnet-grow { flex: 1; min-width: 220px; }
+.magnet-label { font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.32); }
+.magnet-input, .magnet-select {
+  padding: 11px 14px; border-radius: 9px; font-size: .88rem; font-family: 'Inter', sans-serif;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); color: var(--white);
+  transition: border-color var(--tr);
+}
+.magnet-input::placeholder { color: rgba(255,255,255,.28); }
+.magnet-input:focus, .magnet-select:focus { outline: none; border-color: var(--gold); }
+.magnet-select option { color: #0D1B2A; }
+.magnet-btn {
+  padding: 11px 22px; border: none; border-radius: 9px; background: var(--gold); color: var(--navy);
+  font-size: .87rem; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer;
+  transition: all var(--tr); white-space: nowrap;
+}
+.magnet-btn:hover:not(:disabled) { background: var(--gold-lt); transform: translateY(-1px); }
+.magnet-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.magnet-error { font-size: .8rem; color: #E8A0A0; line-height: 1.6; }
+.magnet-done { display: flex; gap: 14px; align-items: flex-start; }
+.magnet-tick { color: var(--gold); font-size: 1.4rem; line-height: 1.2; }
+
 /* ── RESPONSIVE ────────────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
   .landing nav { padding: 0 24px; }
@@ -614,6 +645,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 84px; }
   .cta-section { padding: 72px 24px; }
   .landing footer { padding: 44px 24px 24px; }
   .footer-top { grid-template-columns: 1fr; gap: 32px; }
+  .magnet-row { flex-direction: column; align-items: stretch; }
+  .magnet-btn { width: 100%; }
 }
 
 @media (max-width: 600px) {
