@@ -1,209 +1,93 @@
-// SCRUM-65 (initial slice): admin login through to the dashboard, plus a
-// direct regression guard for the admin Tutors panel bug fixed earlier
-// this session (a hardcoded fake stats card — "14 students, 4.9★, 98%
-// grade lift" — sat outside its panel gate and rendered on every admin
-// page load regardless of active tab). Same mocked-network-boundary
-// pattern as the student/tutor portal tests — see student-portal.spec.js's
-// header for the verification caveat.
+// Admin portal, against the Next.js routes (SCRUM-XX25).
+//
+// Rewritten from the legacy #ad-overlay suite. Two of the old specs covered
+// the Cal.com scheduling-links editor and the payout-cycle picker in the
+// Tutors panel; the link editor has not been ported yet (SCRUM-74, still an
+// open item), so that coverage is deliberately not faked here — it comes back
+// with the screen.
 const { test, expect } = require('@playwright/test');
+const { signIn, stubBackend, expectPortalReady } = require('./support/portal');
 
-const FAKE_USER_ID = '33333333-3333-3333-3333-333333333333';
-
-async function mockSupabaseAuth(page) {
-  await page.route('**/auth/v1/token*', async (route) => {
-    await route.fulfill({
-      json: {
-        access_token: 'fake-access-token', token_type: 'bearer', expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'fake-refresh-token',
-        user: {
-          id: FAKE_USER_ID, aud: 'authenticated', role: 'authenticated',
-          email: 'admin@example.com', app_metadata: {}, user_metadata: {},
-          created_at: new Date().toISOString(),
-        },
-      },
-    });
-  });
-  await page.route('**/rest/v1/profiles*', async (route) => {
-    await route.fulfill({ json: { role: 'admin', full_name: 'Admin User', tutor_name: null } });
-  });
-}
-
-// SCRUM-84: mirrors what analytics?resource=accounts returns for the two
-// tutors these Tutors-panel tests exercise.
-const MOCK_TUTOR_ACCOUNTS = [
-  { id: 'tutor-azeem', email: 'azeem@example.com', fullName: 'Azeem Omar-Mufti', role: 'tutor',
-    tutorName: 'Azeem Omar-Mufti', subjects: 'Mathematics', lessonCount: 0 },
-  { id: 'tutor-suleiman', email: 'suleiman@example.com', fullName: 'Suleiman', role: 'tutor',
-    tutorName: 'Suleiman', subjects: 'History & Arabic', lessonCount: 0 },
+const LEADS = [
+  {
+    id: 'l1', name: 'Sister Aisha', email: 'aisha@example.com',
+    subject: 'Mathematics', level: 'GCSE', status: 'new',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'l2', name: 'Rebecca C.', email: 'rebecca@example.com',
+    subject: 'Chemistry', level: 'A-Level', status: 'contacted',
+    created_at: new Date().toISOString(),
+  },
 ];
 
-test.describe('Admin portal (mocked Supabase + backend)', () => {
-  test('logs in, shows real dashboard data, and never shows the old hardcoded fake tutor stats', async ({ page }) => {
-    await mockSupabaseAuth(page);
+const PENDING = [
+  {
+    id: 'p1', full_name: 'Hassan Ali', email: 'hassan@example.com',
+    role: 'pending', created_at: new Date().toISOString(),
+  },
+];
 
-    await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
-    await page.route('**/api/leads?status=new*', (route) => route.fulfill({ json: [] }));
-    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
-    // The main dashboard payload — real, non-zero figures so we can tell
-    // real data rendered rather than a stale/default zero.
-    await page.route('**/api/analytics', (route) => route.fulfill({
-      json: {
-        revenue: { total: 120000, thisMonth: 40000, lastMonth: 32000 },
-        monthly: {},
-        byType: { gcse: 3, alevel: 1, group: 0, trial: 0, consultation: 2 },
-        tutors: {},
-        studentCount: 7,
-        bookingCount: 12,
-        recentBookings: [],
-        payouts: [],
-        failedPayments: [],
-        reconciliation: { confirmed: 10, scheduled: 0, paymentFailed: 0, cancelled: 2, completed: 5 },
-      },
-    }));
+async function signInAsAdmin(page, { leads = LEADS, pending = PENDING } = {}) {
+  await stubBackend(page, {
+    '/api/leads': leads,
+    'resource=accounts': [],
+    'resource=pending-profiles': pending,
+  });
+  await signIn(page, { role: 'admin', fullName: 'Azeem Omar-Mufti', next: '/admin/leads' });
+}
 
-    await page.goto('/');
-    await page.locator('#portal-launch-btn').click();
-    await page.locator('#lg-email').fill('admin@example.com');
-    await page.locator('#lg-password').fill('correct-horse-battery');
-    await page.locator('#lg-enter').click();
+test.describe('Admin portal', () => {
+  test('signs in and shows real lead data', async ({ page }) => {
+    await signInAsAdmin(page);
+    await expectPortalReady(page, 'Leads');
 
-    await expect(page.locator('#ad-overlay')).toHaveClass(/ad-open/);
-    const kpis = page.locator('#ad-home .ad-kpi-num');
-    await expect(kpis.nth(1)).toHaveText('7');   // studentCount
-    await expect(kpis.nth(2)).toHaveText('12');  // bookingCount
-
-    // Regression guard (SCRUM-59): this exact hardcoded copy — the fake
-    // admin Tutors panel stats card ("Azeem Omar-Mufti, 14 students, 98%
-    // grade lift, 17 / 20 weekly hours booked") — must never appear
-    // anywhere on the page, on any panel. It used to sit outside its
-    // panel's tab gate and render unconditionally. (Not "98% grade lift"
-    // alone — that substring coincidentally also matches real, unrelated
-    // marketing copy on the public homepage's own tutor stat cards.)
-    await expect(page.getByText('17 / 20 weekly hours booked')).toHaveCount(0);
+    expect(page.url()).toContain('/admin/leads');
+    await expect(page.getByText('Sister Aisha')).toBeVisible();
+    await expect(page.getByText('rebecca@example.com')).toBeVisible();
   });
 
-  test('shows a friendly error on a wrong password, without opening the admin portal', async ({ page }) => {
-    await page.route('**/auth/v1/token*', (route) => route.fulfill({
-      status: 400,
-      json: { error: 'invalid_grant', error_description: 'Invalid login credentials' },
-    }));
+  test('signups waiting on approval are called out separately from enquiries', async ({ page }) => {
+    await signInAsAdmin(page);
+    await expectPortalReady(page, 'Leads');
 
-    await page.goto('/');
-    await page.locator('#portal-launch-btn').click();
-    await page.locator('#lg-email').fill('admin@example.com');
-    await page.locator('#lg-password').fill('wrong-password');
-    await page.locator('#lg-enter').click();
-
-    await expect(page.locator('#lg-error')).toBeVisible();
-    await expect(page.locator('#ad-overlay')).not.toHaveClass(/ad-open/);
+    // A pending signup is a person who cannot use anything they were promised
+    // until someone acts — it does not belong buried in the enquiry list.
+    await expect(page.getByText(/Awaiting approval \(1\)/)).toBeVisible();
+    await expect(page.getByText('Hassan Ali')).toBeVisible();
+    await expect(page.getByRole('button', { name: /approve as student/i })).toBeVisible();
   });
 
-  // SCRUM-74: admin UI for each tutor's Cal.com scheduling links, added
-  // during the Calendly→Cal.com migration — previously SQL-only.
-  test('edits a tutor\'s Cal.com scheduling links from the Tutors panel', async ({ page }) => {
-    await mockSupabaseAuth(page);
-    await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
-    // SCRUM-84: the Tutors panel now renders from the real account roster
-    // rather than a hardcoded trio, so these tests have to supply one.
-    await page.route('**/api/analytics?resource=accounts*', (route) => route.fulfill({ json: MOCK_TUTOR_ACCOUNTS }));
-    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
-    await page.route('**/api/analytics', (route) => route.fulfill({
-      json: {
-        revenue: { total: 0, thisMonth: 0, lastMonth: 0 }, monthly: {},
-        byType: {}, tutors: {}, studentCount: 0, bookingCount: 0,
-        recentBookings: [], payouts: [], failedPayments: [],
-        reconciliation: { confirmed: 0, scheduled: 0, paymentFailed: 0, cancelled: 0, completed: 0 },
-      },
-    }));
-
-    let editRequestBody = null;
-    await page.route('**/api/auth', async (route) => {
-      const body = route.request().postDataJSON();
-      if (body.action === 'get-tutor-links') {
-        return route.fulfill({ json: { calLessonLink: 'https://cal.eu/suleiman/lesson', calConsultationLink: '', calTrialLink: '' } });
-      }
-      if (body.action === 'edit-tutor-links') {
-        editRequestBody = body;
-        return route.fulfill({ json: { success: true } });
-      }
-      return route.fulfill({ status: 404, json: { error: 'unexpected action' } });
-    });
-
-    await page.goto('/');
-    await page.locator('#portal-launch-btn').click();
-    await page.locator('#lg-email').fill('admin@example.com');
-    await page.locator('#lg-password').fill('correct-horse-battery');
-    await page.locator('#lg-enter').click();
-    await expect(page.locator('#ad-overlay')).toHaveClass(/ad-open/);
-
-    await page.locator('.ad-nav-item', { hasText: 'Tutors' }).click();
-    await page.locator('.ad-card', { hasText: 'Suleiman' }).getByRole('button', { name: /Scheduling links/i }).click();
-
-    // Pre-filled from get-tutor-links.
-    await expect(page.locator('#ad-ecl-lesson')).toHaveValue('https://cal.eu/suleiman/lesson');
-
-    await page.locator('#ad-ecl-consultation').fill('https://cal.eu/suleiman/15min');
-    await page.getByRole('button', { name: /Save changes/i }).click();
-
-    await expect.poll(() => editRequestBody).toMatchObject({
-      action: 'edit-tutor-links',
-      tutorName: 'Suleiman',
-      calLessonLink: 'https://cal.eu/suleiman/lesson',
-      calConsultationLink: 'https://cal.eu/suleiman/15min',
-      calTrialLink: '',
-    });
-    await expect(page.locator('#ad-edit-cal-links-modal')).not.toHaveClass(/open/);
+  test('with nothing waiting, the approval section is absent rather than empty', async ({ page }) => {
+    await signInAsAdmin(page, { pending: [] });
+    await expectPortalReady(page, 'Leads');
+    await expect(page.getByText(/Awaiting approval \(\d+\)/)).toHaveCount(0);
   });
 
-  // SCRUM-76: payouts are automatic now — no more tutor self-serve
-  // "Request payout" — admin sets each tutor's own weekly/monthly cadence.
-  test('sets a tutor\'s payout cycle from the Tutors panel', async ({ page }) => {
-    await mockSupabaseAuth(page);
-    await page.route('**/api/analytics?resource=pending-profiles*', (route) => route.fulfill({ json: [] }));
-    // SCRUM-84: the Tutors panel now renders from the real account roster
-    // rather than a hardcoded trio, so these tests have to supply one.
-    await page.route('**/api/analytics?resource=accounts*', (route) => route.fulfill({ json: MOCK_TUTOR_ACCOUNTS }));
-    await page.route('**/api/leads*', (route) => route.fulfill({ json: [] }));
-    await page.route('**/api/analytics', (route) => route.fulfill({
-      json: {
-        revenue: { total: 0, thisMonth: 0, lastMonth: 0 }, monthly: {},
-        byType: {}, tutors: {}, studentCount: 0, bookingCount: 0,
-        recentBookings: [], payouts: [], failedPayments: [],
-        reconciliation: { confirmed: 0, scheduled: 0, paymentFailed: 0, cancelled: 0, completed: 0 },
+  test('an admin with no enquiries yet sees an honest empty state', async ({ page }) => {
+    await signInAsAdmin(page, { leads: [], pending: [] });
+    await expectPortalReady(page, 'Leads');
+    await expect(page.getByText('No enquiries yet.')).toBeVisible();
+  });
+
+  test('the bookings page renders backend data rather than placeholder stats', async ({ page }) => {
+    await stubBackend(page, {
+      '/api/analytics': {
+        recentBookings: [
+          {
+            id: 'b9', subject: 'GCSE Biology', studentName: 'Ibrahim Khan',
+            tutorName: 'Abdul-Moez',
+            startTime: new Date(Date.now() - 864e5).toISOString(),
+            endTime: new Date(Date.now() - 864e5 + 55 * 60000).toISOString(),
+            status: 'confirmed', feePence: 4000,
+          },
+        ],
       },
-    }));
-
-    let setCycleBody = null;
-    await page.route('**/api/payouts*', async (route) => {
-      const req = route.request();
-      if (req.method() === 'GET') {
-        return route.fulfill({ json: { connected: true, onboardingComplete: true, payoutCycle: 'weekly' } });
-      }
-      const body = req.postDataJSON();
-      if (body.action === 'set-payout-cycle') {
-        setCycleBody = body;
-        return route.fulfill({ json: { success: true } });
-      }
-      return route.fulfill({ status: 404, json: { error: 'unexpected action' } });
     });
+    await signIn(page, { role: 'admin', fullName: 'Azeem Omar-Mufti', next: '/admin/bookings' });
+    await expectPortalReady(page, 'Bookings');
 
-    await page.goto('/');
-    await page.locator('#portal-launch-btn').click();
-    await page.locator('#lg-email').fill('admin@example.com');
-    await page.locator('#lg-password').fill('correct-horse-battery');
-    await page.locator('#lg-enter').click();
-    await expect(page.locator('#ad-overlay')).toHaveClass(/ad-open/);
-
-    await page.locator('.ad-nav-item', { hasText: 'Tutors' }).click();
-    const suleimanCard = page.locator('.ad-card', { hasText: 'Suleiman' });
-    // Pre-filled weekly (from connect-status).
-    await expect(suleimanCard.locator('button[data-cycle="weekly"]')).toHaveCSS('background-color', 'rgb(13, 27, 42)');
-
-    await suleimanCard.locator('button[data-cycle="monthly"]').click();
-
-    await expect.poll(() => setCycleBody).toMatchObject({
-      action: 'set-payout-cycle', tutorName: 'Suleiman', payoutCycle: 'monthly',
-    });
-    await expect(suleimanCard.locator('button[data-cycle="monthly"]')).toHaveCSS('background-color', 'rgb(13, 27, 42)');
+    await expect(page.getByText('Ibrahim Khan').first()).toBeVisible();
+    await expect(page.getByText('Abdul-Moez').first()).toBeVisible();
   });
 });

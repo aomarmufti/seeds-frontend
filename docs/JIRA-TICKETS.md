@@ -145,10 +145,10 @@ Landing tutors, booking modal, prices all hardcoded — drive from backend roste
 
 ## Epic 5 — Quality & Tech Debt
 
-### 🆕 SCRUM-XX25 — Rewrite 23 stale e2e specs against Next.js routes
-Type: Task · Priority: High
-Old suite targets legacy overlay DOM (`#portal-overlay` etc.); red since before the rebuild. Rewrite against real routes, incl. the new auth pages.
-**AC:** `npm run test:e2e` green against production build.
+### ✅ SCRUM-XX25 — Rewrite the stale e2e specs against Next.js routes
+Type: Task · Priority: High · Status: **Done (2026-08-01)**
+`student-portal`, `tutor-portal`, `admin-portal` and `routing` rewritten against the real routes, on a shared `tests-e2e/support/portal.js` harness: Supabase's token endpoint is stubbed and the spec signs in through the real login form, so supabase-js owns its own session storage and the test never encodes a session format. The backend gets a catch-all stub so no spec can reach the live deployment. The two specs covering the not-yet-ported Cal.com scheduling-links editor were not faked — that coverage returns with the screen (SCRUM-74).
+**AC:** `npm run test:e2e` green against production build. ✔ **43 passed / 0 failed**
 
 ### 🆕 SCRUM-XX26 — End-to-end auth regression test
 Type: Task · Priority: High

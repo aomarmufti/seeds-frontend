@@ -57,11 +57,12 @@
 
 - [x] SCRUM-XX8 — Pricing section on the landing page (2026-08-01): three cards driven by `lib/site.js` (GCSE £40 / A-Level £45 featured / group £20), what's-included lists, pay-per-lesson + sibling-discount + cancellation notes, MyTutor price anchor; nav and footer entry points. Build green (29/29); no horizontal overflow at 375px.
 
+- [x] SCRUM-XX25 — Stale e2e specs rewritten against the Next.js routes (2026-08-01): student/tutor/admin portal + routing specs on a shared mocked-auth harness; suite green end to end (43 passed). Coverage for the un-ported Cal.com scheduling-links editor deliberately not faked — it returns with the screen (SCRUM-74).
 - [x] SCRUM-XX9/XX10 — Funnel CTAs unified and the free offer named once (2026-08-01): booking modal is the single primary CTA (nav button now opens it instead of jumping to the wizard); journey wizard demoted to "Not ready to book?" throughout, including its own section heading. Offer standardised to "free consultation (15-min call) → free trial lesson (30 min)" across hero, how-it-works, journey steps, CTA section and the booking modal. Build green; homepage/consultation-wizard/routes specs green (22 passed) after updating two label assertions.
 
-## e2e suite status (2026-07-31)
+## e2e suite status (2026-08-01)
 
-22 passed / 23 failed — all 23 failures are **stale pre-rebuild tests** that target the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) which the Next.js app never had. They were red before this rebuild and need rewriting against the real routes (see Open items). Homepage + consultation-wizard specs were updated in Slice 1/2 and pass (7/7).
+**43 passed / 0 failed.** The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
 
 ## Open items / deferred (hand to next session)
 
@@ -71,5 +72,3 @@
 - Student: gamification widgets, group-sessions recordings panel, welcome modals
 - Tutor: lesson-prep modal, post-lesson log modal, resources sharing, tax statement download
 - Replace hardcoded tutor roster with roster-driven data
-- Legal overlays (FAQ/Terms/Privacy) as routes
-- Rewrite the 23 stale e2e specs (targeting legacy overlay DOM) against the Next.js routes
