@@ -97,9 +97,10 @@ Type: Task · Priority: Medium
 "94% / 67%" stats need a stated basis ("students completing 6+ months, 2024–25") or removal.
 **AC:** Every stat is sourced or softened.
 
-### 🆕 SCRUM-XX17 — Referral programme
-Type: Story · Priority: High
-"Refer a family — both get a free lesson": unique links in student portal, tracked in backend, surfaced in admin.
+### 🚧 SCRUM-XX17 — Referral programme — **blocked on backend**
+Type: Story · Priority: High · Status: **Not started — needs backend work first**
+Unique per-family referral codes, attribution of a signup to a referrer, and the reward ledger all have to live in the backend (`seeds-backend-six.vercel.app`), which is out of scope for the frontend rebuild. A frontend-only version would be a "copy this link" button whose conversions nobody can count — worse than nothing, because it looks instrumented.
+**Next step:** backend ticket for `referral_code` on the profile, a `referred_by` field captured at signup, and a `/api/referrals` read for the admin view. The portal UI is a small job once those exist.
 **AC:** A parent can copy a referral link; conversions are attributable.
 
 ---
@@ -131,10 +132,10 @@ Type: Story · Priority: Medium
 Rebuild-log open items; plus a nav badge until past lessons have outcomes recorded (unrecorded = unbilled).
 **AC:** No past lesson without an outcome goes unnoticed.
 
-### 🆕 SCRUM-XX23 — Admin: payments & finance page parity + "today" dashboard
-Type: Story · Priority: High
-Rebuild-log open items (SCRUM-74 Cal.com link editor, bulk tools, health modal, finance page) + a daily ops screen: today's lessons, pending approvals, unbilled outcomes, failed payments.
-**AC:** Ops runnable from one admin screen.
+### 🔶 SCRUM-XX23 — Admin: "today" dashboard done; finance page parity outstanding
+Type: Story · Priority: High · Status: **Today screen done (2026-08-01); finance parity + SCRUM-74 still open**
+`/admin/today` is the new admin landing page (`/admin` redirects there, nav entry added): today's lessons, signups awaiting approval, finished lessons with no recorded outcome (gold-bordered — unbilled and unpayable until answered), amount not yet charged, and new enquiries. Everything is derived from `/api/analytics`, `resource=pending-profiles` and `/api/leads` — endpoints the admin portal already calls, so no backend change.
+**AC:** Ops runnable from one admin screen ✔ for the daily sweep. **Still open:** Cal.com scheduling-links editor (SCRUM-74), bulk tools, health modal, and a real payments/finance page — the last needs finance endpoints that don't exist yet, so it is backend work first.
 
 ### 🆕 SCRUM-XX24 — Replace hardcoded tutor roster with roster-driven data
 Type: Tech debt · Priority: Medium

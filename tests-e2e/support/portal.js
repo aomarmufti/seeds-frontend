@@ -63,12 +63,22 @@ async function mockSignInFailure(page) {
  * A catch-all is registered first so no spec can accidentally reach the real
  * seeds-backend deployment; Playwright matches the most recently registered
  * route first, so the specific handlers passed in still win. `handlers` maps a
- * substring of the request URL to the JSON to return.
+ * substring of the request URL to the JSON to return, and is order-independent
+ * — see the sort below.
  */
 async function stubBackend(page, handlers = {}) {
   await page.route(`${BACKEND}/**`, (route) => route.fulfill({ json: {} }));
 
-  for (const [match, json] of Object.entries(handlers)) {
+  // Registered shortest-first, because Playwright matches the most recently
+  // registered route first: that way a specific pattern
+  // ("resource=pending-profiles") always wins over a generic one that also
+  // matches the same URL ("/api/analytics"), whatever order the spec listed
+  // them in. Getting this backwards silently serves the wrong fixture, which
+  // reads as a product bug rather than a test bug.
+  const bySpecificity = Object.entries(handlers)
+    .sort(([a], [b]) => a.length - b.length);
+
+  for (const [match, json] of bySpecificity) {
     await page.route(`${BACKEND}/**`, (route, request) => {
       if (!request.url().includes(match)) return route.fallback();
       return route.fulfill({ json: typeof json === 'function' ? json(request) : json });

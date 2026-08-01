@@ -90,4 +90,48 @@ test.describe('Admin portal', () => {
     await expect(page.getByText('Ibrahim Khan').first()).toBeVisible();
     await expect(page.getByText('Abdul-Moez').first()).toBeVisible();
   });
+
+  test('the Today screen leads with what costs money when it is missed', async ({ page }) => {
+    const now = Date.now();
+    await stubBackend(page, {
+      'resource=pending-profiles': PENDING,
+      '/api/leads': LEADS,
+      '/api/analytics': {
+        recentBookings: [
+          // Happening today.
+          {
+            id: 'd1', subject: 'GCSE Maths', studentName: 'Ibrahim Khan',
+            tutorName: 'Azeem Omar-Mufti',
+            startTime: new Date(now + 2 * 3600e3).toISOString(),
+            endTime: new Date(now + 2 * 3600e3 + 55 * 60e3).toISOString(),
+            status: 'confirmed', feePence: 4000,
+          },
+          // Taught, nobody said what happened — unbilled and unpayable.
+          {
+            id: 'd2', subject: 'A-Level Arabic', studentName: 'Yusuf Ahmed',
+            tutorName: 'Suleiman',
+            startTime: new Date(now - 864e5).toISOString(),
+            endTime: new Date(now - 864e5 + 55 * 60e3).toISOString(),
+            status: 'confirmed', feePence: 4500,
+          },
+        ],
+      },
+    });
+    await signIn(page, { role: 'admin', fullName: 'Azeem Omar-Mufti', next: '/admin/today' });
+    await expectPortalReady(page, 'Today');
+
+    await expect(page.getByText(/Waiting on you \(1\)/)).toBeVisible();
+    await expect(page.getByText(/Unrecorded outcomes \(1\)/)).toBeVisible();
+    await expect(page.getByText(/Today's lessons \(1\)/)).toBeVisible();
+
+    // The unrecorded lesson is the one named, not the one happening later today.
+    await expect(page.getByText('Yusuf Ahmed')).toBeVisible();
+  });
+
+  test('/admin lands on Today rather than a list', async ({ page }) => {
+    await stubBackend(page, { '/api/analytics': { recentBookings: [] }, '/api/leads': [] });
+    await signIn(page, { role: 'admin', fullName: 'Azeem Omar-Mufti', next: '/admin' });
+    await expectPortalReady(page, 'Today');
+    expect(page.url()).toContain('/admin/today');
+  });
 });

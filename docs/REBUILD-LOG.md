@@ -57,6 +57,7 @@
 
 - [x] SCRUM-XX8 — Pricing section on the landing page (2026-08-01): three cards driven by `lib/site.js` (GCSE £40 / A-Level £45 featured / group £20), what's-included lists, pay-per-lesson + sibling-discount + cancellation notes, MyTutor price anchor; nav and footer entry points. Build green (29/29); no horizontal overflow at 375px.
 
+- [x] SCRUM-XX23 (today dashboard) — `/admin/today` as the admin landing screen (2026-08-01): today's lessons, awaiting approval, unrecorded outcomes, amount not yet charged, new enquiries — all from endpoints the portal already calls. Finance-page parity and SCRUM-74 remain open.
 - [x] SCRUM-XX14 (capture half) — Lead-magnet email capture in the footer (2026-08-01): exam board + email → /api/leads as an ordinary lead, so it appears in /admin/leads with no backend change. The nurture email sequence itself is still outstanding.
 - [x] SCRUM-XX18 — Student portal consultation state + add-to-calendar (2026-08-01): consultations named as consultations rather than shown as a generic "Lesson"; Google Calendar + .ics links on the lead card (`lib/calendar.js`, generated in the browser, no backend change); empty state now explains the approval gap instead of implying nothing is booked.
 - [x] SCRUM-XX25 — Stale e2e specs rewritten against the Next.js routes (2026-08-01): student/tutor/admin portal + routing specs on a shared mocked-auth harness; suite green end to end (43 passed). Coverage for the un-ported Cal.com scheduling-links editor deliberately not faked — it returns with the screen (SCRUM-74).
@@ -64,13 +65,15 @@
 
 ## e2e suite status (2026-08-01)
 
-**47 passed / 0 failed.** The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
+**50 passed / 0 failed.** The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
 
 ## Open items / deferred (hand to next session)
 
 - Magic-link sign-in tab from the legacy overlay was deliberately NOT ported (out of scope for the auth restoration)
 - New from UX review + UAT (2026-07-31; full detail in docs/UX-REVIEW.md, tickets in docs/JIRA-TICKETS.md): pricing page (SCRUM-XX8), unify funnel CTAs (XX9), standardise free-offer terminology (XX10), Zoom-vs-Meet copy fix (XX12), single email domain (XX13), booking-modal availability cold-start (XX31), seeded test accounts for portal UAT (XX32), Stripe live-mode cutover (XX21)
-- Admin: Cal.com scheduling-links editor (SCRUM-74 UI), bulk tools, health modal, payments & finance page parity
+- Admin: Cal.com scheduling-links editor (SCRUM-74 UI), bulk tools, health modal, payments & finance page parity (the finance page needs backend endpoints that don't exist yet)
+- SCRUM-XX17 referral programme — blocked on backend (referral codes, attribution, reward ledger); a frontend-only version would look instrumented while counting nothing
+- SCRUM-XX14 nurture email sequence (the capture form is live; the pack and the Resend sequence are not)
 - Student: gamification widgets, group-sessions recordings panel, welcome modals
 - Tutor: lesson-prep modal, post-lesson log modal, resources sharing, tax statement download
 - Replace hardcoded tutor roster with roster-driven data

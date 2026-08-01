@@ -14,6 +14,7 @@ const PORTAL_PATHS = [
   '/tutor/schedule',
   '/tutor/students',
   '/tutor/earnings',
+  '/admin/today',
   '/admin/leads',
   '/admin/bookings',
   '/admin/students',
