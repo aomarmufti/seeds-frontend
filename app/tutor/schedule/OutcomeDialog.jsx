@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui';
+import { isFreeLesson, lessonLabel } from '@/lib/lessons';
 
 // Every outcome a real week of teaching produces, and what each does to the
 // money. The tutor used to get two buttons — "Taught" and "No-show" — both of
@@ -27,12 +28,31 @@ const OUTCOMES = [
     detail: 'Nobody is charged and nobody is paid.' },
 ];
 
+// A consultation or trial lesson is free, so none of the money copy above is
+// true for it: telling a tutor that a free consultation will be "charged in
+// full" is alarming and wrong, and it is the reason a tutor hesitates to
+// record the outcome at all. The outcome keys stay identical — the backend's
+// meaning of "delivered" does not change — only what the tutor is told.
+const FREE_DETAIL = {
+  delivered:         'Free lesson — nobody is charged. Recorded so it counts as used.',
+  partial:           'Free lesson — nobody is charged.',
+  no_show:           'Free lesson — nobody is charged. Recorded so you can follow up.',
+  cancelled_mutual:  'Nobody is charged and nobody is paid.',
+  tutor_cancelled:   'Nobody is charged and nobody is paid.',
+  waived:            'Nobody is charged and nobody is paid.',
+};
+
 // 'late_cancelled' is deliberately absent. It is written only by the
 // cancellation path, the one place that can measure notice against the
 // lesson's start time — otherwise "they cancelled late" becomes a claim
 // anyone can make after the fact.
 
 export default function OutcomeDialog({ booking, onClose, onSaved }) {
+  const free = isFreeLesson(booking);
+  const options = OUTCOMES.map((o) => (
+    free ? { ...o, bills: false, detail: FREE_DETAIL[o.key] } : o
+  ));
+
   const [outcome, setOutcome] = useState('delivered');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -86,11 +106,14 @@ export default function OutcomeDialog({ booking, onClose, onSaved }) {
           What happened?
         </h2>
         <p style={{ margin: '0 0 16px', fontSize: '.8rem', color: 'var(--ink-3)' }}>
-          {booking.studentName || 'This lesson'} · this decides whether the family is charged
+          {booking.studentName || 'This lesson'} ·{' '}
+          {free
+            ? `${lessonLabel(booking)} — free, so nobody is charged whichever you pick`
+            : 'this decides whether the family is charged'}
         </p>
 
         <div role="radiogroup" aria-labelledby="outcome-title" style={{ display: 'grid', gap: 7 }}>
-          {OUTCOMES.map((o) => {
+          {options.map((o) => {
             const selected = outcome === o.key;
             return (
               <label

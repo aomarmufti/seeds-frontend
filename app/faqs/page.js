@@ -18,7 +18,7 @@ const FAQS = [
   {
     id: 'how-lessons-work',
     q: 'How do lessons work?',
-    a: "All 1:1 lessons are live and online via Google Meet. You'll get a join link in your student portal and by email. Lessons are 55 minutes. Group past-paper sessions are also live but are recorded so you can review them afterwards. Individual 1:1 lessons are never recorded — your time with your tutor stays private.",
+    a: "All 1:1 lessons are live and online via Google Meet. You'll get a join link in your student portal and by email. Lessons are 60 minutes. Group past-paper sessions are also live but are recorded so you can review them afterwards. Individual 1:1 lessons are never recorded — your time with your tutor stays private.",
   },
   {
     id: 'pricing',
@@ -28,7 +28,7 @@ const FAQS = [
   {
     id: 'free-trial',
     q: 'Is the first lesson really free?',
-    a: 'Yes. You start with a free 15-minute consultation call, and then a free 30-minute trial lesson with no obligation. It lets you and your child meet the tutor, see how we teach, and decide whether Seeds is right for you before you pay anything.',
+    a: 'Yes. You start with a free 15-minute consultation call, and then a free 60-minute trial lesson with no obligation. It lets you and your child meet the tutor, see how we teach, and decide whether Seeds is right for you before you pay anything.',
   },
   {
     id: 'group-sessions',
@@ -73,7 +73,7 @@ const FAQS = [
   {
     id: 'get-started',
     q: 'How do I get started?',
-    a: 'Click "Book a Free Consultation" on our homepage and tell us a little about your child and their goals — it\'s a free 15-minute call, no card required. Afterwards your tutor books you a free 30-minute trial lesson so you can see them teach before committing to anything paid.',
+    a: 'Click "Book a Free Consultation" on our homepage and tell us a little about your child and their goals — it\'s a free 15-minute call, no card required. Afterwards your tutor books you a free 60-minute trial lesson so you can see them teach before committing to anything paid.',
   },
 ];
 

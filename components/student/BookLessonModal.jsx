@@ -4,13 +4,39 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { currentSession, currentProfile } from '@/lib/supabase';
 
-// Tutor roster is hardcoded exactly as the legacy build had it (flagged in
-// docs/REBUILD-LOG.md — due to become roster-driven later).
-const TUTORS = [
-  { name: 'Azeem Omar-Mufti', label: 'Azeem Omar-Mufti — Mathematics' },
-  { name: 'Suleiman', label: 'Suleiman — History & Arabic' },
-  { name: 'Abdul-Moez', label: 'Abdul-Moez — Chemistry & Biology' },
+// The full platform roster, used only as the fallback label source and for
+// families who have not been assigned anyone yet. Which tutors a given
+// student can actually book is derived per-student below — a hardcoded list
+// meant a newly assigned tutor was invisible to the family assigned to them.
+const ROSTER = [
+  { name: 'Azeem Omar-Mufti', subject: 'Mathematics' },
+  { name: 'Suleiman', subject: 'History & Arabic' },
+  { name: 'Abdul-Moez', subject: 'Chemistry & Biology' },
 ];
+
+function tutorLabel(name) {
+  const known = ROSTER.find((t) => t.name === name);
+  return known ? `${known.name} — ${known.subject}` : name;
+}
+
+/**
+ * The tutors this family may book with: whoever admin assigned them, plus
+ * anyone they have already had a lesson with. Falls back to the whole roster
+ * only when neither exists, so a brand-new account can still reach someone.
+ *
+ * Assignment is a single field on the student record today, so this returns
+ * at most one assigned tutor — multi-tutor support is backend work, see
+ * docs/MULTI-SUBJECT-DESIGN.md.
+ */
+function bookableTutors(bookings, assignedTutor) {
+  const names = [];
+  if (assignedTutor) names.push(assignedTutor);
+  for (const b of bookings) {
+    if (b.tutorName && !names.includes(b.tutorName)) names.push(b.tutorName);
+  }
+  if (names.length === 0) return ROSTER.map((t) => t.name);
+  return names;
+}
 
 // Prices are part of the label, as in legacy — GCSE £40 / A-Level £45 /
 // Group £20 are the platform's pricing constants, not per-tutor data.
@@ -50,7 +76,9 @@ function calParseBookingSuccess(eventData) {
  * trial only after the consultation and before any trial.
  */
 export default function BookLessonModal({ open, onClose, bookings = [], onBooked }) {
-  const [tutor, setTutor] = useState(TUTORS[0].name);
+  const [assignedTutor, setAssignedTutor] = useState('');
+  const tutors = bookableTutors(bookings, assignedTutor);
+  const [tutor, setTutor] = useState('');
   const [subject, setSubject] = useState('');
   const [type, setType] = useState('');
   const [weeks, setWeeks] = useState(1);
@@ -85,16 +113,32 @@ export default function BookLessonModal({ open, onClose, bookings = [], onBooked
     setWeeks(1);
     const subjects = [...new Set(bookings.map((b) => b.subject).filter(Boolean))];
     setSubject((s) => s || subjects[0] || '');
+
+    // Who this family may book with comes from their own record, not a
+    // hardcoded list: a tutor assigned by admin has to be reachable even
+    // before the first lesson exists.
+    let alive = true;
+    (async () => {
+      const profile = await currentProfile(await currentSession());
+      if (alive) setAssignedTutor(profile?.assigned_tutor || '');
+    })();
+
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => { alive = false; document.body.style.overflow = ''; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Keep the selection valid as the bookable set resolves.
+  useEffect(() => {
+    if (!tutors.includes(tutor)) setTutor(tutors[0] || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutors.join('|')]);
 
   // Load the tutor's real availability whenever tutor/type changes. A trial
   // and a paid lesson are different Cal.com event types, so type is part of
   // what must trigger a reload (the legacy cache key was tutor|type too).
   useEffect(() => {
-    if (!open || done) return;
+    if (!open || done || !tutor) return;
     let alive = true;
     setStartTime(null);
     setEmbed({ status: 'loading', url: '', message: `Loading ${tutor}'s availability…` });
@@ -200,7 +244,7 @@ export default function BookLessonModal({ open, onClose, bookings = [], onBooked
 
             <span className="sx-label">Tutor</span>
             <select className="sx-input" value={tutor} onChange={(e) => setTutor(e.target.value)}>
-              {TUTORS.map((t) => <option key={t.name} value={t.name}>{t.label}</option>)}
+              {tutors.map((name) => <option key={name} value={name}>{tutorLabel(name)}</option>)}
             </select>
 
             <span className="sx-label">Subject</span>

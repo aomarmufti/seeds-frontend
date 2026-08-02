@@ -87,7 +87,7 @@ const PILLARS = [
 
 const STEPS = [
   { num: '01', title: 'Free consultation (15-min call)', desc: "A short call to understand your child's current level, the gaps holding them back, and the grade you're aiming for. No pressure, no cost, no card required." },
-  { num: '02', title: 'Free trial lesson (30 min)', desc: 'We match a subject specialist on exam board, learning style and goals — usually within 24 hours — and they teach a full trial lesson, free, before you decide anything.' },
+  { num: '02', title: 'Free trial lesson (60 min)', desc: 'We match a subject specialist on exam board, learning style and goals — usually within 24 hours — and they teach a full trial lesson, free, before you decide anything.' },
   { num: '03', title: 'Structured weekly sessions', desc: 'Live 1:1 on Google Meet with a shared interactive whiteboard — undivided attention, every time. Plus weekly recorded group sessions working through past papers.' },
   { num: '04', title: 'Measurable, visible progress', desc: 'Monthly parent reports. Grade trajectory graphs. Syllabus coverage tracker. You always know exactly where your child stands and what comes next.' },
 ];
@@ -709,7 +709,7 @@ export default function Home() {
               </div>
               <div className="j-step">
                 <div className="j-dot">4</div>
-                <div className="j-step-text"><strong>Free trial lesson (30 min)</strong>No cost, no commitment — just brilliant teaching</div>
+                <div className="j-step-text"><strong>Free trial lesson (60 min)</strong>No cost, no commitment — just brilliant teaching</div>
               </div>
             </div>
           </div>
@@ -723,7 +723,7 @@ export default function Home() {
         <div className="cta-inner">
           <h2 className="cta-heading">Plant the <em>seed</em><br />of something great</h2>
           <p className="cta-body">
-            A free consultation — a 15-minute call — and then a free 30-minute trial lesson. No
+            A free consultation — a 15-minute call — and then a free 60-minute trial lesson. No
             commitment, no pressure — just brilliant teaching and a student who leaves more
             curious than when they arrived.
           </p>

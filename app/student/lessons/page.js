@@ -7,7 +7,7 @@ import {
 } from '@/components/ui';
 import NextUp from '@/components/NextUp';
 import { Calendar, Lessons, Video, Alert } from '@/components/icons';
-import { isConsultation } from '@/lib/calendar';
+import { lessonLabel } from '@/lib/lessons';
 
 // A batch the family still owes money on. The old portal surfaced this as a
 // banner above everything else, which is the right instinct — an unpaid
@@ -78,7 +78,7 @@ export default function StudentLessonsPage() {
           upcoming.slice(1).map((b) => (
             <Lesson
               key={b.id}
-              subject={isConsultation(b) ? 'Free consultation call' : b.subject || 'Lesson'}
+              subject={lessonLabel(b)}
               meta={`${lessonTime(b.startTime)}${b.tutorName ? ` · with ${b.tutorName}` : ''}`}
               tone={b.status === 'requested' ? 'is-cancelled' : ''}
               action={
@@ -108,7 +108,7 @@ export default function StudentLessonsPage() {
           past.slice(0, 20).map((b) => (
             <Lesson
               key={b.id}
-              subject={isConsultation(b) ? 'Free consultation call' : b.subject || 'Lesson'}
+              subject={lessonLabel(b)}
               meta={`${lessonTime(b.startTime)}${b.tutorName ? ` · with ${b.tutorName}` : ''}`}
               tone="is-done"
               action={<span style={{ fontSize: '.78rem', color: 'var(--ink-3)' }}>{money(b.feePence)}</span>}

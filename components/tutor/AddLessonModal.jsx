@@ -38,15 +38,22 @@ function calParseBookingSuccess(eventData) {
  * a raw datetime-local the tutor could set to anything, with no check
  * against their own schedule — then confirm → POST /api/lifecycle.
  *
- * Students come from the tutor's own bookings (passed in), the same source
- * the schedule page itself uses, so the select can never offer a student
- * the tutor has never taught.
+ * Students come from two places, and it has to be both: the roster of
+ * families admin has assigned to this tutor, and anyone already in the
+ * tutor's bookings. Deriving the list from bookings alone — as this modal
+ * originally did — created a deadlock: a newly assigned student appeared on
+ * "My students" but could never be given their first lesson, because they
+ * had no booking yet and so were never offered in the select.
  */
 export default function AddLessonModal({ open, onClose, bookings = [], onAdded }) {
-  // Unique students the tutor has actually taught, in first-seen order.
-  const students = [...new Map(
-    bookings.filter((b) => b.studentName).map((b) => [b.studentId || b.studentName, b.studentName]),
-  ).entries()].map(([id, name]) => ({ id, name }));
+  const [roster, setRoster] = useState([]);
+
+  // Assigned families first (that is the deliberate act), then anyone else
+  // this tutor has taught.
+  const students = [...new Map([
+    ...roster.map((name) => [name, name]),
+    ...bookings.filter((b) => b.studentName).map((b) => [b.studentName, b.studentName]),
+  ]).entries()].map(([id, name]) => ({ id, name }));
 
   const [studentName, setStudentName] = useState('');
   const [subject, setSubject] = useState('');
@@ -73,20 +80,40 @@ export default function AddLessonModal({ open, onClose, bookings = [], onAdded }
     setBusy(false);
     setStartTime(null);
     setWeeks(1);
-    setStudentName(students[0]?.name || '');
+    setRoster([]);
     const subjects = [...new Set(bookings.map((b) => b.subject).filter(Boolean))];
     setSubject((s) => s || subjects[0] || '');
     setTutorName('');
     currentSession()
       .then((session) => currentProfile(session))
-      .then((profile) => {
-        if (alive) setTutorName(profile?.tutor_name || profile?.full_name || '');
+      .then(async (profile) => {
+        const me = profile?.tutor_name || profile?.full_name || '';
+        if (alive) setTutorName(me);
+        if (!me) return;
+        // Same source and same filter as the "My students" page, so the two
+        // screens can never disagree about who this tutor teaches.
+        const all = await api('/api/analytics?resource=students').catch(() => []);
+        if (!alive) return;
+        setRoster(
+          (Array.isArray(all) ? all : [])
+            .filter((st) => st.assigned_tutor === me
+                         || (st.bookings || []).some((b) => b.tutor_name === me))
+            .map((st) => st.student_name)
+            .filter(Boolean),
+        );
       })
       .catch(() => {});
     document.body.style.overflow = 'hidden';
     return () => { alive = false; document.body.style.overflow = ''; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useEffect(() => {
+    if (!students.some((st) => st.name === studentName)) {
+      setStudentName(students[0]?.name || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [students.map((st) => st.name).join('|')]);
 
   // Load the tutor's real availability whenever type changes or the name
   // resolves. A trial and a paid lesson are different Cal.com event types,
@@ -193,7 +220,7 @@ export default function AddLessonModal({ open, onClose, bookings = [], onAdded }
             <span className="tx-label">Student</span>
             {students.length === 0 ? (
               <div className="tx-note" style={{ margin: '0 0 4px' }}>
-                No students yet — students appear here once they have a booking with you.
+                No students yet — they appear here as soon as admin assigns a family to you.
               </div>
             ) : (
               <select className="tx-input" value={studentName} onChange={(e) => setStudentName(e.target.value)}>

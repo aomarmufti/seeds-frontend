@@ -65,7 +65,7 @@ export default async function TutorProfilePage({ params }) {
 
       <h2>How lessons run</h2>
       <p>
-        Lessons are 55 minutes, live 1:1 on Google Meet with a shared whiteboard. Homework is set
+        Lessons are a full hour, live 1:1 on Google Meet with a shared whiteboard. Homework is set
         after every session and marked before the next one, and you receive a written parent
         report every four weeks. You can see the full breakdown on our{' '}
         <Link href="/faqs#pricing">pricing and FAQs</Link> page.

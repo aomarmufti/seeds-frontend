@@ -189,3 +189,57 @@ First modal open can hold "Loading availability…" for several seconds (backend
 Type: Task · Priority: High
 Logged-in student/tutor/admin journeys can't be UAT'd without credentials. Create disposable test accounts (one per role) in Supabase, document creds privately, wire into Playwright (feeds SCRUM-XX26).
 **AC:** Full portal e2e runnable on demand.
+
+---
+
+## Epic 7 — Enrolments, profiles & live-use defects (2026-08-02)
+
+### ✅ SCRUM-XX33 — Newly assigned student not bookable by their tutor
+Type: Bug · Priority: Highest · Status: **Fixed (2026-08-02)**
+The tutor's add-lesson modal built its student list from the tutor's own bookings, so a family admin had just assigned appeared on "My students" but could never be given a first lesson — the only route onto the list was already having a booking. Now unions the assigned roster with anyone already taught, filtered exactly as the My students page filters it.
+**AC:** A student assigned today can be booked today. ✔
+
+### ✅ SCRUM-XX34 — Student portal offered a hardcoded tutor list
+Type: Bug · Priority: Highest · Status: **Fixed (2026-08-02)**
+Mirror of XX33: the book-a-lesson modal offered three hardcoded names, so an assigned tutor was invisible to the family assigned to them. Now derived from the family's own `assigned_tutor` plus anyone they have had a lesson with.
+**AC:** A family can book with the tutor they were assigned. ✔
+
+### ✅ SCRUM-XX35 — "Unauthorized" when recording a lesson outcome
+Type: Bug · Priority: High · Status: **Frontend half fixed (2026-08-02)**
+`api()` sent the request with no Authorization header at all when the session had expired, so an expired login surfaced as a permissions error. Now fails fast with "your session has expired", and a genuine 401/403 explains the account was not accepted for that record.
+**AC:** The message tells the person what to do. ✔ — **if it recurs on a fresh login it is backend-side**: the booking is not considered that tutor's, which is a data problem to fix in the assignment, not the UI.
+
+### ✅ SCRUM-XX36 — Free lessons said "charged in full"
+Type: Bug (content) · Priority: High · Status: **Fixed (2026-08-02)**
+Every outcome in the tutor's dialog carried money copy written for paid lessons, shown unchanged on free consultations and trials. `lib/lessons.js` now answers "is this free" in one place; the dialog swaps the money line. Outcome keys unchanged, so backend semantics are untouched.
+**AC:** A tutor can mark a free consultation complete without being told the family is charged. ✔
+
+### ✅ SCRUM-XX37 — Lesson duration inconsistent (30 / 55 / 60)
+Type: Bug (content) · Priority: Medium · Status: **Fixed (2026-08-02)**
+Standardised on 60 minutes everywhere, matching the Cal.com event types.
+**AC:** One duration site-wide. ✔
+
+### 🚧 SCRUM-XX38 — Enrolments: multi-subject, multi-tutor — **blocked on backend**
+Type: Epic · Priority: Highest · **Design: `docs/MULTI-SUBJECT-DESIGN.md`**
+`assigned_tutor` and `subject` are single string fields on the student record, so a family holds exactly one tutor and one subject and admin has no control to change the subject at all. Replace both with an *enrolment* (student × subject × level × tutor × rate × status); bookings gain `enrolment_id`; tutors keyed by id not name.
+**AC:** A family can study two subjects with two tutors, and admin can change either.
+
+### 🆕 SCRUM-XX39 — Student profile page
+Type: Story · Priority: High
+`/student/profile`: student name, year group, school, exam board, target grades, parent contact, timezone, notification preferences. No such screen exists.
+**AC:** A parent can correct their own details without emailing.
+
+### 🆕 SCRUM-XX40 — Tutor profile page
+Type: Story · Priority: High
+`/tutor/profile`: display name, subjects and levels, exam boards, bio, photo, DBS status, Cal.com links, payout details. Should feed the public `/tutors/[slug]` pages, which closes SCRUM-XX24's hardcoded roster.
+**AC:** A tutor maintains their own profile; the public page reflects it.
+
+### 🆕 SCRUM-XX41 — Trial/consultation eligibility tracked, not inferred
+Type: Bug · Priority: Medium
+Eligibility is inferred from whether a trial booking exists, so a student who no-showed their free trial has burned it despite receiving nothing.
+**AC:** A trial is consumed only when it was actually delivered.
+
+### 🆕 SCRUM-XX42 — Group session cancelled by the tutor refunds every attendee
+Type: Bug · Priority: Medium
+A tutor cancelling a group session is N refunds, not one. Nothing handles this today.
+**AC:** All attendees are made whole.
