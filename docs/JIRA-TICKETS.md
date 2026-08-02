@@ -238,15 +238,32 @@ Type: Story · Priority: High · Status: **Shipped, partial (2026-08-02)**
 Photo, DBS status and expiry, exam boards and Cal.com links are not editable: they live outside `profiles` and need endpoints. Feeding the public `/tutors/[slug]` pages from here — the part that would close SCRUM-XX24 — needs a public read endpoint, since no other tutor's profile row is readable from the browser by design.
 **AC:** A tutor maintains their own profile ✔; the public page reflecting it is still open.
 
-### 🆕 SCRUM-XX41 — Trial/consultation eligibility tracked, not inferred
-Type: Bug · Priority: Medium
-Eligibility is inferred from whether a trial booking exists, so a student who no-showed their free trial has burned it despite receiving nothing.
-**AC:** A trial is consumed only when it was actually delivered.
+### 🚧 SCRUM-XX41 — Trial/consultation eligibility tracked, not inferred — **backend-blocked**
+Type: Bug · Priority: Medium · Status: **Frontend rule made explicit (2026-08-02); the reported bug is backend**
 
-### 🆕 SCRUM-XX42 — Group session cancelled by the tutor refunds every attendee
-Type: Bug · Priority: Medium
-A tutor cancelling a group session is N refunds, not one. Nothing handles this today.
-**AC:** All attendees are made whole.
+Investigated against the schema. Two halves:
+
+- **Cancelled free lesson.** Already behaves correctly, but by accident: `app/student/calendar/page.js` filters cancelled bookings out for the calendar, and the booking modal inherited that filter. The rule now lives in `lib/lessons.js` (`hasUsedFreeLesson`) so a display filter is no longer what stands between a family and a second £0 lesson. No user-visible change.
+- **No-showed free trial — the actual ticket, and not fixable here.** Recording a no-show sets `status = 'completed'` (`api/lifecycle.js`, mark-delivered). The unique index is `bookings_one_trial_per_student ON bookings (student_id) WHERE lesson_type = 'trial' AND status <> 'cancelled'`, so a no-showed trial still occupies it and the family cannot rebook — the database burns the trial regardless of what the UI offers. The student portal cannot even detect the case: `delivery_status` is not in `/api/analytics?resource=my-bookings`'s select list.
+
+**Backend needed:** (1) expose `delivery_status` on `my-bookings`; (2) narrow the trial/consultation unique indexes to exclude free lessons whose outcome was `no_show`, `cancelled_mutual`, `tutor_cancelled` or `waived` — i.e. index on "consumed", per `docs/MULTI-SUBJECT-DESIGN.md` §4 rule 1.
+**AC:** A trial is consumed only when it was actually delivered. — still open.
+
+### 🚧 SCRUM-XX42a — A group session cannot have a second attendee — **backend, found while investigating XX42**
+Type: Bug · Priority: High
+Both booking modals sell "Group session — £20", and a group session with more than one student **cannot be created today**. A booking holds a single `student_id`, so N attendees means N booking rows at the same time with the same tutor, and `bookings_no_tutor_overlap` is an exclusion constraint (`tutor_name WITH =, tstzrange(start_time, end_time) WITH &&`) over every non-cancelled booking. The second attendee is rejected — by `api/lifecycle.js`'s own conflict check first (409, "already has a lesson at that time"), and by the constraint behind it. What the product currently sells as a group session is a 1:1 lesson at £20.
+
+**Backend needed:** a session entity that attendees join, or an attendees join-table, so the exclusion constraint applies per session rather than per attendee.
+**AC:** Two students can attend the same group session.
+
+### 🚧 SCRUM-XX42 — Group session cancelled by the tutor refunds every attendee — **backend-blocked, and blocked on XX42a**
+Type: Bug · Priority: Medium · Status: **Investigated (2026-08-02), no frontend work possible**
+A tutor cancelling a group session is N refunds, not one. Two reasons this cannot start on the frontend:
+
+1. There is no N — see SCRUM-XX42a. A group session with two attendees cannot exist in the data model, so "refund every attendee" presupposes something the schema does not currently permit.
+2. The frontend never issues refunds. It renders a `refunded` payment status and nothing else; refunds are Stripe-side, in the backend's `lib/refunds.js`. There is no honest frontend slice here — building a refund control would be a button that promises money it cannot move.
+
+**AC:** All attendees are made whole. — unchanged, and entirely backend.
 
 ### ✅ SCRUM-XX43 — "studentId required" when a tutor books a lesson
 Type: Bug · Priority: Highest · Status: **Fixed (2026-08-02)**

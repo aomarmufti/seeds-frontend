@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { currentSession, currentProfile } from '@/lib/supabase';
+import { hasUsedFreeLesson } from '@/lib/lessons';
 
 // The full platform roster, used only as the fallback label source and for
 // families who have not been assigned anyone yet. Which tutors a given
@@ -71,9 +72,12 @@ function calParseBookingSuccess(eventData) {
  * availability in a sandboxed iframe, then confirm → POST /api/lifecycle.
  *
  * Eligibility rules are the legacy ones (SCRUM-69 / SCRUM-87), computed
- * from the student's own non-cancelled bookings rather than /api/leads:
- * a free consultation is offered only before they've had one, and a free
- * trial only after the consultation and before any trial.
+ * from the student's own bookings rather than /api/leads: a free
+ * consultation is offered only before they've had one, and a free trial
+ * only after the consultation and before any trial. "Had one" excludes
+ * cancelled bookings (SCRUM-XX41) — a lesson that never happened cannot
+ * have been used up, and the database's own one-per-student index says the
+ * same thing.
  */
 export default function BookLessonModal({ open, onClose, bookings = [], onBooked }) {
   const [assignedTutor, setAssignedTutor] = useState('');
@@ -88,8 +92,11 @@ export default function BookLessonModal({ open, onClose, bookings = [], onBooked
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
-  const hadConsultation = bookings.some((b) => b.lessonType === 'consultation');
-  const hadTrial = bookings.some((b) => b.lessonType === 'trial');
+  // A cancelled free lesson was never had, so it must not count against the
+  // family's one consultation and one trial — see hasUsedFreeLesson for what
+  // this still gets wrong (a no-show) and why that half is backend work.
+  const hadConsultation = hasUsedFreeLesson(bookings, 'consultation');
+  const hadTrial = hasUsedFreeLesson(bookings, 'trial');
   const types = [
     ...(!hadConsultation
       ? [{ value: 'consultation', label: 'Free initial consultation (15 min)' }] : []),

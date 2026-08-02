@@ -155,3 +155,55 @@ test.describe('Student portal', () => {
     await expect(page.getByText('A-Level Mathematics').first()).toBeVisible();
   });
 });
+
+// SCRUM-XX41. Eligibility for the two free lessons is inferred from the
+// family's own bookings. These are outcome tests: they assert what the family
+// is offered, not which layer decided it. Two mechanisms currently agree —
+// the calendar page filters cancelled bookings out, and hasUsedFreeLesson
+// ignores them — so a regression has to break both to turn these red. They
+// are here because the rule is commercial (a free lesson is worth £40 of
+// goodwill) and was, until now, an accident of a display filter.
+//
+// What they deliberately do NOT cover: a trial the student no-showed still
+// burns the trial. That one is not visible from here — my-bookings doesn't
+// return delivery_status — and is backend work.
+test.describe('Free-lesson eligibility', () => {
+  async function openBookingModal(page, recentBookings) {
+    await stubBackend(page, {
+      'resource=my-bookings': { recentBookings },
+      'resource=billing-history': { batches: [] },
+      'action=scheduling-link': { url: 'https://cal.example/never-loaded' },
+    });
+    await signIn(page, { role: 'student', fullName: 'Ibrahim Khan', next: '/student/calendar' });
+    await expectPortalReady(page, 'Calendar');
+    await page.getByRole('button', { name: '+ Book lesson' }).click();
+    return page.getByRole('dialog', { name: 'Book a lesson' });
+  }
+
+  test('a cancelled consultation has not been used', async ({ page }) => {
+    const modal = await openBookingModal(page, [{
+      id: 'c1', lessonType: 'consultation', tutorName: 'Suleiman',
+      startTime: IN_2_DAYS, status: 'cancelled',
+    }]);
+    // They never had the call, so it is still theirs to book.
+    await expect(modal.getByRole('option', { name: /free initial consultation/i })).toBeAttached();
+  });
+
+  test('a consultation that went ahead has been used', async ({ page }) => {
+    const modal = await openBookingModal(page, [{
+      id: 'c1', lessonType: 'consultation', tutorName: 'Suleiman',
+      startTime: LAST_WEEK, status: 'completed',
+    }]);
+    await expect(modal.getByRole('option', { name: /free initial consultation/i })).toHaveCount(0);
+    // Consultation done and no trial yet — the trial is what's on offer.
+    await expect(modal.getByRole('option', { name: /free trial lesson/i })).toBeAttached();
+  });
+
+  test('a cancelled trial does not burn the free trial', async ({ page }) => {
+    const modal = await openBookingModal(page, [
+      { id: 'c1', lessonType: 'consultation', tutorName: 'Suleiman', startTime: LAST_WEEK, status: 'completed' },
+      { id: 't1', lessonType: 'trial', tutorName: 'Suleiman', startTime: LAST_WEEK, status: 'cancelled' },
+    ]);
+    await expect(modal.getByRole('option', { name: /free trial lesson/i })).toBeAttached();
+  });
+});
