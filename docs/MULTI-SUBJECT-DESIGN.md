@@ -100,6 +100,11 @@ Two rules worth stating because they are easy to get wrong:
 1. **"Consumed" is separate from "charged."** A free trial that the student no-showed should not burn their one free trial — they got nothing. Today nothing tracks this, so eligibility is inferred from whether a trial booking exists at all, which quietly punishes a family for a lesson they never received.
 2. **A tutor cancelling a group session is not one refund, it is N.** Nothing currently handles that.
 
+**Confirmed against the schema (2026-08-02), while trying to build both:**
+
+- Rule 1 is enforced by the database, not by the UI, and enforced wrongly. `bookings_one_trial_per_student` is `UNIQUE (student_id) WHERE lesson_type = 'trial' AND status <> 'cancelled'`, and recording a no-show sets `status = 'completed'`. So a no-showed trial keeps its slot in the index and the family cannot rebook, whatever the portal offers them. The index needs to key off *consumed* — delivered or cut short — rather than off "not cancelled". The student portal also cannot see the difference: `delivery_status` is absent from `/api/analytics?resource=my-bookings`.
+- Rule 2 has a prerequisite nobody had noticed: **a group session cannot have a second attendee at all.** One booking holds one `student_id`, so N attendees is N rows at the same time with the same tutor, and `bookings_no_tutor_overlap` is a gist exclusion constraint on `(tutor_name =, tstzrange(start_time, end_time) &&)` across all non-cancelled bookings. The second attendee is refused. Both portals sell "Group session — £20"; what it actually creates is a 1:1 lesson at the group price. This belongs with the enrolment work: a session entity attendees join, with the overlap constraint applying per session rather than per attendee.
+
 ---
 
 ## 5. Profiles — the missing screens
@@ -130,6 +135,7 @@ There is no profile page for a student or a tutor. Both need one; they are also 
 
 Nothing in sections 2–6 can ship frontend-first. Required, in order:
 
+0. **A session entity for group lessons** (see §4). Without it the overlap constraint makes a second attendee impossible, so group pricing is fiction and SCRUM-XX42's N refunds have no N.
 1. `enrolments` table + migration from `subject` / `assigned_tutor`; `enrolment_id` on bookings.
 2. Tutors keyed by id, not name.
 3. `/api/enrolments` — list, create, update status, reassign tutor, set rate.
