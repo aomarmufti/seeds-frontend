@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, currentSession, currentProfile } from '@/lib/supabase';
+import { CONTACT_EMAIL } from '@/lib/site';
 import { Seedling } from '@/components/icons';
 
 function portalFor(role) {
@@ -27,17 +28,33 @@ function LoginForm() {
   );
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
+  // Set when the visitor is genuinely signed in but their account has not
+  // been approved yet. Holds the address they signed in with, because when
+  // that differs from the one they booked with it is the whole explanation
+  // for "my consultation isn't showing".
+  const [signedInPending, setSignedInPending] = useState(null);
 
   // Already signed in? Don't make them type it again. This is also where a
   // Google sign-in lands after the OAuth redirect back to /login — the session
   // check below routes them to their portal.
+  //
+  // A pending account used to fall off the end of this effect: signed in
+  // successfully, no redirect, no message, back at an empty login form. Every
+  // Google sign-in by a new account hits that, because handle_new_user gives
+  // OAuth signups role 'pending' — so the one path that worked perfectly at
+  // the auth layer looked completely broken to the person using it. Say what
+  // happened instead.
   useEffect(() => {
     (async () => {
       const session = await currentSession();
       if (!session) return;
       const profile = await currentProfile(session);
       const role = profile?.role || 'student';
-      if (role !== 'pending') router.replace(next || portalFor(role));
+      if (role === 'pending') {
+        setSignedInPending(session.user?.email || '');
+        return;
+      }
+      router.replace(next || portalFor(role));
     })();
   }, [next, router]);
 
@@ -52,8 +69,12 @@ function LoginForm() {
       const profile = await currentProfile(data.session);
       const role = profile?.role || 'student';
 
+      // Same situation as the OAuth return, so the same screen: they are
+      // signed in, the account simply isn't approved. This used to be a red
+      // error box, which reads as "you did something wrong" for the one case
+      // where they didn't.
       if (role === 'pending') {
-        setError("Your account is awaiting approval. We'll email you once it's ready.");
+        setSignedInPending(data.session?.user?.email || email);
         setBusy(false);
         return;
       }
@@ -91,9 +112,38 @@ function LoginForm() {
           <strong style={{ letterSpacing: '-.01em' }}>Seeds Tuition</strong>
         </div>
 
-        <h1>Sign in</h1>
-        <p className="sub">Students, tutors and staff all sign in here.</p>
+        <h1>{signedInPending ? 'Almost there' : 'Sign in'}</h1>
+        <p className="sub">
+          {signedInPending
+            ? 'Your account is created — it just needs approving.'
+            : 'Students, tutors and staff all sign in here.'}
+        </p>
 
+        {signedInPending ? (
+          <>
+            <div className="ok-note" id="lg-pending">
+              ✓ You&rsquo;re signed in as <strong>{signedInPending}</strong>. We approve every
+              account by hand, so your portal opens once we&rsquo;ve done that — we&rsquo;ll email you.
+            </div>
+            <p style={{ fontSize: '.84rem', color: 'var(--ink-3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+              If you booked a free consultation with a <em>different</em> email
+              address, tell us at{' '}
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and
+              we&rsquo;ll link it to this account — bookings are matched by email
+              address, so it won&rsquo;t appear on its own.
+            </p>
+            <button
+              type="button" className="btn" style={{ marginTop: 16 }} id="lg-pending-signout"
+              onClick={async () => {
+                await supabase().auth.signOut();
+                setSignedInPending(null);
+              }}
+            >
+              Use a different account
+            </button>
+          </>
+        ) : (
+        <>
         <button type="button" className="auth-google-btn" id="lg-google-btn" onClick={signInWithGoogle} disabled={googleBusy}>
           <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
           {googleBusy ? 'Redirecting…' : 'Continue with Google'}
@@ -130,6 +180,8 @@ function LoginForm() {
         <div className="auth-links">
           New to Seeds? <Link href="/signup">Create account</Link>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

@@ -284,3 +284,96 @@ Two items previously carried as unverified, now confirmed by reading `seeds_back
 
 - **A free consultation marked "delivered" charges £0.** `lib/pricing.js` gives `consultation` and `trial` `amount: 0`, so the booking is written with `fee_pence = 0`, and both billing queries in `api/billing.js` filter `fee_pence=gt.0`. A delivered consultation cannot enter a bill. The frontend copy from XX36 is accurate.
 - **A recurring "Unauthorized" on recording an outcome is a data problem, as XX35 suspected.** `verifyTutorIdentity` compares `profiles.tutor_name` to `bookings.tutor_name` as exact strings. Any mismatch — a profile with no `tutor_name`, or a booking created under a differently-spelled name — is a 403 for the tutor whose lesson it plainly is. This is the name-as-key flaw in `docs/MULTI-SUBJECT-DESIGN.md` §2 showing up in the permission layer; the fix is tutors keyed by id, not a frontend change.
+
+---
+
+## Epic 8 — Signup incident, 2026-08-02
+
+A parent booked a free consultation at 18:40, tried to create her account at 18:41, and was still locked out at 18:44. Reconstructed from the Supabase auth logs and the database rather than guessed. Everything below is what actually happened, in order.
+
+| Time (UTC) | Event | Result |
+|---|---|---|
+| 18:40:56 | Consultation booked, Mathematics | ✅ `students` + `bookings` rows created, `parent_email` = her iCloud address |
+| 18:41:28 | Password signup, same address | ❌ `POST /auth/v1/signup` → **500** |
+| 18:41:42 | Retried | ❌ 500 again |
+| 18:42:54 | Signed in with Google, **school address** | ✅ authenticated, `role = 'pending'` |
+| — | Landed back on `/login` | ❌ blank form, no message |
+
+### 🔴 SCRUM-XX44 — Signup returns 500: the confirmation email cannot be sent — **CONFIG, blocks every new signup**
+Type: Bug · Priority: **Highest** · Owner: **manual, site owner**
+
+The auth log gives the cause verbatim:
+
+> `gomail: could not send email 1: 550 "You can only send testing emails to your own email address (azeemomar-mufti@outlook.com). To send emails to other recipients, please verify a domain at resend.com/domains"`
+
+The project's SMTP is a Resend account with **no verified sending domain**, so Resend accepts mail to the owner's address and refuses every other recipient. Supabase treats the failed send as a failed signup, answers 500, and rolls the user back — which is why neither of her two attempts left an account behind. **No password signup by any member of the public can currently succeed.** Google sign-in is unaffected because it sends no email, which is exactly why that was the only route that worked.
+
+**Fix (either, and the first is the right one):**
+1. Verify `seedsinstitute.co.uk` at resend.com/domains (DNS records), then set Supabase → Project Settings → Authentication → SMTP to send from that domain. This is also the prerequisite for SCRUM-XX7's branded templates.
+2. Or, as a stopgap: Supabase → Authentication → Providers → Email → turn **Confirm email** off, so signup no longer depends on mail delivery. Faster, but every account is then unverified — acceptable only because admin approves each one by hand anyway.
+
+**AC:** A stranger can create an account with a password.
+
+### ✅ SCRUM-XX45 — The signup error was a dead end, and leaked a personal email address
+Type: Bug · Priority: Highest · Status: **Fixed (2026-08-02)**
+Two separate faults in how the 500 above reached the screen. `supabase-js` surfaces the upstream text, so the red box on a public page was capable of printing the **site owner's personal email address** at a stranger. And it offered no next step, so the natural move was to retry — which, once the SMTP problem is fixed, fails with "already registered" and locks a family out of an account they did create.
+
+`signupErrorMessage()` now maps each failure to advice: a send failure says it's our fault and points at Google, an existing account points at sign-in and password reset, a rate limit says wait. Every message carries a "Go to sign in →" link. The raw text and the status code never render.
+
+Also: the profile upsert and the `/api/leads` POST are now best-effort. Either failing used to fail the whole signup **after the account already existed** — and `/api/leads` rate-limits at 3/hour per email, so a family who retried once could destroy an otherwise perfect signup.
+**AC:** No signup failure ends without a next step, and no upstream text reaches the page. ✔
+
+### ✅ SCRUM-XX46 — Google sign-in "doesn't work": a pending account landed on a blank form
+Type: Bug · Priority: Highest · Status: **Fixed (2026-08-02)**
+Google sign-in worked perfectly at the auth layer — the log shows the redirect and a 200, and the account exists. But `handle_new_user` gives every OAuth signup `role = 'pending'`, and `app/login/page.js`'s session effect only redirected when the role was *not* pending. A pending user therefore fell off the end of it: signed in, no redirect, no message, back at an empty login form. Indistinguishable from "Google is broken", and it hits **every new Google user**.
+
+Now shows an approval-pending panel naming the address they signed in with, plus "Use a different account". The password path shows the same panel instead of a red error — being unapproved is not the person's mistake.
+**AC:** No sign-in that succeeds can look like one that failed. ✔
+
+### 🆕 SCRUM-XX47 — A booking made with one email and an account made with another never meet
+Type: Bug · Priority: High
+The backend links a booking to an account by matching `students.parent_email` to the login email, and nothing else. She booked with iCloud and signed in with her school Google account, so her consultation will not appear in her portal even after approval — with no message anywhere saying why.
+
+Mitigated in the UI (2026-08-02): the signup form now flags the prefilled address as the one to keep, and the pending panel tells them to contact us if they used a different one. **The real fix is backend**: let an approved account claim a booking by verified email, or let admin re-point a `students` row at another address.
+**AC:** A family who signs in with a different address can still reach their booking.
+
+### 🆕 SCRUM-XX48 — Some Google accounts were provisioned straight to `role = 'student'`
+Type: Bug · Priority: Medium · Security-adjacent
+Three of the accounts in `profiles` hold `role = 'student'` from a Google sign-in with no approval step. They pre-date the `default_new_signups_to_pending` migration, which now defaults new signups to `pending`, so this is historical rather than ongoing. Worth an audit of existing rows, and worth confirming no other path can self-provision `student`.
+**AC:** Every account holding a portal role was approved by a human.
+
+---
+
+## Epic 9 — Multi-subject and multi-tutor, across all three portals
+
+Requested 2026-08-02. This is SCRUM-XX38 broken into buildable pieces. The design is `docs/MULTI-SUBJECT-DESIGN.md`; §2 explains why the current fields cannot carry it, and §7 lists the prerequisites. **The database work has to land first** — a "second subject" control built on today's single `subject` / `assigned_tutor` string fields would overwrite the first one, so it would take a family who asked for Maths *and* Arabic and quietly leave them with one.
+
+### 🆕 SCRUM-XX49 — `enrolments` table and migration — **prerequisite for everything below**
+Type: Story · Priority: Highest · Backend/database
+One row per student × subject × level × tutor × rate × status, per the design §2. Existing students migrate to one enrolment each from their current `subject` + `assigned_tutor`; the old columns stay as read-only mirrors until every screen has moved. Bookings gain `enrolment_id`.
+**AC:** One student can hold two enrolments with two tutors, and nothing existing breaks.
+
+### 🆕 SCRUM-XX50 — Tutors keyed by id, not name
+Type: Story · Priority: Highest · Backend/database
+`bookings.tutor_name`, `students.assigned_tutor` and `profiles.tutor_name` are free-text names compared with `=`. This is already causing live failures — it is the cause behind SCRUM-XX35's "Unauthorized" — and it is why the tutor profile page cannot let a tutor edit their own display name.
+**AC:** Renaming a tutor orphans nobody.
+
+### 🆕 SCRUM-XX51 — `/api/enrolments` — list, create, update status, reassign tutor, set rate
+Type: Story · Priority: Highest · Backend
+Plus booking creation validated against an active enrolment, with the rate derived from it rather than sent by the client.
+**AC:** The portals can read and write enrolments without touching `students`.
+
+### 🆕 SCRUM-XX52 — Student portal: enrolment cards and "request another subject"
+Type: Story · Priority: High · Frontend · *blocked by XX49/XX51*
+Enrolments as cards (subject, level, tutor, status, rate). Lessons, progress and payments filter per subject instead of mixing. A request form creates a `pending` enrolment and notifies admin — the family asks, they do not assign themselves a tutor or a rate. Booking happens *within* an enrolment, which removes the free-text subject box that currently makes "Maths", "maths" and "GCSE Maths" three different subjects.
+**AC:** A family can study two subjects and ask for a third.
+
+### 🆕 SCRUM-XX53 — Tutor portal: students grouped by enrolment
+Type: Story · Priority: High · Frontend · *blocked by XX49/XX51*
+"Ibrahim (GCSE Maths)" and "Ibrahim (A-Level Further Maths)" become two rows, two progress threads and two earnings lines, because they are two different jobs. Add-lesson picks an enrolment rather than a student plus a typed subject. Tutors can flag an enrolment for reassignment; they cannot reassign themselves.
+**AC:** A tutor teaching one student two subjects sees two threads.
+
+### 🆕 SCRUM-XX54 — Admin portal: enrolment editor and the pending queue
+Type: Story · Priority: Highest · Frontend · *blocked by XX49/XX51*
+The control that is entirely missing today: create, edit, reassign and end an enrolment, and change subject or level (changing level changes the rate going forward, never retroactively). A queue of `pending` enrolments with no tutor — families waiting, revenue not moving — and non-standard rates with a required reason.
+**AC:** Admin can change a family's subject and tutor without touching the database.
