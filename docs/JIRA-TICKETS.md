@@ -243,3 +243,19 @@ Eligibility is inferred from whether a trial booking exists, so a student who no
 Type: Bug · Priority: Medium
 A tutor cancelling a group session is N refunds, not one. Nothing handles this today.
 **AC:** All attendees are made whole.
+
+### ✅ SCRUM-XX43 — "studentId required" when a tutor books a lesson
+Type: Bug · Priority: Highest · Status: **Fixed (2026-08-02)**
+The add-lesson modal sent `studentName` only. `api/lifecycle.js` requires `studentId` from a tutor caller and refuses to resolve a student by name — only a family booking for themselves may omit it, because there the record comes from their own verified email. The roster mapping discarded the id (`.map((st) => st.student_name)`), so every roster student — exactly the set XX33 made bookable — failed at submit. Ids now flow from both sources (`/api/analytics?resource=students` → `st.id`, bookings → `b.studentId`), and a student whose id is somehow missing gets an actionable message instead of the backend's.
+**AC:** A tutor can book a lesson for a student assigned to them today. ✔ — pinned by an e2e test that asserts the POST body carries `studentId` (red before the fix).
+
+**`components/student/BookLessonModal.jsx` has no equivalent bug** and was deliberately left alone: the backend resolves — and creates, for a first-ever lesson — the family's own student record from the caller's verified `parent_email`, never from the name in the body. Sending an id from the client there would add a permission check without adding a fact.
+
+---
+
+## Answered from the backend source (2026-08-02)
+
+Two items previously carried as unverified, now confirmed by reading `seeds_backend` (read-only; no backend change made):
+
+- **A free consultation marked "delivered" charges £0.** `lib/pricing.js` gives `consultation` and `trial` `amount: 0`, so the booking is written with `fee_pence = 0`, and both billing queries in `api/billing.js` filter `fee_pence=gt.0`. A delivered consultation cannot enter a bill. The frontend copy from XX36 is accurate.
+- **A recurring "Unauthorized" on recording an outcome is a data problem, as XX35 suspected.** `verifyTutorIdentity` compares `profiles.tutor_name` to `bookings.tutor_name` as exact strings. Any mismatch — a profile with no `tutor_name`, or a booking created under a differently-spelled name — is a 403 for the tutor whose lesson it plainly is. This is the name-as-key flaw in `docs/MULTI-SUBJECT-DESIGN.md` §2 showing up in the permission layer; the fix is tutors keyed by id, not a frontend change.

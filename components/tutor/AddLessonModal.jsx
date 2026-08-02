@@ -44,16 +44,33 @@ function calParseBookingSuccess(eventData) {
  * originally did — created a deadlock: a newly assigned student appeared on
  * "My students" but could never be given their first lesson, because they
  * had no booking yet and so were never offered in the select.
+ *
+ * Both sources must carry the student's *id*, not just their name. The
+ * backend requires `studentId` from a tutor caller (api/lifecycle.js) —
+ * only a family booking for themselves may omit it, because there the
+ * record is resolved from their own verified email. A name-only submission
+ * failed with "studentId required" for exactly the roster students the
+ * fix above made bookable.
  */
 export default function AddLessonModal({ open, onClose, bookings = [], onAdded }) {
   const [roster, setRoster] = useState([]);
 
   // Assigned families first (that is the deliberate act), then anyone else
-  // this tutor has taught.
-  const students = [...new Map([
-    ...roster.map((name) => [name, name]),
-    ...bookings.filter((b) => b.studentName).map((b) => [b.studentName, b.studentName]),
-  ]).entries()].map(([id, name]) => ({ id, name }));
+  // this tutor has taught. Keyed by name because that is the only key the
+  // two sources always share; the id is filled in from whichever source
+  // has one, so a student known from both is still a single option.
+  const students = (() => {
+    const byName = new Map();
+    const add = (id, name) => {
+      if (!name) return;
+      const existing = byName.get(name);
+      if (existing) { if (!existing.id && id) existing.id = id; return; }
+      byName.set(name, { id: id || '', name });
+    };
+    roster.forEach((st) => add(st.id, st.name));
+    bookings.forEach((b) => add(b.studentId, b.studentName));
+    return [...byName.values()];
+  })();
 
   const [studentName, setStudentName] = useState('');
   const [subject, setSubject] = useState('');
@@ -98,8 +115,8 @@ export default function AddLessonModal({ open, onClose, bookings = [], onAdded }
           (Array.isArray(all) ? all : [])
             .filter((st) => st.assigned_tutor === me
                          || (st.bookings || []).some((b) => b.tutor_name === me))
-            .map((st) => st.student_name)
-            .filter(Boolean),
+            .map((st) => ({ id: st.id, name: st.student_name }))
+            .filter((st) => st.name),
         );
       })
       .catch(() => {});
@@ -159,6 +176,13 @@ export default function AddLessonModal({ open, onClose, bookings = [], onAdded }
   async function submit() {
     setError('');
     if (!studentName) { setError('Please select a student'); return; }
+    const student = students.find((st) => st.name === studentName);
+    if (!student?.id) {
+      // Better than letting the backend answer "studentId required", which
+      // tells the tutor nothing they can act on.
+      setError("We couldn't identify that student's record. Please refresh and try again, or email hello@seedsinstitute.co.uk.");
+      return;
+    }
     if (!subject.trim()) { setError('Please enter a subject'); return; }
     if (!startTime) { setError('Please pick a time in the calendar above'); return; }
     setBusy(true);
@@ -168,6 +192,7 @@ export default function AddLessonModal({ open, onClose, bookings = [], onAdded }
       const data = await api('/api/lifecycle?resource=lessons', {
         method: 'POST',
         body: {
+          studentId: student.id,
           studentName,
           tutorName,
           subject: subject.trim(),
@@ -224,7 +249,7 @@ export default function AddLessonModal({ open, onClose, bookings = [], onAdded }
               </div>
             ) : (
               <select className="tx-input" value={studentName} onChange={(e) => setStudentName(e.target.value)}>
-                {students.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                {students.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             )}
 

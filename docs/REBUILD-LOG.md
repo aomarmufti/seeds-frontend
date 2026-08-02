@@ -63,9 +63,11 @@
 - [x] SCRUM-XX25 — Stale e2e specs rewritten against the Next.js routes (2026-08-01): student/tutor/admin portal + routing specs on a shared mocked-auth harness; suite green end to end (43 passed). Coverage for the un-ported Cal.com scheduling-links editor deliberately not faked — it returns with the screen (SCRUM-74).
 - [x] SCRUM-XX9/XX10 — Funnel CTAs unified and the free offer named once (2026-08-01): booking modal is the single primary CTA (nav button now opens it instead of jumping to the wizard); journey wizard demoted to "Not ready to book?" throughout, including its own section heading. Offer standardised to "free consultation (15-min call) → free trial lesson (30 min)" across hero, how-it-works, journey steps, CTA section and the booking modal. Build green; homepage/consultation-wizard/routes specs green (22 passed) after updating two label assertions.
 
+- [x] SCRUM-XX43 — Tutor add-lesson sent no `studentId` (2026-08-02): the roster mapping threw the id away, so the backend's tutor path ("studentId required" — it resolves a student by id or not at all) rejected every roster student. Ids now carried through from both sources and sent on submit; the student modal is correct as-is and documented as such. Pinned by an e2e test asserting the POST body.
+
 ## e2e suite status (2026-08-01)
 
-**50 passed / 0 failed.** The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
+**51 passed / 0 failed** (50 + the XX43 regression test). The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
 
 ## Open items / deferred (hand to next session)
 
