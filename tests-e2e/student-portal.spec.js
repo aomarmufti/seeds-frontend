@@ -199,6 +199,21 @@ test.describe('Free-lesson eligibility', () => {
     await expect(modal.getByRole('option', { name: /free trial lesson/i })).toBeAttached();
   });
 
+  // SCRUM-XX42a. A group session with two attendees cannot exist — one
+  // booking holds one student_id, and bookings_no_tutor_overlap refuses the
+  // second row. Offering it sold a group session and created a 1:1 lesson at
+  // £20, so the option is withdrawn until the backend has a real session.
+  test('a group session is not offered for booking', async ({ page }) => {
+    const modal = await openBookingModal(page, [{
+      id: 'c1', lessonType: 'consultation', tutorName: 'Suleiman',
+      startTime: LAST_WEEK, status: 'completed',
+    }]);
+    await expect(modal.getByRole('option', { name: /group session/i })).toHaveCount(0);
+    // The lessons that can actually be created are still there.
+    await expect(modal.getByRole('option', { name: /GCSE 1:1/ })).toBeAttached();
+    await expect(modal.getByRole('option', { name: /A-Level 1:1/ })).toBeAttached();
+  });
+
   test('a cancelled trial does not burn the free trial', async ({ page }) => {
     const modal = await openBookingModal(page, [
       { id: 'c1', lessonType: 'consultation', tutorName: 'Suleiman', startTime: LAST_WEEK, status: 'completed' },

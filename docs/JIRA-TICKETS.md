@@ -256,6 +256,10 @@ Both booking modals sell "Group session — £20", and a group session with more
 **Backend needed:** a session entity that attendees join, or an attendees join-table, so the exclusion constraint applies per session rather than per attendee.
 **AC:** Two students can attend the same group session.
 
+**Frontend action taken (2026-08-02):** the bookable option is withdrawn from both booking modals — a control that sells a group session and creates a 1:1 lesson at £20 is worse than no control. Display is untouched: `MonthCal`'s legend and `TYPE_LABEL` still render `group`, so any existing group booking shows correctly. This removes the way to *create* one, not the way to *see* one, and it reverses in one commit once the backend has a session.
+
+**Still advertised, and now inconsistent with the portal — needs a commercial decision, not a code one:** the landing pricing card (`lib/site.js`, the £20 "Group sessions" tier), `/faqs` (the pricing answer and the whole `#group-sessions` entry, which promises recordings in the student portal) and `/terms` §pricing. Nobody — including admin — can currently create a group session, so this copy sells something the platform cannot deliver at all. Either pull the tier from marketing too, or leave it and treat group sessions as an off-platform arrangement until the backend lands.
+
 ### 🚧 SCRUM-XX42 — Group session cancelled by the tutor refunds every attendee — **backend-blocked, and blocked on XX42a**
 Type: Bug · Priority: Medium · Status: **Investigated (2026-08-02), no frontend work possible**
 A tutor cancelling a group session is N refunds, not one. Two reasons this cannot start on the frontend:

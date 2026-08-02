@@ -69,9 +69,11 @@
 
 - [x] SCRUM-XX41/XX42 — investigated against the backend schema; both are backend, and the second has a prerequisite nobody had logged (2026-08-02). XX41: the *cancelled* half already worked, by accident — the calendar page's display filter was carrying a commercial rule — so the rule moved into `lib/lessons.js`; the reported half (a no-show burns the trial) is enforced by a unique index the frontend cannot reach. XX42: a group session cannot have a second attendee at all (gist exclusion constraint on tutor+time), so "N refunds" has no N; logged as SCRUM-XX42a. Neither has an honest frontend slice; nothing was built to look like progress.
 
+- [x] SCRUM-XX42a — group-session booking option withdrawn (2026-08-02): removed from `components/student/BookLessonModal.jsx` and `components/tutor/AddLessonModal.jsx` at the site owner's direction, because the schema cannot produce a group session with a second attendee. Rendering of existing group bookings is deliberately untouched. The landing pricing tier, `/faqs#group-sessions` and `/terms` still advertise it — flagged in the ticket as a commercial decision rather than changed unilaterally.
+
 ## e2e suite status (2026-08-01)
 
-**58 passed / 0 failed** (50, plus the XX43 regression test, four profile specs and three free-lesson eligibility specs). The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
+**60 passed / 0 failed** (50, plus the XX43 regression test, four profile specs, three free-lesson eligibility specs and two pinning the withdrawn group option). The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
 
 ## Open items / deferred (hand to next session)
 

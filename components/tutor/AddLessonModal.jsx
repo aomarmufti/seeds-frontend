@@ -6,10 +6,15 @@ import { currentSession, currentProfile } from '@/lib/supabase';
 
 // The tutor-side lesson types and their prices — the platform's pricing
 // constants (rebuild spec §5), shown in the label as legacy did.
+//
+// No group session here, for the same reason as the student modal
+// (SCRUM-XX42a): the tutor overlap exclusion constraint makes a second
+// attendee impossible, so what this created was a 1:1 lesson at £20. A tutor
+// hit it sooner than a family would — their own next attendee booking came
+// back as "you already have a lesson at that time".
 const TYPES = [
   { value: 'gcse', label: 'GCSE 1:1 — £40' },
   { value: 'alevel', label: 'A-Level 1:1 — £45' },
-  { value: 'group', label: 'Group session — £20' },
   { value: 'trial', label: 'Free trial — £0' },
 ];
 
