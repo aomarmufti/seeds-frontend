@@ -131,6 +131,27 @@ test.describe('Tutor portal', () => {
     expect(posted).toMatchObject({ studentId: 'stu-77', studentName: 'Newly Assigned' });
   });
 
+  // SCRUM-XX42a, tutor side. Adding a second attendee came back as "you
+  // already have a lesson at that time" — the overlap constraint doing its
+  // job against a product that needs a session entity instead.
+  test('a group session is not offered when adding a lesson', async ({ page }) => {
+    await stubBackend(page, {
+      'resource=my-tutor-bookings': { recentBookings: [] },
+      'resource=students': [
+        { id: 'stu-77', student_name: 'Newly Assigned', assigned_tutor: 'Suleiman', bookings: [] },
+      ],
+    });
+    await signIn(page, {
+      role: 'tutor', fullName: 'Suleiman', tutorName: 'Suleiman', next: '/tutor/schedule',
+    });
+    await expectPortalReady(page, 'Schedule');
+
+    await page.getByRole('button', { name: /add lesson/i }).first().click();
+    const modal = page.getByRole('dialog', { name: 'Add lesson' });
+    await expect(modal.getByRole('option', { name: /group session/i })).toHaveCount(0);
+    await expect(modal.getByRole('option', { name: /Free trial/ })).toBeAttached();
+  });
+
   test('a tutor who lands on an admin URL is sent to their own portal', async ({ page }) => {
     await stubBackend(page, { 'resource=my-tutor-bookings': TUTOR_BOOKINGS });
     await signIn(page, {

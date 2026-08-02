@@ -39,12 +39,21 @@ function bookableTutors(bookings, assignedTutor) {
   return names;
 }
 
-// Prices are part of the label, as in legacy — GCSE £40 / A-Level £45 /
-// Group £20 are the platform's pricing constants, not per-tutor data.
+// Prices are part of the label, as in legacy — GCSE £40 / A-Level £45 are
+// the platform's pricing constants, not per-tutor data.
+//
+// Group sessions are deliberately absent (SCRUM-XX42a). A booking holds one
+// student_id, so a session with N attendees needs N rows at the same time
+// for the same tutor — and `bookings_no_tutor_overlap` is a gist exclusion
+// constraint over exactly (tutor_name, start..end) for every non-cancelled
+// booking, so the second attendee is refused. Offering it here sold a group
+// session and created a 1:1 lesson at the group price. Withdrawn until the
+// backend has a session attendees can join; existing group bookings still
+// render everywhere (MonthCal legends, TYPE_LABEL) — this removes the way to
+// create one, not the way to see one.
 const PAID_TYPES = [
   { value: 'gcse', label: 'GCSE 1:1 — £40' },
   { value: 'alevel', label: 'A-Level 1:1 — £45' },
-  { value: 'group', label: 'Group session — £20' },
 ];
 
 const FREE_TYPES = new Set(['trial', 'consultation']);
