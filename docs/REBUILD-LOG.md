@@ -65,9 +65,11 @@
 
 - [x] SCRUM-XX43 — Tutor add-lesson sent no `studentId` (2026-08-02): the roster mapping threw the id away, so the backend's tutor path ("studentId required" — it resolves a student by id or not at all) rejected every roster student. Ids now carried through from both sources and sent on submit; the student modal is correct as-is and documented as such. Pinned by an e2e test asserting the POST body.
 
+- [x] SCRUM-XX39/XX40 — Student and tutor profile pages (2026-08-02): `/student/profile` and `/tutor/profile`, plus a Profile item in both sidebars. Saving is real, not stubbed — `profiles` carries RLS policies for select/update on `id = auth.uid()`, so a person editing their own row needed no backend endpoint. `lib/profile.js` holds the writable-field whitelist per role and the reasons for every omission; `components/profile/fields.jsx` makes an editable field and a read-only one look different, so nobody types into something that was never going to persist. Commercial fields (subject, level, assigned tutor) and the tutor's display name stay read-only with the reason on the page — the display name is the string the backend matches to authorise a tutor against their own bookings.
+
 ## e2e suite status (2026-08-01)
 
-**51 passed / 0 failed** (50 + the XX43 regression test). The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
+**55 passed / 0 failed** (50, plus the XX43 regression test and four profile specs). The 23 stale specs that targeted the legacy overlay DOM (`#portal-overlay`, `#tp-overlay`, `#ad-overlay`, `#lg-error`) have been rewritten against the Next.js routes (SCRUM-XX25). They now share `tests-e2e/support/portal.js`, which stubs Supabase's token endpoint and signs in through the real login form rather than hand-writing a session into localStorage, and installs a catch-all backend stub so no spec can reach the live deployment.
 
 ## Open items / deferred (hand to next session)
 

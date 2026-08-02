@@ -224,15 +224,19 @@ Type: Epic · Priority: Highest · **Design: `docs/MULTI-SUBJECT-DESIGN.md`**
 `assigned_tutor` and `subject` are single string fields on the student record, so a family holds exactly one tutor and one subject and admin has no control to change the subject at all. Replace both with an *enrolment* (student × subject × level × tutor × rate × status); bookings gain `enrolment_id`; tutors keyed by id not name.
 **AC:** A family can study two subjects with two tutors, and admin can change either.
 
-### 🆕 SCRUM-XX39 — Student profile page
-Type: Story · Priority: High
-`/student/profile`: student name, year group, school, exam board, target grades, parent contact, timezone, notification preferences. No such screen exists.
-**AC:** A parent can correct their own details without emailing.
+### ✅ SCRUM-XX39 — Student profile page
+Type: Story · Priority: High · Status: **Shipped, partial (2026-08-02)**
+`/student/profile` now exists. Student name, school year, subjects at school, target grades and WhatsApp preferences **save for real** — those are `profiles` columns, and the table carries RLS policies for select/update scoped to `id = auth.uid()`, so the write already existed and needed no backend change. Subject, level and assigned tutor are shown read-only: RLS would permit the write, but rate hangs off level and capacity hangs off assignment, so they are admin's per `docs/MULTI-SUBJECT-DESIGN.md` §3. Parent phone, school, exam board per subject and safeguarding contact live on `students`, which has no browser-facing policy and no endpoint — named on the page as not-yet-editable rather than shown as inputs that would lose what a parent typed.
+**AC:** A parent can correct their own details without emailing. ✔ for the details they own; the rest still needs backend write endpoints.
 
-### 🆕 SCRUM-XX40 — Tutor profile page
-Type: Story · Priority: High
-`/tutor/profile`: display name, subjects and levels, exam boards, bio, photo, DBS status, Cal.com links, payout details. Should feed the public `/tutors/[slug]` pages, which closes SCRUM-XX24's hardcoded roster.
-**AC:** A tutor maintains their own profile; the public page reflects it.
+### ✅ SCRUM-XX40 — Tutor profile page
+Type: Story · Priority: High · Status: **Shipped, partial (2026-08-02)**
+`/tutor/profile` now exists. Full name, subjects and levels, bio and WhatsApp preferences save for real. Payout state is read from `/api/payouts?resource=connect-status` and shown read-only.
+
+**Display name (`tutor_name`) is deliberately locked**, with the reason on the page. The backend authorises a tutor against a booking by string-matching `profiles.tutor_name` to `bookings.tutor_name`, so a tutor who renamed themselves would be locked out of every lesson they already have — SCRUM-XX35's "Unauthorized", self-inflicted. The legacy tutor modal offered exactly this field; not restoring it is the fix. It stays locked until tutors are keyed by id (XX38 prerequisite 2).
+
+Photo, DBS status and expiry, exam boards and Cal.com links are not editable: they live outside `profiles` and need endpoints. Feeding the public `/tutors/[slug]` pages from here — the part that would close SCRUM-XX24 — needs a public read endpoint, since no other tutor's profile row is readable from the browser by design.
+**AC:** A tutor maintains their own profile ✔; the public page reflecting it is still open.
 
 ### 🆕 SCRUM-XX41 — Trial/consultation eligibility tracked, not inferred
 Type: Bug · Priority: Medium

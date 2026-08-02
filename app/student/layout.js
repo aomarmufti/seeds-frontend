@@ -12,6 +12,7 @@ const NAV = [
     { key: 'calendar', label: 'Calendar', href: '/student/calendar' },
     { key: 'progress', label: 'Progress', href: '/student/progress' },
     { key: 'payments', label: 'Payments', href: '/student/payments' },
+    { key: 'settings', label: 'Profile', href: '/student/profile' },
   ] },
 ];
 
