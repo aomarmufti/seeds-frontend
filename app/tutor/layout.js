@@ -16,6 +16,7 @@ const NAV = [
       { key: 'schedule', label: 'Schedule', href: '/tutor/schedule' },
       { key: 'students', label: 'My students', href: '/tutor/students' },
       { key: 'earnings', label: 'Earnings', href: '/tutor/earnings' },
+      { key: 'settings', label: 'Profile', href: '/tutor/profile' },
     ],
   },
 ];

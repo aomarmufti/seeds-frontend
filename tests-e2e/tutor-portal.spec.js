@@ -90,6 +90,47 @@ test.describe('Tutor portal', () => {
     await expect(page.getByRole('button', { name: /request payout/i })).toHaveCount(0);
   });
 
+  // SCRUM-XX43. The backend rejects a tutor-created lesson that names the
+  // student only ("studentId required"), and the roster students made
+  // bookable by XX33 are precisely the ones with no booking to take an id
+  // from — so the id has to survive the roster mapping.
+  test('adding a lesson for a newly assigned student sends their id', async ({ page }) => {
+    let posted = null;
+    await stubBackend(page, {
+      'resource=my-tutor-bookings': { recentBookings: [] },
+      'resource=students': [
+        { id: 'stu-77', student_name: 'Newly Assigned', assigned_tutor: 'Suleiman', bookings: [] },
+      ],
+      'resource=lessons': (request) => {
+        posted = request.postDataJSON();
+        return { created: 1 };
+      },
+    });
+    await signIn(page, {
+      role: 'tutor', fullName: 'Suleiman', tutorName: 'Suleiman', next: '/tutor/schedule',
+    });
+    await expectPortalReady(page, 'Schedule');
+
+    await page.getByRole('button', { name: /add lesson/i }).first().click();
+    const modal = page.getByRole('dialog', { name: 'Add lesson' });
+    await expect(modal.getByRole('option', { name: 'Newly Assigned' })).toBeAttached();
+    await modal.getByPlaceholder('e.g. Mathematics').fill('Mathematics');
+
+    // Stand in for Cal.com's postMessage out of the sandboxed iframe — the
+    // only way a time reaches the modal.
+    await page.evaluate(() => {
+      window.postMessage(
+        { type: 'bookingSuccessful', data: { booking: { startTime: '2030-01-15T10:00:00.000Z' } } },
+        '*',
+      );
+    });
+    await expect(modal.getByText(/pick a different time/)).toBeVisible();
+
+    await modal.getByRole('button', { name: 'Add to calendar' }).click();
+    await expect(modal.getByText(/lesson\(s\) added/)).toBeVisible();
+    expect(posted).toMatchObject({ studentId: 'stu-77', studentName: 'Newly Assigned' });
+  });
+
   test('a tutor who lands on an admin URL is sent to their own portal', async ({ page }) => {
     await stubBackend(page, { 'resource=my-tutor-bookings': TUTOR_BOOKINGS });
     await signIn(page, {
