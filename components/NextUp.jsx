@@ -80,7 +80,7 @@ export default function NextUp({ booking, emptyTitle, emptyBody, action }) {
       {consultation ? (
         <p style={{ margin: '10px 0 0', fontSize: '.88rem', color: 'rgba(255,255,255,.6)', maxWidth: '52ch' }}>
           A 15-minute call to talk through your child&rsquo;s goals. Afterwards your tutor books
-          you a free 30-minute trial lesson from here.
+          you a free 60-minute trial lesson from here.
         </p>
       ) : null}
 

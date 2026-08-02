@@ -275,7 +275,7 @@ export default function BookingModal() {
                 <div className="bk-type-price bk-free">Free</div>
               </div>
               <p className="bk-explainer">
-                After your consultation, your tutor will book you a free 30-minute trial lesson
+                After your consultation, your tutor will book you a free 60-minute trial lesson
                 from the Student Portal — no payment needed for either. Paid 1:1 and group lessons only
                 start after that, billed automatically on a weekly or monthly cycle, never charged here.
               </p>
@@ -401,7 +401,7 @@ export default function BookingModal() {
               <div className="bk-success-title">Consultation booked!</div>
               <div className="bk-success-body">
                 A confirmation has been sent to your email with the call link. After we speak,
-                your tutor will book you a free 30-minute trial lesson from your Student
+                your tutor will book you a free 60-minute trial lesson from your Student
                 Portal — no payment needed for either session.
               </div>
               <div className="bk-success-card">
