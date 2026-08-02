@@ -29,7 +29,7 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     await page.goto('/');
     await page.getByRole('button', { name: /Book a Free Consultation/i }).first().click();
 
-    // Step 1 — tutor + lesson type (Initial Consultation is pre-selected,
+    // Step 1 — tutor + lesson type (the free consultation is pre-selected,
     // it's the only option).
     await page.locator('.bk-tutor-opt', { hasText: 'Suleiman' }).click();
     await page.locator('#bk-step-1').getByRole('button', { name: /Continue/i }).click();
@@ -62,7 +62,7 @@ test.describe('Consultation booking wizard (mocked backend)', () => {
     // not stale/default values.
     await expect(page.locator('#bk-step-4')).toBeVisible();
     await expect(page.locator('#bk-sum-tutor')).toHaveText('Suleiman');
-    await expect(page.locator('#bk-sum-type')).toContainText('Initial Consultation');
+    await expect(page.locator('#bk-sum-type')).toContainText('Free consultation');
     await expect(page.locator('#bk-sum-student')).toHaveText('Test Student');
     await expect(page.locator('#bk-sum-price')).toHaveText('Free');
 

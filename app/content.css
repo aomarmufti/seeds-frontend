@@ -1,0 +1,118 @@
+/* Content pages — Terms, Privacy, FAQs, tutor profiles.
+ *
+ * These are the legacy legal overlays (legacy/index.html #terms-overlay,
+ * #privacy-overlay, #faq-overlay) turned into real routes for SCRUM-XX11.
+ * The document styling is the legacy `.legal-doc` rule set, adapted from a
+ * fixed overlay to a page that flows under the shared nav.
+ *
+ * Everything sits inside `.landing`, so the nav/footer tokens and chrome from
+ * app/landing.css apply unchanged.
+ */
+
+.content-page {
+  padding: 116px 20px 72px;
+  background: var(--beige-pale);
+  min-height: 100vh;
+}
+
+.content-doc {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 18px;
+  padding: 48px 52px;
+  box-shadow: var(--sh);
+}
+
+.content-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto 16px;
+  font-size: .82rem;
+  color: var(--t-lt);
+  text-decoration: none;
+  transition: color var(--tr);
+}
+.content-back:hover { color: var(--navy); }
+
+.content-doc h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2rem;
+  color: var(--navy);
+  margin: 0 0 6px;
+  letter-spacing: -.01em;
+}
+.content-updated { font-size: .8rem; color: var(--grey); margin-bottom: 28px; }
+.content-doc h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.25rem;
+  color: var(--navy);
+  margin: 28px 0 10px;
+}
+.content-doc h3 {
+  font-size: 1rem; color: var(--navy); font-weight: 700;
+  margin: 18px 0 6px; font-family: 'Inter', sans-serif;
+}
+.content-doc p, .content-doc li {
+  font-size: .92rem; line-height: 1.7; color: var(--t-mid); margin-bottom: 10px;
+}
+.content-doc ul { padding-left: 22px; margin-bottom: 12px; }
+.content-doc a { color: #A17A2E; }
+
+.content-disclaimer {
+  background: var(--beige-pale);
+  border-left: 4px solid var(--gold);
+  padding: 14px 18px;
+  border-radius: 0 10px 10px 0;
+  font-size: .85rem;
+  color: var(--t-mid);
+  margin: 20px 0;
+}
+
+.content-footnote {
+  margin-top: 28px; padding-top: 20px;
+  border-top: 1px solid #F0EDE8;
+  text-align: center; font-size: .88rem; color: var(--t-lt);
+}
+
+/* ── FAQs ──────────────────────────────────────────────────────────────────
+ * <details>/<summary> rather than a click handler: the accordion needs no
+ * JavaScript, keeps the page a server component, and is keyboard-accessible
+ * and findable by in-page search for free.
+ */
+.faq-item { border-bottom: 1px solid #F0EDE8; padding: 16px 0; scroll-margin-top: 96px; }
+.faq-item > summary {
+  font-weight: 700; color: var(--navy); cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; font-size: .95rem; list-style: none;
+}
+.faq-item > summary::-webkit-details-marker { display: none; }
+.faq-chevron { transition: transform .2s; color: var(--gold); flex-shrink: 0; }
+.faq-item[open] .faq-chevron { transform: rotate(180deg); }
+.faq-a { font-size: .9rem; line-height: 1.7; color: var(--t-mid); margin: 10px 0 0; }
+
+/* ── Tutor profile ─────────────────────────────────────────────────────── */
+.profile-head { display: flex; gap: 26px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.profile-photo {
+  position: relative; width: 132px; height: 132px; border-radius: 16px;
+  overflow: hidden; flex-shrink: 0; background: var(--beige-lt);
+}
+.profile-role { font-size: .88rem; color: var(--t-lt); margin-top: 4px; }
+.profile-stats { display: flex; gap: 26px; margin: 24px 0 4px; flex-wrap: wrap; }
+.profile-stat-num { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--navy); line-height: 1; }
+.profile-stat-num span { color: var(--gold); }
+.profile-stat-lbl { font-size: .7rem; color: var(--t-lt); margin-top: 4px; }
+.profile-tags { display: flex; gap: 7px; flex-wrap: wrap; margin: 18px 0 26px; }
+.profile-tag {
+  padding: 4px 11px; background: var(--beige-pale); border: 1px solid var(--grey-lt);
+  border-radius: 20px; font-size: .72rem; color: var(--t-mid);
+}
+.profile-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+@media (max-width: 600px) {
+  .content-page { padding: 96px 14px 56px; }
+  .content-doc { padding: 30px 22px; border-radius: 14px; }
+  .content-doc h1 { font-size: 1.6rem; }
+}

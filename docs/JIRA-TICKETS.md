@@ -48,40 +48,40 @@ Confirmation/recovery emails currently come from raw Supabase defaults. Customis
 
 ## Epic 2 — Conversion Funnel (P1)
 
-### 🆕 SCRUM-XX8 — Pricing section/page
-Type: Story · Priority: Highest
-No price appears anywhere on the site. Add pricing by level (GCSE £40 / A-Level £45 / group £20 — confirm current rates), what's included, sibling discount, cancel-anytime; link from nav + footer.
-**AC:** A parent can learn the price before booking.
+### ✅ SCRUM-XX8 — Pricing section/page
+Type: Story · Priority: Highest · Status: **Done (2026-08-01)**
+`#pricing` section on the landing page between "How it works" and the parent Q&A — three cards (GCSE £40 / A-Level £45 featured / group £20) with what's included, plus pay-per-lesson / free-first / 24h-cancellation / sibling-discount notes and a MyTutor price anchor. Rates and notes live in `lib/site.js`. Linked from the nav ("Pricing") and the footer, and from `/faqs#pricing`.
+**AC:** A parent can learn the price before booking. ✔
 
-### 🆕 SCRUM-XX9 — Unify funnel CTAs
-Type: Story · Priority: High
-Booking modal = single primary CTA everywhere; journey wizard demoted to secondary ("Not ready to book?"). One gold button, one ghost, per section.
-**AC:** No section presents two equal-weight funnels.
+### ✅ SCRUM-XX9 — Unify funnel CTAs
+Type: Story · Priority: High · Status: **Done (2026-08-01)**
+The booking modal is the single primary CTA: the nav button now opens it (it used to point at the journey wizard, putting the two funnels head-to-head at the top of every page), and the hero, pricing cards and CTA section all lead with it. The wizard is the escape hatch — "Not ready to book?" in the hero and CTA section, and the journey section's own heading now reads "Not ready to book? / Then let us come to you".
+**AC:** No section presents two equal-weight funnels. ✔
 
-### 🆕 SCRUM-XX10 — Standardise the free-offer terminology
-Type: Bug (content) · Priority: High
-Pick one naming/sequence (e.g. "Free consultation (15-min call) → Free trial lesson (30 min)") and replace all variants (hero "free lesson", "diagnostic lesson", etc.).
-**AC:** Identical offer wording site-wide.
+### ✅ SCRUM-XX10 — Standardise the free-offer terminology
+Type: Bug (content) · Priority: High · Status: **Done (2026-08-01)**
+One offer, one sequence, everywhere: **free consultation (15-min call) → free trial lesson (30 min)**, defined in `lib/site.js`. Replaced "Free diagnostic lesson", the hero's bare "Free lesson", "Initial Consultation" in the booking modal summary/success rows, and the untimed "Free trial lesson" in the journey steps. How-it-works steps 01/02 are now the two free stages explicitly, with tutor matching folded into 02.
+**AC:** Identical offer wording site-wide. ✔ (two e2e specs updated for the modal's new label)
 
-### 🆕 SCRUM-XX11 — Route dead links: Terms, Privacy, FAQs, Group Sessions, tutor Profiles, "View all courses"
-Type: Bug · Priority: Highest (Terms/Privacy = legal)
-Dead `<span>`s in footer and cards become real routes; legacy overlay copy can seed the pages.
-**AC:** Every link-styled element navigates somewhere real.
+### ✅ SCRUM-XX11 — Route dead links: Terms, Privacy, FAQs, Group Sessions, tutor Profiles, "View all courses"
+Type: Bug · Priority: Highest (Terms/Privacy = legal) · Status: **Done (2026-08-01)**
+`/terms`, `/privacy`, `/faqs` (accordion via `<details>`, deep-linkable) and `/tutors/[slug]` are real routes seeded from the legacy overlays. Footer FAQs/Terms/Privacy, "Group Sessions" (→ `/faqs#group-sessions`), "View all courses" (→ `/faqs#subjects`, relabelled "View all subjects") and the tutor "Profile" buttons all navigate. Nav + footer extracted to `components/site/` so every page carries the same chrome.
+**AC:** Every link-styled element navigates somewhere real. ✔ (no `footer-link-dead` / `footer-copy-dead` spans remain)
 
-### 🆕 SCRUM-XX12 — Fix Zoom-vs-Google-Meet copy
-Type: Bug (content) · Priority: High
-Actual meeting links are Google Meet; marketing says Zoom. Align copy to reality (or switch links to Zoom).
-**AC:** The platform named on the landing matches the join link in the portal.
+### ✅ SCRUM-XX12 — Fix Zoom-vs-Google-Meet copy
+Type: Bug (content) · Priority: High · Status: **Done (2026-08-01)**
+All marketing copy now says Google Meet (hero card, how-we-teach, how-it-works, booking modal timezone note). Zoom blue swapped for Meet green in the pill/feature card. The hero card's "Join" buttons became non-interactive `<span>`s — it is an illustration, not a control.
+**AC:** The platform named on the landing matches the join link in the portal. ✔ (zero "Zoom" strings left in `app/` and `components/`)
 
-### 🆕 SCRUM-XX13 — Single email domain
-Type: Task · Priority: High
-`hello@seedstuition.co.uk` vs `seedsinstitute.co.uk` — pick one, redirect/forward the other, update footer + templates.
-**AC:** One contact domain everywhere.
+### ✅ SCRUM-XX13 — Single email domain (code side)
+Type: Task · Priority: High · Status: **Done in code (2026-08-01); mail forwarding still manual**
+Standardised on the brand domain: `hello@seedsinstitute.co.uk` and `privacy@seedsinstitute.co.uk`, sourced from `lib/site.js` so there is one definition. Zero `seedstuition.co.uk` references remain in the app.
+**AC:** One contact domain everywhere. ✔ in code — **remaining manual step:** forward/redirect `seedstuition.co.uk` mail to the institute domain, and update the Supabase email templates (SCRUM-XX7).
 
-### 🆕 SCRUM-XX14 — Lead magnet + email capture
-Type: Story · Priority: Medium
-"Free past-paper pack by exam board" email capture (footer/exit) → nurture sequence. Captures the ~95% who don't book.
-**AC:** Email capture stores a lead; welcome email sends.
+### 🔶 SCRUM-XX14 — Lead magnet + email capture
+Type: Story · Priority: Medium · Status: **Capture done (2026-08-01); nurture email outstanding**
+Footer capture (`components/landing/LeadMagnet.jsx`): exam board + email → `POST /api/leads` with `goal: 'Past paper pack request'`, so it lands in the existing `/admin/leads` screen with no backend change. A failed POST surfaces an error with the contact address rather than silently losing the lead.
+**AC:** Email capture stores a lead ✔ — **welcome/nurture email still to build** (needs the pack itself plus a Resend sequence; the form deliberately promises delivery "by email" rather than an instant download the backend cannot serve).
 
 ---
 
@@ -97,19 +97,20 @@ Type: Task · Priority: Medium
 "94% / 67%" stats need a stated basis ("students completing 6+ months, 2024–25") or removal.
 **AC:** Every stat is sourced or softened.
 
-### 🆕 SCRUM-XX17 — Referral programme
-Type: Story · Priority: High
-"Refer a family — both get a free lesson": unique links in student portal, tracked in backend, surfaced in admin.
+### 🚧 SCRUM-XX17 — Referral programme — **blocked on backend**
+Type: Story · Priority: High · Status: **Not started — needs backend work first**
+Unique per-family referral codes, attribution of a signup to a referrer, and the reward ledger all have to live in the backend (`seeds-backend-six.vercel.app`), which is out of scope for the frontend rebuild. A frontend-only version would be a "copy this link" button whose conversions nobody can count — worse than nothing, because it looks instrumented.
+**Next step:** backend ticket for `referral_code` on the profile, a `referred_by` field captured at signup, and a `/api/referrals` read for the admin view. The portal UI is a small job once those exist.
 **AC:** A parent can copy a referral link; conversions are attributable.
 
 ---
 
 ## Epic 4 — Portals (P2/P3)
 
-### 🆕 SCRUM-XX18 — Student portal: "consultation booked" state + add-to-calendar
-Type: Story · Priority: High
-New accounts with only a consultation see it explicitly (date/time/tutor/join link) instead of "No lesson booked yet". Add iCal/Google links on confirmations.
-**AC:** Post-approval, the consultation is visible and addable to calendar.
+### ✅ SCRUM-XX18 — Student portal: "consultation booked" state + add-to-calendar
+Type: Story · Priority: High · Status: **Done (2026-08-01)**
+A booking whose `lessonType` is `consultation` is now named as one throughout the lessons page — the lead card reads "Your free consultation / Free consultation call, <when>" with the tutor, a "Join the call" button and a line explaining that the free trial lesson follows. Add-to-calendar (Google + `.ics` data URL, `lib/calendar.js`) sits on the lead card for every booking. The empty state changed from "No lesson booked yet" to "Nothing booked yet", explaining that a just-booked consultation appears once the account is approved.
+**AC:** Post-approval, the consultation is visible and addable to calendar. ✔ (two e2e specs added)
 
 ### 🆕 SCRUM-XX19 — Student portal: group-session recordings library
 Type: Story · Priority: Medium
@@ -131,10 +132,10 @@ Type: Story · Priority: Medium
 Rebuild-log open items; plus a nav badge until past lessons have outcomes recorded (unrecorded = unbilled).
 **AC:** No past lesson without an outcome goes unnoticed.
 
-### 🆕 SCRUM-XX23 — Admin: payments & finance page parity + "today" dashboard
-Type: Story · Priority: High
-Rebuild-log open items (SCRUM-74 Cal.com link editor, bulk tools, health modal, finance page) + a daily ops screen: today's lessons, pending approvals, unbilled outcomes, failed payments.
-**AC:** Ops runnable from one admin screen.
+### 🔶 SCRUM-XX23 — Admin: "today" dashboard done; finance page parity outstanding
+Type: Story · Priority: High · Status: **Today screen done (2026-08-01); finance parity + SCRUM-74 still open**
+`/admin/today` is the new admin landing page (`/admin` redirects there, nav entry added): today's lessons, signups awaiting approval, finished lessons with no recorded outcome (gold-bordered — unbilled and unpayable until answered), amount not yet charged, and new enquiries. Everything is derived from `/api/analytics`, `resource=pending-profiles` and `/api/leads` — endpoints the admin portal already calls, so no backend change.
+**AC:** Ops runnable from one admin screen ✔ for the daily sweep. **Still open:** Cal.com scheduling-links editor (SCRUM-74), bulk tools, health modal, and a real payments/finance page — the last needs finance endpoints that don't exist yet, so it is backend work first.
 
 ### 🆕 SCRUM-XX24 — Replace hardcoded tutor roster with roster-driven data
 Type: Tech debt · Priority: Medium
@@ -145,10 +146,10 @@ Landing tutors, booking modal, prices all hardcoded — drive from backend roste
 
 ## Epic 5 — Quality & Tech Debt
 
-### 🆕 SCRUM-XX25 — Rewrite 23 stale e2e specs against Next.js routes
-Type: Task · Priority: High
-Old suite targets legacy overlay DOM (`#portal-overlay` etc.); red since before the rebuild. Rewrite against real routes, incl. the new auth pages.
-**AC:** `npm run test:e2e` green against production build.
+### ✅ SCRUM-XX25 — Rewrite the stale e2e specs against Next.js routes
+Type: Task · Priority: High · Status: **Done (2026-08-01)**
+`student-portal`, `tutor-portal`, `admin-portal` and `routing` rewritten against the real routes, on a shared `tests-e2e/support/portal.js` harness: Supabase's token endpoint is stubbed and the spec signs in through the real login form, so supabase-js owns its own session storage and the test never encodes a session format. The backend gets a catch-all stub so no spec can reach the live deployment. The two specs covering the not-yet-ported Cal.com scheduling-links editor were not faked — that coverage returns with the screen (SCRUM-74).
+**AC:** `npm run test:e2e` green against production build. ✔ **43 passed / 0 failed**
 
 ### 🆕 SCRUM-XX26 — End-to-end auth regression test
 Type: Task · Priority: High

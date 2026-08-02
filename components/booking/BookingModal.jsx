@@ -269,14 +269,14 @@ export default function BookingModal() {
               <span className="bk-label bk-label-gap">Get started — free, no card required</span>
               <div className="bk-type-card bk-selected">
                 <div>
-                  <div className="bk-type-name">Initial Consultation <span className="bk-type-tag">Popular</span></div>
-                  <div className="bk-type-desc">15 min call · Tell us about your child&apos;s goals and we&apos;ll recommend a plan</div>
+                  <div className="bk-type-name">Free consultation <span className="bk-type-tag">Popular</span></div>
+                  <div className="bk-type-desc">15-min call · Tell us about your child&apos;s goals and we&apos;ll recommend a plan</div>
                 </div>
                 <div className="bk-type-price bk-free">Free</div>
               </div>
               <p className="bk-explainer">
-                After your consultation, your tutor will book you a free trial lesson from the
-                Student Portal — no payment needed for either. Paid 1:1 and group lessons only
+                After your consultation, your tutor will book you a free 30-minute trial lesson
+                from the Student Portal — no payment needed for either. Paid 1:1 and group lessons only
                 start after that, billed automatically on a weekly or monthly cycle, never charged here.
               </p>
 
@@ -304,7 +304,7 @@ export default function BookingModal() {
                   />
                 </div>
               )}
-              <div className="bk-tz-note">🌍 Times shown in your local timezone · Lesson runs live on Zoom</div>
+              <div className="bk-tz-note">🌍 Times shown in your local timezone · Lesson runs live on Google Meet</div>
               <div className="bk-actions">
                 <button type="button" className="bk-back-btn" onClick={() => goStep(1)}>← Back</button>
               </div>
@@ -371,7 +371,7 @@ export default function BookingModal() {
             <div id="bk-step-4">
               <div className="bk-summary">
                 <div className="bk-summary-row"><span className="bk-summary-label">Tutor</span><span className="bk-summary-value" id="bk-sum-tutor">{tutor.name}</span></div>
-                <div className="bk-summary-row"><span className="bk-summary-label">Lesson type</span><span className="bk-summary-value" id="bk-sum-type">Initial Consultation</span></div>
+                <div className="bk-summary-row"><span className="bk-summary-label">Lesson type</span><span className="bk-summary-value" id="bk-sum-type">Free consultation (15-min call)</span></div>
                 <div className="bk-summary-row"><span className="bk-summary-label">Date &amp; time</span><span className="bk-summary-value" id="bk-sum-time">{slot ? `${slot.day} · ${slot.time}` : '—'}</span></div>
                 <div className="bk-summary-row"><span className="bk-summary-label">Student</span><span className="bk-summary-value" id="bk-sum-student">{form.studentName.trim() || 'Student'}</span></div>
                 <div className="bk-summary-row bk-summary-total"><span>Total due today</span><span id="bk-sum-price">Free</span></div>
@@ -401,13 +401,13 @@ export default function BookingModal() {
               <div className="bk-success-title">Consultation booked!</div>
               <div className="bk-success-body">
                 A confirmation has been sent to your email with the call link. After we speak,
-                your tutor will book you a completely free trial lesson from your Student
+                your tutor will book you a free 30-minute trial lesson from your Student
                 Portal — no payment needed for either session.
               </div>
               <div className="bk-success-card">
                 <div className="bk-success-row"><span>Tutor</span><span id="bk-final-tutor">{tutor.name}</span></div>
                 <div className="bk-success-row"><span>Date &amp; time</span><span id="bk-final-time">{slot ? `${slot.day} · ${slot.time}` : '—'}</span></div>
-                <div className="bk-success-row"><span>Lesson</span><span id="bk-final-type">Initial Consultation</span></div>
+                <div className="bk-success-row"><span>Lesson</span><span id="bk-final-type">Free consultation (15-min call)</span></div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" className="bk-back-btn" style={{ flex: 1 }} onClick={close}>Close</button>

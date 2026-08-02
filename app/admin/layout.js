@@ -4,6 +4,7 @@ import PortalShell from '@/components/PortalShell';
 
 const NAV = [
   { items: [
+    { key: 'today', label: 'Today', href: '/admin/today' },
     { key: 'leads', label: 'Leads', href: '/admin/leads' },
     { key: 'bookings', label: 'Bookings', href: '/admin/bookings' },
   ] },
