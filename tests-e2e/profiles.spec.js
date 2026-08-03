@@ -65,10 +65,20 @@ test.describe('Student profile', () => {
     expect(writes[0]).not.toHaveProperty('role');
   });
 
+  // Subject, level and tutor used to be three read-only fields off
+  // profiles.subject / .level / .assigned_tutor. They're enrolments now
+  // (SCRUM-100), which is what lets a family hold two subjects with two
+  // tutors — but the property this test protects is unchanged: shown as
+  // facts, never as inputs somebody could type into and lose work in.
   test('commercial facts are shown but not editable', async ({ page }) => {
     await stubBackend(page, {
-      'resource=my-bookings': { recentBookings: [] },
       'resource=billing-cycle': { billingCycle: 'weekly' },
+      'api/enrolments': [
+        {
+          id: 'e1', subject: 'Mathematics', level: 'GCSE', status: 'active',
+          rate_pence: 4000, tutors: { name: 'Suleiman' },
+        },
+      ],
     });
     await signIn(page, {
       role: 'student', fullName: 'Ibrahim Khan', next: '/student/profile',
@@ -79,10 +89,47 @@ test.describe('Student profile', () => {
 
     // Present as facts, with a route to change them…
     await expect(page.getByText('Mathematics')).toBeVisible();
-    await expect(page.getByText('Suleiman')).toBeVisible();
+    await expect(page.getByText('with Suleiman')).toBeVisible();
     // …and not as fields that would silently fail to save.
     await expect(page.locator('input[value="Mathematics"]')).toHaveCount(0);
     await expect(page.locator('input[value="Suleiman"]')).toHaveCount(0);
+  });
+
+  // The rule from docs/MULTI-SUBJECT-DESIGN.md: the student asks, the tutor
+  // teaches, the admin decides. A family may stop being billed for a subject
+  // without emailing anyone; it may not price itself or pick its own tutor.
+  test('a family can end a subject, but is offered no way to set a tutor or a rate', async ({ page }) => {
+    const patches = [];
+    await stubBackend(page, {
+      'resource=billing-cycle': { billingCycle: 'weekly' },
+      'api/enrolments': (request) => {
+        if (request.method() === 'PATCH') {
+          patches.push(request.postDataJSON());
+          return { id: 'e1', status: 'ended' };
+        }
+        return [{
+          id: 'e1', subject: 'Mathematics', level: 'GCSE', status: 'active',
+          rate_pence: 4000, tutors: { name: 'Suleiman' },
+        }];
+      },
+    });
+    await signIn(page, {
+      role: 'student', fullName: 'Ibrahim Khan', next: '/student/profile',
+    });
+    await captureProfileWrites(page, PROFILE);
+    await page.reload();
+    await expectPortalReady(page, 'Your profile');
+
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+    page.once('dialog', (d) => d.accept());
+    await page.getByRole('button', { name: 'End' }).click();
+
+    await expect.poll(() => patches.length).toBeGreaterThan(0);
+    // Status is the only thing a family may write — the server refuses the
+    // rest, and the product must not offer it either.
+    expect(patches[0]).toMatchObject({ status: 'ended' });
+    expect(patches[0]).not.toHaveProperty('rate_pence');
+    expect(patches[0]).not.toHaveProperty('tutor_id');
   });
 });
 

@@ -25,19 +25,14 @@ import Enrolments from '@/components/student/Enrolments';
 export default function StudentProfilePage() {
   const { loading, error, data } = useAsync(async () => {
     const profile = await loadOwnProfile();
-    // Enriches the read-only half from what the family's own bookings
-    // already say — the tutors they actually see, not just the one field.
-    const bookings = await api('/api/analytics?resource=my-bookings').catch(() => null);
     const cycle = await api('/api/billing?resource=billing-cycle').catch(() => null);
     return {
       profile,
-      bookings: bookings?.recentBookings ?? [],
       billingCycle: cycle?.billingCycle || '',
     };
   }, []);
 
   const profile = data?.profile;
-  const bookings = data?.bookings ?? [];
 
   const [form, setForm] = useState(null);
   // What is currently stored, as far as we know. Compared against `form` to
@@ -103,10 +98,6 @@ export default function StudentProfilePage() {
       setBusy(false);
     }
   }
-
-  // The tutors this family has actually seen, which is more useful than the
-  // single assigned_tutor field when the two disagree.
-  const taughtBy = [...new Set(bookings.map((b) => b.tutorName).filter(Boolean))];
 
   return (
     <>
@@ -186,15 +177,13 @@ export default function StudentProfilePage() {
               why="Changing the address you sign in with needs verification — email hello@seedsinstitute.co.uk and we'll move it."
             />
             {/* Subject, level and tutor used to sit here as three read-only
-                fields sourced from profiles.subject / .level, which are empty
-                for most families and — since the enrolments migration — are
-                not where any of this lives. They're a list of their own now,
-                below, because a family can study more than one thing. */}
-            <ReadOnly
-              label="Your tutors"
-              value={taughtBy.join(', ')}
-              why="Tutors are matched by us, so we can keep an eye on capacity and fit. Tell us if it isn't working and we'll move you."
-            />
+                fields sourced from profiles.subject / .level / .assigned_tutor
+                — empty for most families, and since the enrolments migration
+                not where any of this lives. They belong together per subject
+                rather than as three unrelated facts, so they moved into the
+                enrolment list below: that one can say Maths is with Suleiman
+                and Arabic is with someone else, which three fields never
+                could. */}
             <ReadOnly
               label="Billing cycle"
               value={data?.billingCycle ? `Billed ${data.billingCycle}` : ''}
