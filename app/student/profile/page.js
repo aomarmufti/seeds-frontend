@@ -8,6 +8,7 @@ import {
 } from '@/lib/profile';
 import { PageHead, Card, Loading, ErrorNote, useAsync } from '@/components/ui';
 import { Field, TextInput, ReadOnly, SaveBar } from '@/components/profile/fields';
+import Enrolments from '@/components/student/Enrolments';
 
 /**
  * /student/profile (SCRUM-XX39) — the screen a parent needed and did not
@@ -184,19 +185,14 @@ export default function StudentProfilePage() {
               value={profile?.email}
               why="Changing the address you sign in with needs verification — email hello@seedsinstitute.co.uk and we'll move it."
             />
+            {/* Subject, level and tutor used to sit here as three read-only
+                fields sourced from profiles.subject / .level, which are empty
+                for most families and — since the enrolments migration — are
+                not where any of this lives. They're a list of their own now,
+                below, because a family can study more than one thing. */}
             <ReadOnly
-              label="Subject"
-              value={profile?.subject}
-              why="Set when you enrolled. To add or change a subject, email us — we're building this into the portal (SCRUM-XX38)."
-            />
-            <ReadOnly
-              label="Level"
-              value={profile?.level}
-              why="Your level sets your rate, so it's ours to change rather than yours."
-            />
-            <ReadOnly
-              label="Your tutor"
-              value={taughtBy.join(', ') || profile?.assigned_tutor}
+              label="Your tutors"
+              value={taughtBy.join(', ')}
               why="Tutors are matched by us, so we can keep an eye on capacity and fit. Tell us if it isn't working and we'll move you."
             />
             <ReadOnly
@@ -207,6 +203,8 @@ export default function StudentProfilePage() {
           </>
         )}
       </Card>
+
+      <Enrolments />
 
       <Card title="Not here yet">
         <p style={{ margin: 0, fontSize: '.85rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
