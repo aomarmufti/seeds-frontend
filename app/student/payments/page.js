@@ -8,15 +8,29 @@ import {
 } from '@/components/ui';
 import { Payments, Lessons } from '@/components/icons';
 
-// Test publishable key — the same one the legacy build shipped (Stripe is
-// in TEST mode across the whole platform, see docs/REBUILD-LOG.md).
-const STRIPE_PK = 'pk_test_51JCVAfK7JOHHGmfJ3soySmouzVwdHLSPwFZKKz7ZsHmrpN8A9x9to207NqshfThICO0QOQKSmQhAO02n2wZ3fnZa00DGO1eals';
+// A publishable key belongs in the browser — it isn't a secret. It does
+// decide whether cards are real, though, so it comes from the environment
+// rather than the source: baking it in meant test and production could never
+// differ, and going live would be a code change (SCRUM-95).
+//
+// The legacy test key stays as the local-development fallback so nothing has
+// to be configured to work on this page. A deployed build without the
+// variable set says so, rather than rendering a card field that can't work.
+const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  || (process.env.NODE_ENV === 'development'
+    ? 'pk_test_51JCVAfK7JOHHGmfJ3soySmouzVwdHLSPwFZKKz7ZsHmrpN8A9x9to207NqshfThICO0QOQKSmQhAO02n2wZ3fnZa00DGO1eals'
+    : '');
 
 // Stripe.js is only ever needed on this page, so it loads on demand rather
 // than in <head> for every visitor. One shared promise — a second "Add
 // card" click reuses the script tag from the first.
 let stripePromise;
 function loadStripe() {
+  if (!STRIPE_PK) {
+    return Promise.reject(new Error(
+      'Card payments aren’t configured for this environment. Please let us know at hello@seedsinstitute.co.uk.',
+    ));
+  }
   if (!stripePromise) {
     stripePromise = new Promise((resolve, reject) => {
       if (window.Stripe) { resolve(window.Stripe(STRIPE_PK)); return; }
@@ -62,14 +76,13 @@ export default function StudentPaymentsPage() {
   const batches = data?.batches ?? [];
   const bookings = data?.bookings ?? [];
 
-  // The Stripe customer id is resolved from the student's own bookings, as
-  // in legacy — it only exists once something has been billed or a card has
-  // been saved (saving one below returns it and stores it here).
-  const [customerId, setCustomerId] = useState(null);
+  // The billing endpoints resolve the family's Stripe customer from the
+  // logged-in account itself, so this page no longer has to find it. It used
+  // to be dug out of the student's bookings, which meant a card saved before
+  // the first lesson was billed vanished on reload (SCRUM-93).
   const [cycle, setCycle] = useState(null);
   useEffect(() => {
     if (!data) return;
-    setCustomerId((id) => id || bookings.find((b) => b.stripeCustomerId)?.stripeCustomerId || null);
     setCycle(data.cycle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
@@ -95,16 +108,18 @@ export default function StudentPaymentsPage() {
   }
 
   // ── Saved cards ──────────────────────────────────────────────────────────
-  const [cards, setCards] = useState({ status: 'idle', list: [] });
+  const [cards, setCards] = useState({ status: 'loading', list: [] });
+  // Bumped after saving a card, to re-read the list from Stripe rather than
+  // guess at what it now contains.
+  const [cardsKey, setCardsKey] = useState(0);
   useEffect(() => {
-    if (!customerId) { setCards({ status: 'idle', list: [] }); return; }
     let alive = true;
     setCards((c) => ({ ...c, status: 'loading' }));
-    api(`/api/billing?resource=payment-methods&customerId=${encodeURIComponent(customerId)}`)
+    api('/api/billing?resource=payment-methods')
       .then((list) => { if (alive) setCards({ status: 'ready', list: Array.isArray(list) ? list : [] }); })
       .catch(() => { if (alive) setCards({ status: 'error', list: [] }); });
     return () => { alive = false; };
-  }, [customerId]);
+  }, [cardsKey]);
 
   // ── Add card (Stripe Elements) ───────────────────────────────────────────
   const [cardForm, setCardForm] = useState({ open: false, busy: false, error: '' });
@@ -155,7 +170,7 @@ export default function StudentPaymentsPage() {
         data2.clientSecret, { payment_method: { card: cardElementRef.current } },
       );
       if (stripeError) throw new Error(stripeError.message);
-      if (data2.customerId) setCustomerId(data2.customerId);
+      setCardsKey((k) => k + 1);
       cardElementRef.current?.clear();
       setCardForm({ open: false, busy: false, error: '' });
       setNotice({ tone: 'good', text: 'Card saved ✓' });
@@ -169,7 +184,7 @@ export default function StudentPaymentsPage() {
     try {
       await api('/api/billing', {
         method: 'POST',
-        body: { resource: 'payment-methods', action: 'detach', paymentMethodId, customerId },
+        body: { resource: 'payment-methods', action: 'detach', paymentMethodId },
       });
       setCards((c) => ({ ...c, list: c.list.filter((m) => m.id !== paymentMethodId) }));
     } catch (e) {
@@ -179,14 +194,12 @@ export default function StudentPaymentsPage() {
 
   // ── Stripe customer portal ───────────────────────────────────────────────
   async function openBillingPortal() {
-    if (!customerId) {
-      setNotice({ tone: 'bad', text: 'No billing account found yet — one is created when you save a card or your first lesson is billed.' });
-      return;
-    }
     try {
+      // No customerId: the server resolves the family's billing account from
+      // the login, and says so plainly if there isn't one yet.
       const data2 = await api('/api/billing', {
         method: 'POST',
-        body: { resource: 'customer-portal', customerId, returnUrl: window.location.href },
+        body: { resource: 'customer-portal', returnUrl: window.location.href },
       });
       window.location.href = data2.url;
     } catch (e) {
