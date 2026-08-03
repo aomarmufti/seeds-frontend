@@ -26,16 +26,21 @@ import { Field, TextInput, ReadOnly, SaveBar } from '@/components/profile/fields
  * browser, by design.
  */
 export default function TutorProfilePage() {
+  // Bumped when a tutor comes back from Stripe onboarding, so the payout
+  // badge reflects what they just did rather than what was true on load.
+  const [reloadKey, setReloadKey] = useState(0);
+
   const { loading, error, data } = useAsync(async () => {
     const profile = await loadOwnProfile();
     const name = profile?.tutor_name || profile?.full_name || '';
-    // Payout state is real and worth showing; it is also entirely the
-    // backend's to change, so it appears read-only.
+    // Payout state is the backend's to change, so it reads as status rather
+    // than a form — but starting the setup is the tutor's to do, hence the
+    // action alongside it (SCRUM-92).
     const connect = name
       ? await api(`/api/payouts?resource=connect-status&tutor=${encodeURIComponent(name)}`).catch(() => null)
       : null;
     return { profile, connect };
-  }, []);
+  }, [reloadKey]);
 
   const profile = data?.profile;
   const connect = data?.connect;
@@ -97,6 +102,52 @@ export default function TutorProfilePage() {
     }
   }
 
+  // ── Payout onboarding (SCRUM-92) ──────────────────────────────────────────
+  // Stripe owns the whole bank-details journey; our part is opening the door
+  // and noticing when they come back through it.
+  const [connectBusy, setConnectBusy] = useState(false);
+  const [connectError, setConnectError] = useState('');
+  const [connectNotice, setConnectNotice] = useState('');
+
+  // Stripe returns to ?connect=done (finished) or ?connect=refresh (the link
+  // expired or they backed out). Either way the stored status may have moved,
+  // so re-read it — and drop the query string so a later reload isn't still
+  // announcing a journey that ended.
+  useEffect(() => {
+    const outcome = new URLSearchParams(window.location.search).get('connect');
+    if (!outcome) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    setConnectNotice(
+      outcome === 'done'
+        ? 'Thanks — checking with Stripe that your details went through.'
+        : 'Payout setup was interrupted. You can pick up where you left off below.',
+    );
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  async function startConnect() {
+    setConnectBusy(true);
+    setConnectError('');
+    try {
+      const res = await api('/api/payouts', {
+        method: 'POST',
+        body: {
+          action: 'create-connect-account',
+          tutorName: profile?.tutor_name,
+          tutorEmail: profile?.email || undefined,
+          returnOrigin: window.location.origin,
+        },
+      });
+      if (!res?.url) throw new Error('Stripe didn’t return a setup link. Try again, or email us.');
+      window.location.href = res.url;
+    } catch (e) {
+      // Left on the page rather than redirected, so the message has to say
+      // enough to act on — the backend's Connect-not-enabled error does.
+      setConnectError(e.message);
+      setConnectBusy(false);
+    }
+  }
+
   const payoutState = !connect
     ? ''
     : connect.connected && connect.onboardingComplete
@@ -104,6 +155,11 @@ export default function TutorProfilePage() {
       : connect.connected
         ? 'Connected — setup not finished'
         : 'Not connected yet';
+
+  // Shown until Stripe says onboarding is finished. "Connected but not
+  // complete" is the commonest state — Stripe often needs a second visit for
+  // ID or bank details — and it needs a louder prompt than a badge.
+  const needsPayoutSetup = !!connect && !connect.onboardingComplete;
 
   return (
     <>
@@ -181,11 +237,27 @@ export default function TutorProfilePage() {
             />
             <ReadOnly
               label="Payouts"
-              value={payoutState ? <Badge tone={connect?.onboardingComplete ? 'good' : 'warn'}>{payoutState}</Badge> : ''}
-              why={connect?.payoutCycle
+              value={payoutState ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <Badge tone={connect?.onboardingComplete ? 'good' : 'warn'}>{payoutState}</Badge>
+                  {needsPayoutSetup ? (
+                    <button type="button" className="btn-xs" disabled={connectBusy} onClick={startConnect}>
+                      {connectBusy
+                        ? 'Opening…'
+                        : connect.connected ? 'Finish payout setup →' : 'Set up payouts →'}
+                    </button>
+                  ) : null}
+                </span>
+              ) : ''}
+              why={connect?.onboardingComplete && connect?.payoutCycle
                 ? `Paid ${connect.payoutCycle}, automatically. Your bank details live with Stripe, never with us.`
-                : 'Your bank details live with Stripe, never with us.'}
+                : needsPayoutSetup
+                  ? 'Until this is finished we can’t send you money. Stripe collects your bank details directly — they never reach us.'
+                  : 'Your bank details live with Stripe, never with us.'}
             />
+
+            {connectNotice ? <p className="pf-hint" style={{ marginTop: 8 }}>{connectNotice}</p> : null}
+            {connectError ? <p className="pf-err" style={{ marginTop: 8 }}>{connectError}</p> : null}
           </>
         )}
       </Card>
