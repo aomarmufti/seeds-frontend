@@ -9,6 +9,7 @@ import {
 import { Calendar, Students, Earnings, Check, Video } from '@/components/icons';
 import MonthCal, { lessonColour, TYPE_LABEL } from '@/components/MonthCal';
 import AddLessonModal from '@/components/tutor/AddLessonModal';
+import CancelLesson from '@/components/CancelLesson';
 import OutcomeDialog from './OutcomeDialog';
 
 // Same type→colour map the calendar cells use, so the legend can never
@@ -190,12 +191,20 @@ export default function SchedulePage() {
                     : <Badge tone="good">Confirmed</Badge>}
                 </td>
                 <td>
-                  {b.meetLink ? (
-                    <a className="btn-xs ghost" href={b.meetLink} target="_blank" rel="noopener noreferrer"
-                       style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <Video size={13} /> Join
-                    </a>
-                  ) : null}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                    {b.meetLink ? (
+                      <a className="btn-xs ghost" href={b.meetLink} target="_blank" rel="noopener noreferrer"
+                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Video size={13} /> Join
+                      </a>
+                    ) : null}
+                    {/* A tutor withdrawing never charges the family, whatever
+                        the notice — SCRUM-99. */}
+                    <CancelLesson
+                      booking={b} role="tutor"
+                      onDone={() => setRefreshKey((k) => k + 1)}
+                    />
+                  </span>
                 </td>
               </tr>
             ))}
