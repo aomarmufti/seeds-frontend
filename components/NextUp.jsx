@@ -130,6 +130,12 @@ export default function NextUp({ booking, emptyTitle, emptyBody, action }) {
             Apple / Outlook (.ics)
           </a>
         ) : null}
+
+        {/* `action` was only ever rendered in the empty state, so the one
+            lesson a family is most likely to want to change — the next one —
+            was the only one that couldn't carry a control (SCRUM-99). Pushed
+            to the end so cancelling never sits where Join is expected. */}
+        {action ? <span style={{ marginLeft: 'auto' }}>{action}</span> : null}
       </div>
     </section>
   );

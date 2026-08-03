@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { api, lessonTime, money } from '@/lib/api';
 import {
   PageHead, Card, Badge, Lesson,
   Empty, Loading, ErrorNote, useAsync,
 } from '@/components/ui';
 import NextUp from '@/components/NextUp';
+import CancelLesson from '@/components/CancelLesson';
 import { Calendar, Lessons, Video, Alert } from '@/components/icons';
 import { lessonLabel } from '@/lib/lessons';
 
@@ -15,6 +17,10 @@ import { lessonLabel } from '@/lib/lessons';
 const UNPAID = ['payment_link_sent', 'failed'];
 
 export default function StudentLessonsPage() {
+  // Bumped after a cancellation, so the lesson leaves the list rather than
+  // sitting there looking as though nothing happened.
+  const [reloadKey, setReloadKey] = useState(0);
+
   const { loading, error, data } = useAsync(async () => {
     const [bookings, billing] = await Promise.all([
       api('/api/analytics?resource=my-bookings'),
@@ -26,7 +32,9 @@ export default function StudentLessonsPage() {
       bookings: (bookings?.recentBookings || []).filter((b) => b.status !== 'cancelled'),
       unpaid: (billing?.batches || []).filter((b) => UNPAID.includes(b.status)),
     };
-  }, []);
+  }, [reloadKey]);
+
+  const refresh = () => setReloadKey((k) => k + 1);
 
   const bookings = data?.bookings ?? [];
   const unpaid = data?.unpaid ?? [];
@@ -67,6 +75,7 @@ export default function StudentLessonsPage() {
         booking={upcoming[0]}
         emptyTitle="Nothing booked yet"
         emptyBody="If you have just booked a free consultation, it appears here once your account is approved — usually within a few hours. Anything already taught is listed below."
+        action={upcoming[0] ? <CancelLesson booking={upcoming[0]} role="family" onDone={refresh} /> : null}
       />
 
       <Card title="Coming up">
@@ -82,17 +91,20 @@ export default function StudentLessonsPage() {
               meta={`${lessonTime(b.startTime)}${b.tutorName ? ` · with ${b.tutorName}` : ''}`}
               tone={b.status === 'requested' ? 'is-cancelled' : ''}
               action={
-                b.status === 'requested' ? (
-                  <Badge tone="warn">Awaiting confirmation</Badge>
-                ) : b.meetLink ? (
-                  <a
-                    className="btn-xs ghost" href={b.meetLink}
-                    target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <Video size={13} /> Join
-                  </a>
-                ) : null
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {b.status === 'requested' ? (
+                    <Badge tone="warn">Awaiting confirmation</Badge>
+                  ) : b.meetLink ? (
+                    <a
+                      className="btn-xs ghost" href={b.meetLink}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Video size={13} /> Join
+                    </a>
+                  ) : null}
+                  <CancelLesson booking={b} role="family" onDone={refresh} />
+                </span>
               }
             />
           ))

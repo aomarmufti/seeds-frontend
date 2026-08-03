@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { api, longDate } from '@/lib/api';
 import {
-  PageHead, Card, Table, Avatar, Badge, Button,
+  PageHead, Card, Table, Avatar, Badge,
   Empty, Loading, ErrorNote, useAsync,
 } from '@/components/ui';
 import { Students } from '@/components/icons';
@@ -76,6 +76,47 @@ export default function AdminStudentsPage() {
     setRefreshKey((k) => k + 1);
   }
 
+  // ── Removing an account (SCRUM-97) ────────────────────────────────────────
+  // Two operations, deliberately not one button. Deactivating keeps the
+  // family's lessons and billing and can be undone; deleting is permanent and
+  // the server refuses it wherever there is history, so the dangerous one is
+  // also the one that usually says no.
+  const [busyId, setBusyId] = useState(null);
+  const [notice, setNotice] = useState(null); // { tone: 'good' | 'bad', text }
+
+  const nameOf = (r) => r.studentName || r.parentName || r.email || 'this account';
+
+  async function runAction(row, body, confirmText, successText) {
+    if (!window.confirm(confirmText)) return;
+    setBusyId(row.id);
+    setNotice(null);
+    try {
+      await api('/api/auth', { method: 'POST', body });
+      setNotice({ tone: 'good', text: successText });
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      // A refused delete arrives here with the server's explanation of what
+      // history is blocking it, which is the useful part — don't flatten it.
+      setNotice({ tone: 'bad', text: e.message });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const deactivate = (row) => runAction(
+    row,
+    { action: 'deactivate-account', userId: row.id },
+    `Deactivate ${nameOf(row)}?\n\nThey won't be able to sign in. Their lessons, billing and history are all kept, and you can reactivate them later.`,
+    `${nameOf(row)} deactivated.`,
+  );
+
+  const remove = (row) => runAction(
+    row,
+    { action: 'delete-account', userId: row.id },
+    `Permanently delete ${nameOf(row)}?\n\nThis cannot be undone. It will be refused if they have any lessons or billing history — deactivate those instead.`,
+    `${nameOf(row)} deleted.`,
+  );
+
   return (
     <>
       <PageHead title="Students">
@@ -83,6 +124,18 @@ export default function AdminStudentsPage() {
       </PageHead>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
+
+      {notice ? (
+        <div
+          className="error-note"
+          style={{
+            marginBottom: 14,
+            ...(notice.tone === 'good' ? { background: 'var(--good-bg)', color: 'var(--good)' } : {}),
+          }}
+        >
+          {notice.text}
+        </div>
+      ) : null}
 
       <Card title={loading ? 'Students' : `Students (${rows.length})`}>
         {loading ? (
@@ -122,7 +175,24 @@ export default function AdminStudentsPage() {
                 <td>
                   {/* Account-scoped actions are hidden for lead-created rows —
                       there is no account for them to act on. */}
-                  {r.hasAccount ? <Button variant="ghost">Edit</Button> : null}
+                  {r.hasAccount ? (
+                    <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button" className="btn-xs ghost"
+                        disabled={busyId === r.id}
+                        onClick={() => deactivate(r)}
+                      >
+                        Deactivate
+                      </button>
+                      <button
+                        type="button" className="btn-xs danger"
+                        disabled={busyId === r.id}
+                        onClick={() => remove(r)}
+                      >
+                        {busyId === r.id ? '…' : 'Delete'}
+                      </button>
+                    </span>
+                  ) : null}
                 </td>
               </tr>
             ))}

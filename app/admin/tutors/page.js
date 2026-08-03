@@ -52,6 +52,43 @@ export default function AdminTutorsPage() {
     }
   }
 
+  // ── Removing a tutor account (SCRUM-97) ───────────────────────────────────
+  // Deactivating keeps everything they taught and were paid; deleting is for
+  // an account that never got started. bookings.tutor_name is a plain string
+  // with no foreign key, so nothing at the database level would stop a delete
+  // orphaning their lessons — the server checks instead, and refuses.
+  const [notice, setNotice] = useState(null); // { tone: 'good' | 'bad', text }
+
+  async function runAction(name, userId, body, confirmText, successText) {
+    if (!window.confirm(confirmText)) return;
+    setBusy(name);
+    setNotice(null);
+    setActionError('');
+    try {
+      await api('/api/auth', { method: 'POST', body });
+      setNotice({ tone: 'good', text: successText });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setNotice({ tone: 'bad', text: err.message });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const deactivateTutor = (t, name) => runAction(
+    name, t.id,
+    { action: 'deactivate-tutor', userId: t.id },
+    `Deactivate ${name}?\n\nThey won't be able to sign in. Their lessons, earnings and payout history are all kept.`,
+    `${name} deactivated.`,
+  );
+
+  const deleteTutor = (t, name) => runAction(
+    name, t.id,
+    { action: 'delete-tutor', userId: t.id, tutorName: name },
+    `Permanently delete ${name}?\n\nThis cannot be undone. It will be refused if they have taught any lessons or been paid — deactivate those instead.`,
+    `${name} deleted.`,
+  );
+
   const owedByTutor = (name) => {
     const theirs = bookings.filter(
       (b) => (b.tutorName || b.tutor_name) === name && BILLABLE.includes(b.deliveryStatus),
@@ -68,6 +105,18 @@ export default function AdminTutorsPage() {
       </PageHead>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
+
+      {notice ? (
+        <div
+          className="error-note"
+          style={{
+            marginBottom: 14,
+            ...(notice.tone === 'good' ? { background: 'var(--good-bg)', color: 'var(--good)' } : {}),
+          }}
+        >
+          {notice.text}
+        </div>
+      ) : null}
       {actionError ? <ErrorNote>{actionError}</ErrorNote> : null}
 
       <KpiRow cols={3}>
@@ -82,7 +131,7 @@ export default function AdminTutorsPage() {
         ) : tutors.length === 0 ? (
           <Empty icon={Tutors}>No tutor accounts yet.</Empty>
         ) : (
-          <Table head={['Tutor', 'Email', 'Lessons', 'Earned', 'Payout cycle', 'Stripe']}>
+          <Table head={['Tutor', 'Email', 'Lessons', 'Earned', 'Payout cycle', 'Stripe', '']}>
             {tutors.map((t) => {
               const name = t.tutorName || t.fullName;
               const theirs = bookings.filter(
@@ -118,6 +167,24 @@ export default function AdminTutorsPage() {
                     {t.stripeAccountId
                       ? <Badge tone="good">Connected</Badge>
                       : <Badge tone="warn">Not set up</Badge>}
+                  </td>
+                  <td>
+                    <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button" className="btn-xs ghost"
+                        disabled={busy === name}
+                        onClick={() => deactivateTutor(t, name)}
+                      >
+                        Deactivate
+                      </button>
+                      <button
+                        type="button" className="btn-xs danger"
+                        disabled={busy === name}
+                        onClick={() => deleteTutor(t, name)}
+                      >
+                        {busy === name ? '…' : 'Delete'}
+                      </button>
+                    </span>
                   </td>
                 </tr>
               );
