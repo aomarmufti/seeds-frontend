@@ -13,9 +13,9 @@ export const TUTORS = [
     subject: 'Mathematics',
     role: 'GCSE & A-Level Mathematics Specialist',
     stats: [
-      { num: '700', suffix: '+', label: 'Hours taught' },
-      { num: '4.9', suffix: '★', label: 'Rating' },
-      { num: '98', suffix: '%', label: 'Grade lift' },
+      { num: '1000', suffix: '+', label: 'Hours taught' },
+      { num: 'A', suffix: '/A*', label: 'Outcomes achieved' },
+      { num: 'GCSE', suffix: '', label: 'and A-Level' },
     ],
     bio: (
       <>
@@ -46,8 +46,8 @@ export const TUTORS = [
     role: "GCSE & A-Level Chemistry and Biology · King's College London",
     stats: [
       { num: 'KCL', suffix: '', label: 'Dentistry grad' },
-      { num: '4.9', suffix: '★', label: 'Rating' },
       { num: '2', suffix: '', label: 'Sciences taught' },
+      { num: 'GCSE', suffix: '', label: 'and A-Level' },
     ],
     bio: (
       <>
@@ -79,8 +79,8 @@ export const TUTORS = [
     role: "GCSE & A-Level History and Arabic · King's College London",
     stats: [
       { num: '7', suffix: '', label: 'Years in Jordan' },
-      { num: '4.9', suffix: '★', label: 'Rating' },
       { num: 'KCL', suffix: '', label: 'Graduate' },
+      { num: '2', suffix: '', label: 'Subjects taught' },
     ],
     bio: (
       <>
