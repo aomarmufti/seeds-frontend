@@ -32,11 +32,17 @@ const MARQUEE_ITEMS = [
   'A-Level Maths', 'Arabic Language', 'GCSE Physics', 'A-Level Biology', 'KS3 Sciences',
 ];
 
+// Only outcomes we can point to a real student for. A row with no `before`
+// grade renders without the grade block rather than inventing a start point.
 const RESULTS = [
-  { before: '4', after: '8', subject: 'GCSE Maths · Edexcel', detail: '8 months · 2 lessons/week · Year 11' },
-  { before: 'C', after: 'A', subject: 'A-Level Biology · AQA', detail: '1 academic year · 1 lesson/week · Year 13' },
-  { before: '5', after: '9', subject: 'GCSE History · AQA', detail: '6 months · 1 lesson/week · Year 10' },
-  { before: 'D', after: 'A*', subject: 'A-Level Chemistry · OCR A', detail: 'Full year · 2×/week · Year 12–13' },
+  {
+    after: '8', subject: 'GCSE Mathematics',
+    detail: 'Grade 8 after rebuilding his foundations from the ground up — now taking Maths, Further Maths and Economics at A-Level.',
+  },
+  {
+    subject: 'GCSE → A-Level Mathematics',
+    detail: 'Several years of tuition with the same student, GCSE through to A-Level — skills, confidence and a genuine passion for the subject.',
+  },
 ];
 
 const SUBJECT_CARDS = [
@@ -97,10 +103,11 @@ const QUESTIONS = [
     q: 'Will my child actually get better grades?',
     a: (
       <>
-        <strong>A and A* are the most common outcome for Seeds students who stay with us.</strong>{' '}
-        Our team&apos;s students have gone on to LSE, KCL, and successful dentistry applications,
-        among other top UK universities. We track progress after every lesson and adjust the plan
-        if targets shift — you are never left guessing.
+        <strong>A and A* grades are outcomes our students have achieved</strong> — including a
+        Grade 8 at GCSE Maths for a student who came to us needing his foundations rebuilt, and
+        who is now taking Maths, Further Maths and Economics at A-Level. Our team&apos;s students
+        have gone on to LSE and other top UK universities. We track progress after every lesson
+        and adjust the plan if targets shift — you are never left guessing.
       </>
     ),
   },
@@ -138,19 +145,21 @@ const QUESTIONS = [
   },
 ];
 
+// Real messages from real parents, quoted as they were written. Nothing here
+// is composed for the website — if a quote isn't in an actual message from a
+// family we have taught, it does not belong in this list.
 const TESTIMONIALS = [
   {
-    text: '"Our son went from a Grade 4 to a Grade 8 in GCSE Maths in eight months. The tutors genuinely care about him as a person, not just a result. He actually looks forward to the lessons."',
-    initials: 'SA', name: 'Sister Aisha', role: 'Parent · GCSE Mathematics',
+    text: '"You have been an excellent teacher and what you have done for Alex over the last few years has been wonderful — not only have you improved his maths skills but you have challenged him and boosted his confidence when he was feeling low, really propelling him forward."',
+    initials: 'S', name: 'Sarah', role: 'Parent · A-Level Mathematics',
   },
   {
-    text: '"I was sceptical about the \'faith-integrated\' element — we\'re not religious. But it turns out my daughter just started asking beautiful questions about why the universe works the way it does. Her Chemistry teacher said she\'s the most curious student in the class."',
-    initials: 'RC', name: 'Rebecca C.', role: 'Parent · A-Level Chemistry · Surrey',
-    badge: 'Non-Muslim family',
+    text: '"He is passionate about maths and has been able to share that with you, which has been amazing. So thank you. If you ever need a reference, we are here for you."',
+    initials: 'S', name: 'Sarah', role: 'Parent · GCSE Mathematics',
   },
   {
-    text: '"My son went from a U to a B in A-Level Physics in one year. The tutor didn\'t just fix the gaps — he made my son fall in love with the subject. The platform is beautiful, the group past-paper sessions are brilliant for revision, and I can finally see exactly how he\'s progressing."',
-    initials: 'FH', name: 'Sister Fatima H.', role: 'Parent · A-Level Physics',
+    text: '"You did a lot of foundation work with him — he has got an 8, and he is still confident he can get a 9. He is planning to take Maths, Further Maths and Economics for A-Level, aiming for a career in the financial sector."',
+    initials: 'P', name: 'GCSE Maths parent', role: 'Parent of a Year 11 student',
   },
 ];
 
@@ -213,16 +222,16 @@ export default function Home() {
 
             <div className="hero-proof">
               <div className="proof-stat">
-                <div className="proof-num">94<span>%</span></div>
-                <div className="proof-label">improve at least one full grade</div>
+                <div className="proof-num">1000<span>+</span></div>
+                <div className="proof-label">hours of 1:1 teaching delivered</div>
               </div>
               <div className="proof-stat">
-                <div className="proof-num">67<span>%</span></div>
-                <div className="proof-label">achieve A or A* after 6 months</div>
+                <div className="proof-num">A<span>/A*</span></div>
+                <div className="proof-label">grades our students have achieved</div>
               </div>
               <div className="proof-stat">
-                <div className="proof-num">4.9<span>★</span></div>
-                <div className="proof-label">Google · 120+ parent reviews</div>
+                <div className="proof-num">Free</div>
+                <div className="proof-label">consultation, then a trial lesson</div>
               </div>
             </div>
 
@@ -237,9 +246,9 @@ export default function Home() {
             </div>
 
             <div className="hero-trust">
-              <span className="trust-stars">★★★★★</span>
+              <span className="trust-stars">✦</span>
               <span className="trust-text">
-                <strong>1000+ lessons of experience</strong> across the UK · Maths, Sciences, History &amp; Arabic
+                <strong>1000+ hours of teaching experience</strong> across the UK · Maths, Sciences, History &amp; Arabic
               </span>
             </div>
           </div>
@@ -316,18 +325,18 @@ export default function Home() {
         <div className="stats-inner">
           <div className="stat-cell">
             <div className="stat-num">1000<em>+</em></div>
-            <div className="stat-label">Lessons of experience</div>
+            <div className="stat-label">Hours of teaching</div>
             <div className="stat-sub">KS3 through A-Level</div>
           </div>
           <div className="stat-cell">
             <div className="stat-num">A<em>/A*</em></div>
-            <div className="stat-label">Most common outcome</div>
-            <div className="stat-sub">Students completing 6+ months</div>
+            <div className="stat-label">Outcomes achieved</div>
+            <div className="stat-sub">GCSE and A-Level students</div>
           </div>
           <div className="stat-cell">
-            <div className="stat-num">5<em>★</em></div>
-            <div className="stat-label">Rated by parents</div>
-            <div className="stat-sub">Real families, real results</div>
+            <div className="stat-num">DBS<em>✓</em></div>
+            <div className="stat-label">Every tutor checked</div>
+            <div className="stat-sub">Enhanced DBS · subject interviewed</div>
           </div>
           <div className="stat-cell">
             <div className="stat-num">LSE</div>
@@ -373,11 +382,17 @@ export default function Home() {
             <div className="result-rows-label">Recent student outcomes</div>
             {RESULTS.map((r) => (
               <div className="result-row" key={r.subject}>
-                <div className="res-grade-block">
-                  <div className="res-before">{r.before}</div>
-                  <div className="res-arrow">→</div>
-                  <div className="res-after">{r.after}</div>
-                </div>
+                {r.after ? (
+                  <div className="res-grade-block">
+                    {r.before ? (
+                      <>
+                        <div className="res-before">{r.before}</div>
+                        <div className="res-arrow">→</div>
+                      </>
+                    ) : null}
+                    <div className="res-after">{r.after}</div>
+                  </div>
+                ) : null}
                 <div className="res-info">
                   <div className="res-subject">{r.subject}</div>
                   <div className="res-detail">{r.detail}</div>
@@ -440,7 +455,6 @@ export default function Home() {
                   />
                   <div className="tutor-photo-shade" />
                   <span className="tutor-pill-subject">{t.pill}</span>
-                  <span className="tutor-pill-rating">★ 4.9</span>
                 </div>
                 <div className="tutor-body">
                   <div className="tutor-name">{t.name}</div>
@@ -665,8 +679,8 @@ export default function Home() {
           </div>
           <div className="t-grid">
             {TESTIMONIALS.map((t) => (
-              <div className="t-card" key={t.name}>
-                <div className="t-stars">★★★★★</div>
+              <div className="t-card" key={t.role}>
+                <div className="t-stars">❝</div>
                 {t.badge ? <div className="t-badge">{t.badge}</div> : null}
                 <div className="t-text">{t.text}</div>
                 <div className="t-author">

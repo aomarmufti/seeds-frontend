@@ -18,9 +18,9 @@ import { OPEN_BOOKING_EVENT } from '@/components/landing/BookButton';
 // These endpoints are public — no Authorization header, matching legacy.
 
 const TUTORS = [
-  { name: 'Azeem Omar-Mufti', subject: 'Mathematics', line: 'GCSE & A-Level Mathematics', av: 'AO', rating: '★ 4.9' },
-  { name: 'Suleiman', subject: 'History & Arabic', line: 'GCSE & A-Level History, Arabic', av: 'S', rating: '★ 4.9' },
-  { name: 'Abdul-Moez', subject: 'Chemistry & Biology', line: 'GCSE & A-Level Chemistry, Biology', av: 'AM', rating: '★ 4.9' },
+  { name: 'Azeem Omar-Mufti', subject: 'Mathematics', line: 'GCSE & A-Level Mathematics', av: 'AO' },
+  { name: 'Suleiman', subject: 'History & Arabic', line: 'GCSE & A-Level History, Arabic', av: 'S' },
+  { name: 'Abdul-Moez', subject: 'Chemistry & Biology', line: 'GCSE & A-Level Chemistry, Biology', av: 'AM' },
   { name: 'Best available match', subject: 'Any subject', displayName: 'No preference', line: "We'll match the best specialist for you", av: '?', gold: true },
 ];
 

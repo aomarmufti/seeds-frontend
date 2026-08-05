@@ -93,6 +93,12 @@ test.describe('Admin portal', () => {
 
   test('the Today screen leads with what costs money when it is missed', async ({ page }) => {
     const now = Date.now();
+    // Still to come, but clamped so it stays on *today's* date however late in
+    // the day this runs — a plain now+2h lands tomorrow after 22:00 and drops
+    // the lesson out of the Today card.
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 0, 0);
+    const todayStart = Math.min(now + 2 * 3600e3, endOfDay.getTime());
     await stubBackend(page, {
       'resource=pending-profiles': PENDING,
       '/api/leads': LEADS,
@@ -102,8 +108,8 @@ test.describe('Admin portal', () => {
           {
             id: 'd1', subject: 'GCSE Maths', studentName: 'Ibrahim Khan',
             tutorName: 'Azeem Omar-Mufti',
-            startTime: new Date(now + 2 * 3600e3).toISOString(),
-            endTime: new Date(now + 2 * 3600e3 + 55 * 60e3).toISOString(),
+            startTime: new Date(todayStart).toISOString(),
+            endTime: new Date(todayStart + 55 * 60e3).toISOString(),
             status: 'confirmed', feePence: 4000,
           },
           // Taught, nobody said what happened — unbilled and unpayable.
