@@ -8,6 +8,7 @@ import {
 } from '@/lib/profile';
 import { PageHead, Card, Loading, ErrorNote, useAsync } from '@/components/ui';
 import { Field, TextInput, ReadOnly, SaveBar } from '@/components/profile/fields';
+import Enrolments from '@/components/student/Enrolments';
 
 /**
  * /student/profile (SCRUM-XX39) — the screen a parent needed and did not
@@ -24,19 +25,14 @@ import { Field, TextInput, ReadOnly, SaveBar } from '@/components/profile/fields
 export default function StudentProfilePage() {
   const { loading, error, data } = useAsync(async () => {
     const profile = await loadOwnProfile();
-    // Enriches the read-only half from what the family's own bookings
-    // already say — the tutors they actually see, not just the one field.
-    const bookings = await api('/api/analytics?resource=my-bookings').catch(() => null);
     const cycle = await api('/api/billing?resource=billing-cycle').catch(() => null);
     return {
       profile,
-      bookings: bookings?.recentBookings ?? [],
       billingCycle: cycle?.billingCycle || '',
     };
   }, []);
 
   const profile = data?.profile;
-  const bookings = data?.bookings ?? [];
 
   const [form, setForm] = useState(null);
   // What is currently stored, as far as we know. Compared against `form` to
@@ -102,10 +98,6 @@ export default function StudentProfilePage() {
       setBusy(false);
     }
   }
-
-  // The tutors this family has actually seen, which is more useful than the
-  // single assigned_tutor field when the two disagree.
-  const taughtBy = [...new Set(bookings.map((b) => b.tutorName).filter(Boolean))];
 
   return (
     <>
@@ -184,21 +176,14 @@ export default function StudentProfilePage() {
               value={profile?.email}
               why="Changing the address you sign in with needs verification — email hello@seedsinstitute.co.uk and we'll move it."
             />
-            <ReadOnly
-              label="Subject"
-              value={profile?.subject}
-              why="Set when you enrolled. To add or change a subject, email us — we're building this into the portal (SCRUM-XX38)."
-            />
-            <ReadOnly
-              label="Level"
-              value={profile?.level}
-              why="Your level sets your rate, so it's ours to change rather than yours."
-            />
-            <ReadOnly
-              label="Your tutor"
-              value={taughtBy.join(', ') || profile?.assigned_tutor}
-              why="Tutors are matched by us, so we can keep an eye on capacity and fit. Tell us if it isn't working and we'll move you."
-            />
+            {/* Subject, level and tutor used to sit here as three read-only
+                fields sourced from profiles.subject / .level / .assigned_tutor
+                — empty for most families, and since the enrolments migration
+                not where any of this lives. They belong together per subject
+                rather than as three unrelated facts, so they moved into the
+                enrolment list below: that one can say Maths is with Suleiman
+                and Arabic is with someone else, which three fields never
+                could. */}
             <ReadOnly
               label="Billing cycle"
               value={data?.billingCycle ? `Billed ${data.billingCycle}` : ''}
@@ -207,6 +192,8 @@ export default function StudentProfilePage() {
           </>
         )}
       </Card>
+
+      <Enrolments />
 
       <Card title="Not here yet">
         <p style={{ margin: 0, fontSize: '.85rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
